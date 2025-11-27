@@ -1,0 +1,51 @@
+[project]
+name = "mongo-odm"
+version = "0.1.0"
+description = "A lightweight Object Document Mapper for MongoDB"
+readme = "README.md"
+authors = [{ name = "Xavier Barbosa", email = "clint.northwood@gmail.com" }]
+requires-python = ">=3.12"
+dependencies = ["pymongo>=4.15.4"]
+keywords = ["mongodb", "odm", "document-mapper", "orm", "database"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+[build-system]
+requires = ["uv_build>=0.9.11,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+    "pytest>=9.0.1",
+    "pytest-cov>=7.0.0",
+    "pytest-subtests>=0.15.0",
+    "ruff>=0.14.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/johnoone/mongo-odm"
+Documentation = "https://mongo-odm.readthedocs.io"
+Repository = "https://github.com/johnoone/mongo-odm.git"
+Issues = "https://github.com/johnoone/mongo-odm/issues"
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+extend-select = ["ALL"]
+extend-ignore = [
+    "ANN401",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    "SIM108",
+]
