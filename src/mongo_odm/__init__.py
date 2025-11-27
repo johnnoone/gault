@@ -1,11 +1,29 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import MISSING, dataclass, field, fields
-from typing import Any, TypeVar, dataclass_transform, overload
+from collections.abc import Mapping
+from dataclasses import MISSING, dataclass, field, fields, replace
+from functools import singledispatchmethod
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Self,
+    TypedDict,
+    TypeVar,
+    Unpack,
+    cast,
+    dataclass_transform,
+    overload,
+)
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from pymongo.asynchronous.database import AsyncDatabase
+
 T = TypeVar("T", bound=Any)
+M = TypeVar("M", bound="Model")
 
 
 MODELS: dict[str, type[Model]] = WeakValueDictionary()
@@ -63,16 +81,19 @@ class Field[T: Any]:
         instance.__dict__[self.name] = value
 
 
+class FieldMetadata(TypedDict, total=False):
+    pk: bool
+    db_alias: str
+
+
 def configure(
-    *,
-    pk: bool = MISSING,
-    db_alias: str = MISSING,
+    **metadata: Unpack[FieldMetadata],
 ) -> Any:
-    metadata = drop_missing({"pk": pk, "db_alias": db_alias})
+    metadata = drop_missing(metadata)
     return field(metadata=metadata)
 
 
-def drop_missing(mapping: dict[str, Any]) -> dict[str, Any]:
+def drop_missing[T: Mapping](mapping: T) -> T:
     return {key: val for key, val in mapping.items() if val is not MISSING}
 
 
@@ -295,3 +316,105 @@ def prepare_rhs(obj: Any) -> Any:
 @dataclass
 class Path:
     value: str
+
+
+type Filter = Operator | Pipeline | dict | list | None
+
+
+@dataclass
+class NotFound(LookupError):
+    model: type[Model]
+    filter: Filter
+
+
+class AsyncManager:
+    def __init__(self, database: AsyncDatabase) -> None:
+        self.database = database
+
+    async def get[M: "Model"](self, model: type[M], filter: Filter = None) -> M:
+        if instance := await self.find(model, filter):
+            return instance
+        raise NotFound(model, filter)
+
+    async def find[M: "Model"](self, model: type[M], filter: Filter = None) -> M | None:
+        async for instance in self.select(model, filter, take=1):
+            return instance
+        return None
+
+    async def select[M: "Model"](
+        self,
+        model: type[M],
+        filter: Filter = None,
+        *,
+        skip: int | None = None,
+        take: int | None = None,
+    ) -> AsyncIterator[M]:
+        match filter:
+            case None:
+                filter = Pipeline()
+            case list():
+                filter = Pipeline(stages=filter)
+            case dict() | Operator():
+                filter = Pipeline().match(filter)
+
+        if skip:
+            filter = filter.skip(take)
+        if take:
+            filter = filter.take(take)
+        filter = filter.project(model).build()
+        collection = get_collection(model)
+        cursor = await self.database.get_collection(collection).aggregate(
+            pipeline=filter,
+        )
+        async for document in cursor:
+            instance = model(**document)
+            yield instance
+
+
+type Stage = dict[str, Any]
+
+
+@dataclass
+class Pipeline:
+    stages: list[Stage] = field(default_factory=list)
+
+    @singledispatchmethod
+    def match(self, query: dict) -> Self:
+        stage = {"$match": query}
+        return replace(self, stages=[*self.stages, stage])
+
+    @match.register
+    def _(self, query: Operator) -> Self:
+        stage = {"$match": query.compile()}
+        return replace(self, stages=[*self.stages, stage])
+
+    def skip(self, value: int) -> Self:
+        stage = {"$skip": value}
+        return replace(self, stages=[*self.stages, stage])
+
+    def take(self, value: int) -> Self:
+        stage = {"$limit": value}
+        return replace(self, stages=[*self.stages, stage])
+
+    def project(self, model: type[Model]) -> list[Stage]:
+        projection = {}
+        for field in fields(model):
+            if alias := cast("FieldMetadata", field.metadata).get("db_alias"):
+                projection[field.name] = "$" + alias
+            else:
+                projection[field.name] = True
+
+        if projection:
+            stage = {"$project": {"_id": False} | projection}
+            return replace(self, stages=[*self.stages, stage])
+        return self
+
+    def build(self) -> list[Stage]:
+        return list(self.stages)
+
+
+async def to_list[T: Any](iterator: AsyncIterator[T]) -> list[T]:
+    return [instance async for instance in iterator]
+
+
+type Document = dict[str, Any]

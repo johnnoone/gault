@@ -21,6 +21,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "anyio>=4.11.0",
     "mypy>=1.18.2",
     "pytest>=9.0.1",
     "pytest-cov>=7.0.0",
@@ -34,12 +35,17 @@ Documentation = "https://mongo-odm.readthedocs.io"
 Repository = "https://github.com/johnoone/mongo-odm.git"
 Issues = "https://github.com/johnoone/mongo-odm/issues"
 
+[tool.pytest.ini_options]
+anyio_mode = "auto"
+
 [tool.ruff]
 target-version = "py312"
 
 [tool.ruff.lint]
 extend-select = ["ALL"]
 extend-ignore = [
+    "A001",
+    "A002",
     "ANN401",
     "D101",
     "D102",
@@ -47,5 +53,7 @@ extend-ignore = [
     "D104",
     "D105",
     "D107",
+    "F402",
+    "N818",
     "SIM108",
 ]
