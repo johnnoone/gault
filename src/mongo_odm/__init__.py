@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import MISSING, dataclass, field, fields, replace
-from functools import singledispatchmethod
+from functools import cached_property, singledispatchmethod
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -29,13 +29,13 @@ T = TypeVar("T", bound=Any)
 M = TypeVar("M", bound="Model")
 
 
+MAPPERS: dict[type[Model], Mapper] = WeakKeyDictionary()
 MODELS: dict[str, type[Model]] = WeakValueDictionary()
 COLLECTIONS: dict[type[Model], str] = WeakKeyDictionary()
 
 
 def get_collection(model: Model | type[Model]) -> str:
-    if isinstance(model, Model):
-        model = type(model)
+    model = unwrap_model(model)
     return COLLECTIONS[model]
 
 
@@ -383,8 +383,10 @@ class AsyncManager:
         cursor = await self.database.get_collection(collection).aggregate(
             pipeline=filter,
         )
+
+        mapper = get_mapper(model)
         async for document in cursor:
-            instance = model(**document)
+            instance = mapper.map(document)
             yield instance
 
     async def insert(self, instance: M) -> M:
@@ -404,9 +406,10 @@ class AsyncManager:
             alias = cast("FieldMetadata", field.metadata).get("db_alias")
             document[alias or name] = getattr(instance, name)
 
+        mapper = get_mapper(instance)
         filter = {}
         on_update = {}
-        for model_field, db_field, pk in field_mapping(instance):
+        for model_field, db_field, pk in mapper.field_mapping:
             if pk:
                 filter[db_field] = {"$eq": getattr(instance, model_field)}
             else:
@@ -428,26 +431,55 @@ class AsyncManager:
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
+
+        return mapper.map(document)
+
+
+def get_mapper(model: M | type[M]) -> Mapper[M]:
+    model = unwrap_model(model)
+    if mapper := MAPPERS.get(model):
+        return mapper
+    mapper = MAPPERS[model] = Mapper(model)
+    return mapper
+
+
+def unwrap_model(model: M | type[M]) -> type[M]:
+    if isinstance(model, Model):
+        model = type(model)
+    return model
+
+
+class Mapper[M: "Model"]:
+    def __init__(self, model: type[M]) -> None:
+        self.model = model
+
+    @cached_property
+    def field_mapping(self) -> list[Corres]:
+        result = []
+        for field in fields(self.model):
+            model_field = field.name
+            metadata = cast("FieldMetadata", field.metadata)
+            db_field = metadata.get("db_alias")
+            pk = metadata.get("pk") or False
+            result.append(Corres(model_field, db_field or model_field, pk=pk))
+        return result
+
+    @cached_property
+    def db_fields(self) -> set[str]:
+        return {corres.db_field for corres in self.field_mapping}
+
+    def map(self, document: Document) -> M:
         attrs = {}
-        for model_field, db_field, _ in field_mapping(instance):
-            attrs[model_field] = document.get(db_field, MISSING)
-        attrs = drop_missing(attrs)
-        return type(instance)(**attrs)
+        for corres in self.field_mapping:
+            attrs[corres.model_field] = document.get(corres.db_field, MISSING)
+            attrs = drop_missing(attrs)
+        return self.model(**attrs)
 
 
 class Corres(NamedTuple):
     model_field: str
     db_field: str
     pk: bool
-
-
-def field_mapping(model: type[M] | M) -> list[Corres]:
-    result = []
-    for field in fields(model):
-        name = field.name
-        alias = cast("FieldMetadata", field.metadata).get("db_alias")
-        result.append(Corres(name, alias or name, pk=False))
-    return result
 
 
 type Stage = dict[str, Any]
@@ -476,12 +508,7 @@ class Pipeline:
         return replace(self, stages=[*self.stages, stage])
 
     def project(self, model: type[Model]) -> list[Stage]:
-        projection = {}
-        for field in fields(model):
-            if alias := cast("FieldMetadata", field.metadata).get("db_alias"):
-                projection[field.name] = "$" + alias
-            else:
-                projection[field.name] = True
+        projection = dict.fromkeys(get_mapper(model).db_fields, True)
 
         if projection:
             stage = {"$project": {"_id": False} | projection}
