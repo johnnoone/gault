@@ -359,12 +359,16 @@ class Unprocessable(ValueError):
 
 
 class AsyncManager:
-    def __init__(self, database: AsyncDatabase) -> None:
+    def __init__(
+        self, database: AsyncDatabase, *, persistence: Persistence | None = None
+    ) -> None:
         self.database = database
+        self._persistence = persistence
 
     @cached_property
     def persistence(self) -> Persistence:
-        return Persistence()
+        persistence = self._persistence = self._persistence or Persistence()
+        return persistence
 
     async def get[M: "Model"](self, model: type[M], filter: Filter = None) -> M:
         if instance := await self.find(model, filter):
@@ -418,7 +422,7 @@ class AsyncManager:
         self.persistence.mark_persisted(instance)
         return instance
 
-    async def save(self, instance: M) -> M:
+    async def save(self, instance: M, *, refresh: bool = False) -> M:
         document = {}
         for field in fields(instance):
             name = field.name
@@ -451,12 +455,33 @@ class AsyncManager:
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
-        persisted = mapper.map(document)
-        persisted.__hash__ = instance.__hash__
-        instance.__dict__ = persisted.__dict__
+        if refresh is True:
+            persisted = mapper.map(document)
+            instance.__dict__ = persisted.__dict__
 
         self.persistence.mark_persisted(instance)
         return instance
+
+    async def refresh(self, instance: M) -> M:
+        collection = get_collection(instance)
+        mapper = get_mapper(instance)
+        filter = {}
+        for corres in mapper.field_mapping:
+            if corres.pk:
+                filter[corres.db_field] = getattr(instance, corres.model_field)
+
+        if not filter:
+            raise Unprocessable(
+                unwrap_model(instance),
+                reason="model must declare one field as pk",
+            )
+
+        if document := await self.database.get_collection(collection).find_one(filter):
+            persisted = mapper.map(document)
+            instance.__dict__ = persisted.__dict__
+            self.persistence.mark_persisted(instance)
+            return instance
+        raise NotFound(type(instance), filter)
 
 
 class Persistence:

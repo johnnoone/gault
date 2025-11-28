@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 
-from mongo_odm import AsyncManager
+from mongo_odm import AsyncManager, Persistence
 
 
 @pytest.fixture
@@ -29,5 +29,10 @@ async def get_database(client) -> AsyncIterator[AsyncDatabase]:
 
 
 @pytest.fixture(name="manager")
-def get_manager(database: AsyncDatabase) -> AsyncManager:
-    return AsyncManager(database=database)
+def get_manager(database: AsyncDatabase, persistence: Persistence) -> AsyncManager:
+    return AsyncManager(database=database, persistence=persistence)
+
+
+@pytest.fixture(name="persistence")
+def get_persistence() -> Persistence:
+    return Persistence()

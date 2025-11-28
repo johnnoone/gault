@@ -1,6 +1,14 @@
 from pymongo.asynchronous.database import AsyncDatabase
 import pytest
-from mongo_odm import AsyncManager, Field, Model, configure, to_list, NotFound
+from mongo_odm import (
+    AsyncManager,
+    Field,
+    Model,
+    Persistence,
+    configure,
+    to_list,
+    NotFound,
+)
 
 
 class Person(Model, collection="my-collection"):
@@ -10,7 +18,7 @@ class Person(Model, collection="my-collection"):
 
 
 @pytest.fixture(name="people")
-async def get_people(database: AsyncDatabase):
+async def get_people(database: AsyncDatabase, persistence: Persistence):
     await database.get_collection("my-collection").insert_many(
         [
             {"id": 1, "name": "name1", "person_age": 22},
@@ -18,11 +26,14 @@ async def get_people(database: AsyncDatabase):
             {"id": 123, "name": "my-name", "person_age": 42},
         ]
     )
-    return [
+    people = [
         Person(id=1, name="name1", age=22),
         Person(id=1, name="name1", age=22),
         Person(id=123, name="my-name", age=42),
     ]
+    for person in people:
+        persistence.mark_persisted(person)
+    return people
 
 
 @pytest.mark.usefixtures("people")
@@ -99,3 +110,56 @@ async def test_save(manager: AsyncManager, subtests):
 
     persisted = await manager.find(Person, filter=Person.id == 111)
     assert persisted == person
+
+
+async def test_refresh(manager: AsyncManager, subtests):
+    person1 = Person(id=111, name="name111", age=22)
+    person2 = Person(id=111, name="other-name", age=99)
+
+    await manager.save(person1)
+
+    with subtests.test("they are different"):
+        assert person1 != person2
+
+    with subtests.test("they have the same attributes"):
+        await manager.refresh(person2)
+
+        assert person1 == person2
+
+
+@pytest.mark.xfail(reason="Need mark dirty fields")
+async def test_save_with_refresh(manager: AsyncManager, subtests):
+    # Simulate concurrent writes.
+    # need to check that call refresh with latest data
+    person = Person(id=1, name="previous-name", age=11)
+    await manager.insert(person)
+
+    # some background writes
+    background = Person(id=1, name="changed-name", age=11)
+    await manager.save(background)
+
+    # our change
+    person.age = 42
+
+    await manager.save(person, refresh=True)
+    await person.name == "changed-name", "It should have took the background write"
+    await person.age == 42, "It should have changed"
+
+
+@pytest.mark.xfail(reason="Need mark dirty fields")
+async def test_save_without_refresh(manager: AsyncManager, subtests):
+    # Simulate concurrent writes.
+    # need to check that call refresh with latest data
+    person = Person(id=1, name="previous-name", age=11)
+    await manager.insert(person)
+
+    # some background writes
+    background = Person(id=1, name="changed-name", age=11)
+    await manager.save(background)
+
+    # our change
+    person.age = 42
+
+    await manager.save(person, refresh=True)
+    await person.name == "previous-name", "It should have kept the current name"
+    await person.age == 42, "It should have changed"
