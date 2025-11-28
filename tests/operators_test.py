@@ -6,9 +6,7 @@ from mongo_odm import (
     Lt,
     Lte,
     Model,
-    Field,
     Nin,
-    configure,
     Attribute,
     Eq,
     Path,
@@ -17,25 +15,6 @@ from mongo_odm import (
     Or,
     Not,
 )
-
-
-def test_yes():
-    assert True
-
-
-def test_np():
-    class Foo(Model, collection="coll"):
-        id: Field[int]
-        name: Field[str] = configure(db_alias="some_db_field")
-
-    instance = Foo(id="string", name=124)
-
-    print("instance.id", instance.id)
-    print("instance.name", instance.name)
-
-    print("Foo.id", Foo.id)
-    print('Foo.name == "toto"', Foo.name == "toto")
-    print("Foo.name is Foo.foo", Foo.name is Foo.id)
 
 
 def test_operation_eq(subtests):

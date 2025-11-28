@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
+from copy import deepcopy
 from dataclasses import MISSING, dataclass, field, fields, replace
 from functools import cached_property, singledispatchmethod
 from typing import (
@@ -43,26 +44,34 @@ def get_model(collection: str) -> type[Model]:
     return MODELS[collection]
 
 
-def generate_id() -> Iterator[int]:
-    value = 1
-    while True:
-        yield value
-        value += 1
+class StateTracker:
+    def __init__(self) -> None:
+        self._states: dict[Model, str] = WeakKeyDictionary()
 
+    def snapshot(self, instance: Model) -> None:
+        self._states[instance] = deepcopy(instance.__dict__)
 
-id_generator = generate_id()
+    def reset(self, instance: Model) -> None:
+        instance.__dict__ = deepcopy(self._states[instance])
+
+    def get_dirty_fields(self, instance: Model) -> set[str]:
+        dirty_fields = set()
+        state = instance.__dict__
+        for key, val in self._states[instance].items():
+            if state[key] != val:
+                dirty_fields.add(key)
+        return dirty_fields
 
 
 @dataclass_transform()
 class Model:
     def __init_subclass__(cls, collection: str) -> None:
-        dataclass(cls, init=True, repr=True, unsafe_hash=True)
+        dataclass(cls, init=True, repr=True)
         for dataclass_field in fields(cls):
             field = Field(name=dataclass_field.name, **dataclass_field.metadata)
             setattr(cls, dataclass_field.name, field)
 
-        cls_id = id((cls, next(id_generator)))
-        cls.__hash__ = lambda _: cls_id
+        cls.__hash__ = object.__hash__
 
         MODELS[collection] = cls
         COLLECTIONS[cls] = collection
@@ -364,14 +373,21 @@ class AsyncManager:
         database: AsyncDatabase,
         *,
         persistence: Persistence | None = None,
+        state_tracker: StateTracker | None = None,
     ) -> None:
         self.database = database
         self._persistence = persistence
+        self._state_tracker = state_tracker
 
     @cached_property
     def persistence(self) -> Persistence:
         persistence = self._persistence = self._persistence or Persistence()
         return persistence
+
+    @cached_property
+    def state_tracker(self) -> StateTracker:
+        state_tracker = self._state_tracker = self._state_tracker or StateTracker()
+        return state_tracker
 
     async def get[M: "Model"](self, model: type[M], filter: Filter = None) -> M:
         if instance := await self.find(model, filter):
@@ -412,6 +428,8 @@ class AsyncManager:
         mapper = get_mapper(model)
         async for document in cursor:
             instance = mapper.map(document)
+            self.persistence.mark_persisted(instance)
+            self.state_tracker.snapshot(instance)
             yield instance
 
     async def insert(self, instance: M) -> M:
@@ -423,6 +441,7 @@ class AsyncManager:
         collection = get_collection(instance)
         await self.database.get_collection(collection).insert_one(document)
         self.persistence.mark_persisted(instance)
+        self.state_tracker.snapshot(instance)
         return instance
 
     async def save(self, instance: M, *, refresh: bool = False) -> M:
@@ -463,6 +482,7 @@ class AsyncManager:
             instance.__dict__ = persisted.__dict__
 
         self.persistence.mark_persisted(instance)
+        self.state_tracker.snapshot(instance)
         return instance
 
     async def refresh(self, instance: M) -> M:
