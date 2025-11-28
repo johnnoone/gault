@@ -25,11 +25,6 @@ async def get_people(database: AsyncDatabase):
     ]
 
 
-@pytest.fixture(name="manager")
-def get_manager(database: AsyncDatabase) -> AsyncManager:
-    return AsyncManager(database=database)
-
-
 @pytest.mark.usefixtures("people")
 async def test_find(manager: AsyncManager, subtests):
     with subtests.test("is Person"):

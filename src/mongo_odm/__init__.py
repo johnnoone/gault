@@ -16,7 +16,7 @@ from typing import (
     dataclass_transform,
     overload,
 )
-from weakref import WeakKeyDictionary, WeakValueDictionary
+from weakref import WeakKeyDictionary, WeakSet, WeakValueDictionary
 
 from pymongo import ReturnDocument
 
@@ -43,6 +43,16 @@ def get_model(collection: str) -> type[Model]:
     return MODELS[collection]
 
 
+def generate_id():
+    value = 1
+    while True:
+        yield value
+        value += 1
+
+
+id_generator = generate_id()
+
+
 @dataclass_transform()
 class Model:
     def __init_subclass__(cls, collection: str) -> None:
@@ -50,6 +60,10 @@ class Model:
         for dataclass_field in fields(cls):
             field = Field(name=dataclass_field.name, **dataclass_field.metadata)
             setattr(cls, dataclass_field.name, field)
+
+        cls_id = id((cls, next(id_generator)))
+        cls.__hash__ = lambda _: cls_id
+
         MODELS[collection] = cls
         COLLECTIONS[cls] = collection
 
@@ -348,6 +362,10 @@ class AsyncManager:
     def __init__(self, database: AsyncDatabase) -> None:
         self.database = database
 
+    @cached_property
+    def persistence(self) -> Persistence:
+        return Persistence()
+
     async def get[M: "Model"](self, model: type[M], filter: Filter = None) -> M:
         if instance := await self.find(model, filter):
             return instance
@@ -397,6 +415,7 @@ class AsyncManager:
             document[alias or name] = getattr(instance, name)
         collection = get_collection(instance)
         await self.database.get_collection(collection).insert_one(document)
+        self.persistence.mark_persisted(instance)
         return instance
 
     async def save(self, instance: M) -> M:
@@ -417,7 +436,8 @@ class AsyncManager:
 
         if not filter:
             raise Unprocessable(
-                unwrap_model(instance), reason="model must declare one field as pk"
+                unwrap_model(instance),
+                reason="model must declare one field as pk",
             )
 
         update = {}
@@ -431,8 +451,26 @@ class AsyncManager:
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
+        persisted = mapper.map(document)
+        persisted.__hash__ = instance.__hash__
+        instance.__dict__ = persisted.__dict__
 
-        return mapper.map(document)
+        self.persistence.mark_persisted(instance)
+        return instance
+
+
+class Persistence:
+    def __init__(self) -> None:
+        self._instances: set[Model] = WeakSet()
+
+    def is_persisted(self, instance: Model) -> bool:
+        return instance in self._instances
+
+    def mark_persisted(self, instance: Model) -> None:
+        self._instances.add(instance)
+
+    def forget(self, instance: Model) -> None:
+        self._instances.remove(instance)
 
 
 def get_mapper(model: M | type[M]) -> Mapper[M]:
