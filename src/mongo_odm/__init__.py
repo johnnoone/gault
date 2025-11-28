@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import MISSING, dataclass, field, fields, replace
 from functools import cached_property, singledispatchmethod
 from typing import (
@@ -43,7 +43,7 @@ def get_model(collection: str) -> type[Model]:
     return MODELS[collection]
 
 
-def generate_id():
+def generate_id() -> Iterator[int]:
     value = 1
     while True:
         yield value
@@ -360,7 +360,10 @@ class Unprocessable(ValueError):
 
 class AsyncManager:
     def __init__(
-        self, database: AsyncDatabase, *, persistence: Persistence | None = None
+        self,
+        database: AsyncDatabase,
+        *,
+        persistence: Persistence | None = None,
     ) -> None:
         self.database = database
         self._persistence = persistence
