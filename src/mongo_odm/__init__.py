@@ -7,6 +7,7 @@ from functools import singledispatchmethod
 from typing import (
     TYPE_CHECKING,
     Any,
+    NamedTuple,
     Self,
     TypedDict,
     TypeVar,
@@ -16,6 +17,8 @@ from typing import (
     overload,
 )
 from weakref import WeakKeyDictionary, WeakValueDictionary
+
+from pymongo import ReturnDocument
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -369,6 +372,63 @@ class AsyncManager:
         async for document in cursor:
             instance = model(**document)
             yield instance
+
+    async def insert(self, instance: M) -> M:
+        document = {}
+        for field in fields(instance):
+            name = field.name
+            alias = cast("FieldMetadata", field.metadata).get("db_alias")
+            document[alias or name] = getattr(instance, name)
+        collection = get_collection(instance)
+        await self.database.get_collection(collection).insert_one(document)
+        return instance
+
+    async def save(self, instance: M) -> M:
+        document = {}
+        for field in fields(instance):
+            name = field.name
+            alias = cast("FieldMetadata", field.metadata).get("db_alias")
+            document[alias or name] = getattr(instance, name)
+
+        filter = {}
+        on_update = {}
+        for model_field, db_field, pk in field_mapping(instance):
+            if pk:
+                filter[db_field] = {"$eq": getattr(instance, model_field)}
+            else:
+                on_update[db_field] = getattr(instance, model_field)
+
+        update = {}
+        if on_update:
+            update["$set"] = on_update
+
+        collection = get_collection(instance)
+        document = await self.database.get_collection(collection).find_one_and_update(
+            filter=filter,
+            update=update,
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
+        )
+        attrs = {}
+        for model_field, db_field, _ in field_mapping(instance):
+            attrs[model_field] = document.get(db_field, MISSING)
+        attrs = drop_missing(attrs)
+        return type(instance)(**attrs)
+
+
+class Corres(NamedTuple):
+    model_field: str
+    db_field: str
+    pk: bool
+
+
+def field_mapping(model: type[M] | M) -> list[Corres]:
+    result = []
+    for field in fields(model):
+        name = field.name
+        alias = cast("FieldMetadata", field.metadata).get("db_alias")
+        result.append(Corres(name, alias or name, pk=False))
+    return result
 
 
 type Stage = dict[str, Any]

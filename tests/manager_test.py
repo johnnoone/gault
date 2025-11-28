@@ -4,7 +4,7 @@ from mongo_odm import AsyncManager, Field, Model, configure, to_list, NotFound
 
 
 class Person(Model, collection="my-collection"):
-    id: Field[int]
+    id: Field[int] = configure(pk=True)
     name: Field[str]
     age: Field[int] = configure(db_alias="person_age")
 
@@ -80,3 +80,27 @@ async def test_select(manager: AsyncManager, subtests):
             Person(id=1, name="name1", age=22),
             Person(id=2, name="name2", age=22),
         ]
+
+
+async def test_insert(manager: AsyncManager, subtests):
+    person = Person(id=111, name="name111", age=22)
+    persisted = await manager.find(Person, filter=Person.id == 111)
+    assert persisted is None
+
+    persisted = await manager.insert(person)
+    assert persisted == person
+
+    persisted = await manager.find(Person, filter=Person.id == 111)
+    assert persisted == person
+
+
+async def test_save(manager: AsyncManager, subtests):
+    person = Person(id=111, name="name111", age=22)
+    persisted = await manager.find(Person, filter=Person.id == 111)
+    assert persisted is None
+
+    persisted = await manager.save(person)
+    assert persisted == person
+
+    persisted = await manager.find(Person, filter=Person.id == 111)
+    assert persisted == person
