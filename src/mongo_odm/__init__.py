@@ -329,6 +329,20 @@ class NotFound(LookupError):
     model: type[Model]
     filter: Filter
 
+    def __post_init__(self) -> None:
+        msg = f"Instance of {self.model.__name__} not found"
+        super().__init__(msg)
+
+
+@dataclass
+class Unprocessable(ValueError):
+    model: type[Model]
+    reason: str
+
+    def __post_init__(self) -> None:
+        msg = f"Unprocessable {self.model.__name__} ; {self.reason}"
+        super().__init__(msg)
+
 
 class AsyncManager:
     def __init__(self, database: AsyncDatabase) -> None:
@@ -397,6 +411,11 @@ class AsyncManager:
                 filter[db_field] = {"$eq": getattr(instance, model_field)}
             else:
                 on_update[db_field] = getattr(instance, model_field)
+
+        if not filter:
+            raise Unprocessable(
+                unwrap_model(instance), reason="model must declare one field as pk"
+            )
 
         update = {}
         if on_update:
