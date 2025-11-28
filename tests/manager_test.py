@@ -127,7 +127,6 @@ async def test_refresh(manager: AsyncManager, subtests):
         assert person1 == person2
 
 
-@pytest.mark.xfail(reason="Need mark dirty fields")
 async def test_save_with_refresh(manager: AsyncManager, subtests):
     # Simulate concurrent writes.
     # need to check that call refresh with latest data
@@ -136,17 +135,16 @@ async def test_save_with_refresh(manager: AsyncManager, subtests):
 
     # some background writes
     background = Person(id=1, name="changed-name", age=11)
-    await manager.save(background)
+    await manager.save(background, atomic=True)
 
     # our change
     person.age = 42
 
-    await manager.save(person, refresh=True)
-    await person.name == "changed-name", "It should have took the background write"
-    await person.age == 42, "It should have changed"
+    await manager.save(person, refresh=True, atomic=True)
+    assert person.name == "changed-name", "It should have took the background write"
+    assert person.age == 42, "It should have changed"
 
 
-@pytest.mark.xfail(reason="Need mark dirty fields")
 async def test_save_without_refresh(manager: AsyncManager, subtests):
     # Simulate concurrent writes.
     # need to check that call refresh with latest data
@@ -155,11 +153,11 @@ async def test_save_without_refresh(manager: AsyncManager, subtests):
 
     # some background writes
     background = Person(id=1, name="changed-name", age=11)
-    await manager.save(background)
+    await manager.save(background, atomic=True)
 
     # our change
     person.age = 42
 
-    await manager.save(person, refresh=True)
-    await person.name == "previous-name", "It should have kept the current name"
-    await person.age == 42, "It should have changed"
+    await manager.save(person, refresh=False, atomic=True)
+    assert person.name == "previous-name", "It should have kept the current name"
+    assert person.age == 42, "It should have changed"

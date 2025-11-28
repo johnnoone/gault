@@ -56,10 +56,11 @@ class StateTracker:
 
     def get_dirty_fields(self, instance: Model) -> set[str]:
         dirty_fields = set()
-        state = instance.__dict__
-        for key, val in self._states[instance].items():
-            if state[key] != val:
-                dirty_fields.add(key)
+        if snapshoted := self._states.get(instance):
+            state = instance.__dict__
+            for key, val in snapshoted.items():
+                if state[key] != val:
+                    dirty_fields.add(key)
         return dirty_fields
 
 
@@ -444,7 +445,13 @@ class AsyncManager:
         self.state_tracker.snapshot(instance)
         return instance
 
-    async def save(self, instance: M, *, refresh: bool = False) -> M:
+    async def save(
+        self,
+        instance: M,
+        *,
+        refresh: bool = False,
+        atomic: bool = False,
+    ) -> M:
         document = {}
         for field in fields(instance):
             name = field.name
@@ -453,10 +460,16 @@ class AsyncManager:
 
         mapper = get_mapper(instance)
         filter = {}
+        atomic = atomic and self.persistence.is_persisted(instance)
+        dirty_fields = self.state_tracker.get_dirty_fields(instance)
+
+        on_insert = {}
         on_update = {}
         for model_field, db_field, pk in mapper.field_mapping:
             if pk:
                 filter[db_field] = {"$eq": getattr(instance, model_field)}
+            elif atomic and model_field not in dirty_fields:
+                on_insert[db_field] = getattr(instance, model_field)
             else:
                 on_update[db_field] = getattr(instance, model_field)
 
@@ -467,6 +480,8 @@ class AsyncManager:
             )
 
         update = {}
+        if on_insert:
+            update["$setOnInsert"] = on_insert
         if on_update:
             update["$set"] = on_update
 
