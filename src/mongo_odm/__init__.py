@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from copy import deepcopy
 from dataclasses import MISSING, dataclass, field, fields, replace
 from functools import cached_property, singledispatchmethod
@@ -26,16 +26,19 @@ if TYPE_CHECKING:
 
     from pymongo.asynchronous.database import AsyncDatabase
 
+    from .accumulators import Accumulator
+
 T = TypeVar("T", bound=Any)
 M = TypeVar("M", bound="Model")
+MP = TypeVar("MP", bound="Model | Projection")
 
 
 MAPPERS: dict[type[Model], Mapper] = WeakKeyDictionary()
 MODELS: dict[str, type[Model]] = WeakValueDictionary()
-COLLECTIONS: dict[type[Model], str] = WeakKeyDictionary()
+COLLECTIONS: dict[type[Model | Projection], str] = WeakKeyDictionary()
 
 
-def get_collection(model: Model | type[Model]) -> str:
+def get_collection(model: type[Model | Projection] | Model | Projection) -> str:
     model = unwrap_model(model)
     return COLLECTIONS[model]
 
@@ -46,15 +49,15 @@ def get_model(collection: str) -> type[Model]:
 
 class StateTracker:
     def __init__(self) -> None:
-        self._states: dict[Model, str] = WeakKeyDictionary()
+        self._states: dict[MP, str] = WeakKeyDictionary()
 
-    def snapshot(self, instance: Model) -> None:
+    def snapshot(self, instance: MP) -> None:
         self._states[instance] = deepcopy(instance.__dict__)
 
-    def reset(self, instance: Model) -> None:
+    def reset(self, instance: MP) -> None:
         instance.__dict__ = deepcopy(self._states[instance])
 
-    def get_dirty_fields(self, instance: Model) -> set[str]:
+    def get_dirty_fields(self, instance: MP) -> set[str]:
         dirty_fields = set()
         if snapshoted := self._states.get(instance):
             state = instance.__dict__
@@ -64,10 +67,10 @@ class StateTracker:
         return dirty_fields
 
 
-@dataclass_transform()
+@dataclass_transform(kw_only_default=True)
 class Model:
     def __init_subclass__(cls, collection: str) -> None:
-        dataclass(cls, init=True, repr=True)
+        dataclass(cls, init=True, repr=True, kw_only=True)
         for dataclass_field in fields(cls):
             field = Field(name=dataclass_field.name, **dataclass_field.metadata)
             setattr(cls, dataclass_field.name, field)
@@ -75,6 +78,19 @@ class Model:
         cls.__hash__ = object.__hash__
 
         MODELS[collection] = cls
+        COLLECTIONS[cls] = collection
+
+
+@dataclass_transform(kw_only_default=True)
+class Projection:
+    def __init_subclass__(cls, collection: str) -> None:
+        dataclass(cls, init=True, repr=True, kw_only=True)
+        for dataclass_field in fields(cls):
+            field = Field(name=dataclass_field.name, **dataclass_field.metadata)
+            setattr(cls, dataclass_field.name, field)
+
+        cls.__hash__ = object.__hash__
+
         COLLECTIONS[cls] = collection
 
 
@@ -129,7 +145,7 @@ class Attribute[T: Any]:
 
     def __init__(
         self,
-        owner: type[Model],
+        owner: type[MP],
         name: str,
         db_alias: str | None = None,
     ) -> None:
@@ -140,28 +156,28 @@ class Attribute[T: Any]:
     def __hash__(self) -> None:
         return hash((self.owner, self.name, self.db_alias))
 
-    def eq(self, other: Any) -> Operator:
+    def eq(self, other: T | Path | Attribute) -> Operator:
         return Eq(self, other)
 
-    def ne(self, other: Any) -> Operator:
+    def ne(self, other: T | Path | Attribute) -> Operator:
         return Ne(self, other)
 
-    def lt(self, other: Any) -> Operator:
+    def lt(self, other: T | Path | Attribute) -> Operator:
         return Lt(self, other)
 
-    def lte(self, other: Any) -> Operator:
+    def lte(self, other: T | Path | Attribute) -> Operator:
         return Lte(self, other)
 
-    def gt(self, other: Any) -> Operator:
+    def gt(self, other: T | Path | Attribute) -> Operator:
         return Gt(self, other)
 
-    def gte(self, other: Any) -> Operator:
+    def gte(self, other: T | Path | Attribute) -> Operator:
         return Gte(self, other)
 
-    def in_(self, other: Any) -> Operator:
+    def in_(self, other: T | Path | Attribute) -> Operator:
         return In(self, other)
 
-    def nin(self, other: Any) -> Operator:
+    def nin(self, other: T | Path | Attribute) -> Operator:
         return Nin(self, other)
 
     __eq__ = eq
@@ -359,6 +375,16 @@ class NotFound(LookupError):
 
 
 @dataclass
+class Forbidden(TypeError):
+    model: type[Model]
+    reason: str
+
+    def __post_init__(self) -> None:
+        msg = f"Forbidden {self.model.__name__} ; {self.reason}"
+        super().__init__(msg)
+
+
+@dataclass
 class Unprocessable(ValueError):
     model: type[Model]
     reason: str
@@ -390,24 +416,24 @@ class AsyncManager:
         state_tracker = self._state_tracker = self._state_tracker or StateTracker()
         return state_tracker
 
-    async def get[M: "Model"](self, model: type[M], filter: Filter = None) -> M:
+    async def get(self, model: type[MP], filter: Filter = None) -> MP:
         if instance := await self.find(model, filter):
             return instance
         raise NotFound(model, filter)
 
-    async def find[M: "Model"](self, model: type[M], filter: Filter = None) -> M | None:
+    async def find(self, model: type[MP], filter: Filter = None) -> MP | None:
         async for instance in self.select(model, filter, take=1):
             return instance
         return None
 
-    async def select[M: "Model"](
+    async def select(
         self,
-        model: type[M],
+        model: type[MP],
         filter: Filter = None,
         *,
         skip: int | None = None,
         take: int | None = None,
-    ) -> AsyncIterator[M]:
+    ) -> AsyncIterator[MP]:
         match filter:
             case None:
                 filter = Pipeline()
@@ -415,6 +441,10 @@ class AsyncManager:
                 filter = Pipeline(stages=filter)
             case dict() | Operator():
                 filter = Pipeline().match(filter)
+            case Pipeline():
+                pass
+            case _:
+                raise NotImplementedError(filter)
 
         if skip:
             filter = filter.skip(take)
@@ -422,6 +452,7 @@ class AsyncManager:
             filter = filter.take(take)
         filter = filter.project(model).build()
         collection = get_collection(model)
+
         cursor = await self.database.get_collection(collection).aggregate(
             pipeline=filter,
         )
@@ -434,11 +465,12 @@ class AsyncManager:
             yield instance
 
     async def insert(self, instance: M) -> M:
-        document = {}
-        for field in fields(instance):
-            name = field.name
-            alias = cast("FieldMetadata", field.metadata).get("db_alias")
-            document[alias or name] = getattr(instance, name)
+        if not isinstance(instance, Model):
+            raise Forbidden(
+                unwrap_model(instance),
+                reason="Only model allowed for insert",
+            )
+        document = get_mapper(instance).to_document(instance)
         collection = get_collection(instance)
         await self.database.get_collection(collection).insert_one(document)
         self.persistence.mark_persisted(instance)
@@ -452,11 +484,11 @@ class AsyncManager:
         refresh: bool = False,
         atomic: bool = False,
     ) -> M:
-        document = {}
-        for field in fields(instance):
-            name = field.name
-            alias = cast("FieldMetadata", field.metadata).get("db_alias")
-            document[alias or name] = getattr(instance, name)
+        if not isinstance(instance, Model):
+            raise Forbidden(
+                unwrap_model(instance),
+                reason="Only model allowed for insert",
+            )
 
         mapper = get_mapper(instance)
         filter = {}
@@ -465,13 +497,13 @@ class AsyncManager:
 
         on_insert = {}
         on_update = {}
-        for model_field, db_field, pk in mapper.field_mapping:
+        for model_field, db_field, value, pk in mapper.iter_document(instance):
             if pk:
-                filter[db_field] = {"$eq": getattr(instance, model_field)}
+                filter[db_field] = {"$eq": value}
             elif atomic and model_field not in dirty_fields:
-                on_insert[db_field] = getattr(instance, model_field)
+                on_insert[db_field] = value
             else:
-                on_update[db_field] = getattr(instance, model_field)
+                on_update[db_field] = value
 
         if not filter:
             raise Unprocessable(
@@ -500,13 +532,10 @@ class AsyncManager:
         self.state_tracker.snapshot(instance)
         return instance
 
-    async def refresh(self, instance: M) -> M:
+    async def refresh(self, instance: MP) -> MP:
         collection = get_collection(instance)
         mapper = get_mapper(instance)
-        filter = {}
-        for corres in mapper.field_mapping:
-            if corres.pk:
-                filter[corres.db_field] = getattr(instance, corres.model_field)
+        filter = mapper.to_filter(instance)
 
         if not filter:
             raise Unprocessable(
@@ -524,19 +553,19 @@ class AsyncManager:
 
 class Persistence:
     def __init__(self) -> None:
-        self._instances: set[Model] = WeakSet()
+        self._instances: set[MP] = WeakSet()
 
-    def is_persisted(self, instance: Model) -> bool:
+    def is_persisted(self, instance: MP) -> bool:
         return instance in self._instances
 
-    def mark_persisted(self, instance: Model) -> None:
+    def mark_persisted(self, instance: MP) -> None:
         self._instances.add(instance)
 
-    def forget(self, instance: Model) -> None:
+    def forget(self, instance: MP) -> None:
         self._instances.remove(instance)
 
 
-def get_mapper(model: M | type[M]) -> Mapper[M]:
+def get_mapper(model: MP | type[MP]) -> Mapper[MP]:
     model = unwrap_model(model)
     if mapper := MAPPERS.get(model):
         return mapper
@@ -544,14 +573,14 @@ def get_mapper(model: M | type[M]) -> Mapper[M]:
     return mapper
 
 
-def unwrap_model(model: M | type[M]) -> type[M]:
-    if isinstance(model, Model):
+def unwrap_model(model: MP | type[MP]) -> type[MP]:
+    if isinstance(model, Model | Projection):
         model = type(model)
     return model
 
 
-class Mapper[M: "Model"]:
-    def __init__(self, model: type[M]) -> None:
+class Mapper:
+    def __init__(self, model: type[MP]) -> None:
         self.model = model
 
     @cached_property
@@ -576,10 +605,38 @@ class Mapper[M: "Model"]:
             attrs = drop_missing(attrs)
         return self.model(**attrs)
 
+    def to_document(self, instance: M) -> Document:
+        return {
+            corres.db_field: corres.value for corres in self.iter_document(instance)
+        }
+
+    def to_filter(self, instance: M) -> Document:
+        return {
+            corres.db_field: corres.value
+            for corres in self.iter_document(instance)
+            if corres.pk is True
+        }
+
+    def iter_document(self, instance: M) -> Iterator[C]:
+        for corres in self.field_mapping:
+            yield C(
+                corres.model_field,
+                corres.db_field,
+                getattr(instance, corres.model_field),
+                corres.pk,
+            )
+
 
 class Corres(NamedTuple):
     model_field: str
     db_field: str
+    pk: bool
+
+
+class C(NamedTuple):
+    model_field: str
+    db_field: str
+    value: Any
     pk: bool
 
 
@@ -615,6 +672,23 @@ class Pipeline:
             stage = {"$project": {"_id": False} | projection}
             return replace(self, stages=[*self.stages, stage])
         return self
+
+    def group(
+        self,
+        on: Path | str | None,
+        accumulators: dict[str, Accumulator],
+    ) -> Self:
+        stage = {
+            "$group": {
+                "_id": on,
+            }
+            | {key: val.compile() for key, val in accumulators.items()},
+        }
+        return replace(self, stages=[*self.stages, stage])
+
+    def set(self, fields: dict[str, Any]) -> Self:
+        stage = {"$set": dict(fields.items())}
+        return replace(self, stages=[*self.stages, stage])
 
     def build(self) -> list[Stage]:
         return list(self.stages)
