@@ -10,30 +10,30 @@ from .operators import Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Operator
 from .types import AttributeBase, Path
 from .utils import drop_missing
 
-MODELS: dict[str, type[Model]] = WeakValueDictionary()
-COLLECTIONS: dict[type[Model | Projection], str] = WeakKeyDictionary()
+SCHEMAS: dict[str, type[Schema]] = WeakValueDictionary()
+COLLECTIONS: dict[type[Schema | Model], str] = WeakKeyDictionary()
 
 
 def unwrap_model(
-    model: Model | Projection | type[Model | Projection],
-) -> type[Model | Projection]:
-    if isinstance(model, Model | Projection):
+    model: Schema | Model | type[Schema | Model],
+) -> type[Schema | Model]:
+    if isinstance(model, Schema | Model):
         model = type(model)
     return model
 
 
-def get_collection(model: type[Model | Projection] | Model | Projection) -> str:
+def get_collection(model: type[Schema | Model] | Schema | Model) -> str:
     model = unwrap_model(model)
     return COLLECTIONS[model]
 
 
-def get_model(collection: str) -> type[Model]:
-    return MODELS[collection]
+def get_schema(collection: str) -> type[Schema]:
+    return SCHEMAS[collection]
 
 
 @dataclass_transform(kw_only_default=True)
 class Model:
-    def __init_subclass__(cls, collection: str) -> None:
+    def __init_subclass__(cls, collection: str | None = None) -> None:
         dataclass(cls, init=True, repr=True, kw_only=True)
         for dataclass_field in fields(cls):
             field = Field(name=dataclass_field.name, **dataclass_field.metadata)
@@ -41,21 +41,18 @@ class Model:
 
         cls.__hash__ = object.__hash__
 
-        MODELS[collection] = cls
         COLLECTIONS[cls] = collection
 
 
 @dataclass_transform(kw_only_default=True)
-class Projection:
+class Schema(Model, collection=None):
     def __init_subclass__(cls, collection: str) -> None:
-        dataclass(cls, init=True, repr=True, kw_only=True)
-        for dataclass_field in fields(cls):
-            field = Field(name=dataclass_field.name, **dataclass_field.metadata)
-            setattr(cls, dataclass_field.name, field)
+        if collection is None:
+            msg = "collection is required"
+            raise ValueError(msg)
 
-        cls.__hash__ = object.__hash__
-
-        COLLECTIONS[cls] = collection
+        super().__init_subclass__(collection=collection)
+        SCHEMAS[collection] = cls
 
 
 class Attribute[T: Any](AttributeBase):

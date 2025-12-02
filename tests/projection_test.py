@@ -2,17 +2,17 @@ from mongo_odm.managers import AsyncManager
 from mongo_odm.accumulators import Sum
 import pytest
 
-from mongo_odm.exceptions import Forbidden, Unprocessable
-from mongo_odm.models import Model, Projection
+from mongo_odm.exceptions import Forbidden
+from mongo_odm.models import Schema, Model
 from mongo_odm.pipelines import Pipeline
 
 
-class MyModel(Model, collection="my-coll"):
+class MyModel(Schema, collection="my-coll"):
     id: int
     color: str
 
 
-class ColorsCount(Projection, collection="my-coll"):
+class ColorsCount(Model, collection="my-coll"):
     color: str
     count: int
 

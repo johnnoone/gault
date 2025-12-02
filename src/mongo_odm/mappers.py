@@ -11,14 +11,14 @@ from .utils import drop_missing
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from .models import FieldMetadata, Model, Projection
+    from .models import FieldMetadata, Model, Schema
     from .types import Document
 
 
-MAPPERS: dict[type[Model], Mapper] = WeakKeyDictionary()
+MAPPERS: dict[type[Schema], Mapper] = WeakKeyDictionary()
 
 
-def get_mapper[M: Model | Projection](model: M | type[M]) -> Mapper[M]:
+def get_mapper[M: Schema | Model](model: M | type[M]) -> Mapper[M]:
     model = unwrap_model(model)
     if mapper := MAPPERS.get(model):
         return mapper
@@ -39,7 +39,7 @@ class CoinCoin(NamedTuple):
     pk: bool
 
 
-class Mapper[M: Model | Projection]:
+class Mapper[M: Schema | Model]:
     def __init__(self, model: type[M]) -> None:
         self.model = model
 

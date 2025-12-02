@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .managers import Filter
-    from .models import Model
+    from .models import Schema
     from .pipelines import Pipeline
 
 
 @dataclass
 class Unprocessable(ValueError):
-    model: type[Model]
+    model: type[Schema]
     reason: str
 
     def __post_init__(self) -> None:
@@ -21,7 +21,7 @@ class Unprocessable(ValueError):
 
 @dataclass
 class Forbidden(TypeError):
-    model: type[Model]
+    model: type[Schema]
     reason: str
 
     def __post_init__(self) -> None:
@@ -31,7 +31,7 @@ class Forbidden(TypeError):
 
 @dataclass
 class NotFound(LookupError):
-    model: type[Model]
+    model: type[Schema]
     filter: Filter
 
     def __post_init__(self) -> None:

@@ -9,7 +9,7 @@ from pymongo import ReturnDocument
 
 from .exceptions import Forbidden, NotFound, Unprocessable
 from .mappers import get_mapper
-from .models import Model, Projection, get_collection, unwrap_model
+from .models import Model, Schema, get_collection, unwrap_model
 from .operators import Operator
 from .pipelines import Pipeline
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 type Filter = Operator | Pipeline | dict | list | None
 
 
-class StateTracker[M: Model | Projection]:
+class StateTracker[M: Schema | Model]:
     def __init__(self) -> None:
         self._states: dict[M, str] = WeakKeyDictionary()
 
@@ -42,7 +42,7 @@ class StateTracker[M: Model | Projection]:
         return dirty_fields
 
 
-class Persistence[M: Model | Projection]:
+class Persistence[M: Schema | Model]:
     def __init__(self) -> None:
         self._instances: set[M] = WeakSet()
 
@@ -56,7 +56,7 @@ class Persistence[M: Model | Projection]:
         self._instances.remove(instance)
 
 
-class AsyncManager[Queriable: Model | Projection, Writable: Model]:
+class AsyncManager[Queriable: Schema | Model, Writable: Schema]:
     def __init__(
         self,
         database: AsyncDatabase,
@@ -137,7 +137,7 @@ class AsyncManager[Queriable: Model | Projection, Writable: Model]:
             yield instance
 
     async def insert(self, instance: Writable) -> Writable:
-        if not isinstance(instance, Model):
+        if not isinstance(instance, Schema):
             raise Forbidden(
                 unwrap_model(instance),
                 reason="Only model allowed for insert",
@@ -156,7 +156,7 @@ class AsyncManager[Queriable: Model | Projection, Writable: Model]:
         refresh: bool = False,
         atomic: bool = False,
     ) -> Writable:
-        if not isinstance(instance, Model):
+        if not isinstance(instance, Schema):
             raise Forbidden(
                 unwrap_model(instance),
                 reason="Only model allowed for insert",

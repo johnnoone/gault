@@ -11,13 +11,13 @@ from mongo_odm.operators import (
     Or,
     Not,
 )
-from mongo_odm.models import Attribute, Model
+from mongo_odm.models import Attribute, Schema
 from mongo_odm.operators import And
 from mongo_odm.types import Path
 
 
 def test_operation_eq(subtests):
-    class Foo(Model, collection="coll"):
+    class Foo(Schema, collection="coll"):
         pass
 
     attr1 = Attribute(Foo, "attr1", "alias1")
@@ -39,7 +39,7 @@ def test_operation_eq(subtests):
 
 
 def test_operation_ne(subtests):
-    class Foo(Model, collection="coll"):
+    class Foo(Schema, collection="coll"):
         pass
 
     attr1 = Attribute(Foo, "attr1", "alias1")
@@ -61,7 +61,7 @@ def test_operation_ne(subtests):
 
 
 def test_operation_lt(subtests):
-    class Foo(Model, collection="coll"):
+    class Foo(Schema, collection="coll"):
         pass
 
     attr1 = Attribute(Foo, "attr1", "alias1")
@@ -83,7 +83,7 @@ def test_operation_lt(subtests):
 
 
 def test_operation_lte(subtests):
-    class Foo(Model, collection="coll"):
+    class Foo(Schema, collection="coll"):
         pass
 
     attr1 = Attribute(Foo, "attr1", "alias1")
@@ -105,7 +105,7 @@ def test_operation_lte(subtests):
 
 
 def test_operation_gt(subtests):
-    class Foo(Model, collection="coll"):
+    class Foo(Schema, collection="coll"):
         pass
 
     attr1 = Attribute(Foo, "attr1", "alias1")
@@ -127,7 +127,7 @@ def test_operation_gt(subtests):
 
 
 def test_operation_gte(subtests):
-    class Foo(Model, collection="coll"):
+    class Foo(Schema, collection="coll"):
         pass
 
     attr1 = Attribute(Foo, "attr1", "alias1")
@@ -149,7 +149,7 @@ def test_operation_gte(subtests):
 
 
 def test_operation_in(subtests):
-    class Foo(Model, collection="coll"):
+    class Foo(Schema, collection="coll"):
         pass
 
     attr1 = Attribute(Foo, "attr1", "alias1")
@@ -171,7 +171,7 @@ def test_operation_in(subtests):
 
 
 def test_operation_nin(subtests):
-    class Foo(Model, collection="coll"):
+    class Foo(Schema, collection="coll"):
         pass
 
     attr1 = Attribute(Foo, "attr1", "alias1")
@@ -243,7 +243,7 @@ def test_operation_not(subtests):
 
 
 def test_attribute_operators(subtests):
-    class Foo(Model, collection="coll"):
+    class Foo(Schema, collection="coll"):
         pass
 
     attr = Attribute(Foo, "attr1", "alias1")

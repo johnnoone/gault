@@ -1,9 +1,9 @@
 from mongo_odm.managers import AsyncManager
 from mongo_odm.managers import StateTracker
-from mongo_odm.models import Field, Model
+from mongo_odm.models import Field, Schema
 
 
-class MyModel(Model, collection="my-collection"):
+class MyModel(Schema, collection="my-collection"):
     id: Field[int]
     name: Field[str]
     age: Field[int]

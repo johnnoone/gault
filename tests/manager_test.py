@@ -5,10 +5,10 @@ from mongo_odm.utils import (
 )
 from mongo_odm.exceptions import NotFound
 from mongo_odm.managers import AsyncManager, Persistence
-from mongo_odm.models import Field, Model, configure
+from mongo_odm.models import Field, Schema, configure
 
 
-class Person(Model, collection="my-collection"):
+class Person(Schema, collection="my-collection"):
     id: Field[int] = configure(pk=True)
     name: Field[str]
     age: Field[int] = configure(db_alias="person_age")

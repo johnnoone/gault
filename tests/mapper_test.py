@@ -1,9 +1,9 @@
 from mongo_odm.mappers import Corres
 from mongo_odm.mappers import Mapper
-from mongo_odm.models import Field, Model, configure
+from mongo_odm.models import Field, Schema, configure
 
 
-class MyModel(Model, collection="my-collection"):
+class MyModel(Schema, collection="my-collection"):
     id: Field[int] = configure(pk=True)
     name: Field[str] = configure(db_alias="db_name")
     age: Field[int]

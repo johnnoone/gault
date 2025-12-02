@@ -12,8 +12,8 @@ from .mappers import Mapper as Mapper
 from .mappers import get_mapper as get_mapper
 from .models import Field as Field
 from .models import Model as Model
-from .models import Projection as Projection
+from .models import Schema as Schema
 from .models import configure as configure
 from .models import get_collection as get_collection
-from .models import get_model as get_model
+from .models import get_schema as get_schema
 from .pipelines import Pipeline as Pipeline

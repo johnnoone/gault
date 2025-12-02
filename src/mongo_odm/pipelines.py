@@ -5,9 +5,9 @@ from functools import singledispatchmethod
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from .mappers import get_mapper
-from .models import Attribute, Model, Projection, get_collection
+from .models import Attribute, Model, Schema, get_collection
 from .operators import Operator
-from .types import Path, RawField, RawPath
+from .types import Path, PositiveInteger, RawField, RawPath
 from .utils import coerce_missing, drop_missing
 
 if TYPE_CHECKING:
@@ -31,15 +31,15 @@ class Pipeline:
         stage = {"$match": query.compile()}
         return self.raw(stage)
 
-    def skip(self, size: int, /) -> Self:
+    def skip(self, size: PositiveInteger, /) -> Self:
         stage = {"$skip": size}
         return self.raw(stage)
 
-    def take(self, size: int, /) -> Self:
+    def take(self, size: PositiveInteger, /) -> Self:
         stage = {"$limit": size}
         return self.raw(stage)
 
-    def sample(self, size: int, /) -> Self:
+    def sample(self, size: PositiveInteger, /) -> Self:
         stage = {"$sample": {"size": size}}
         return self.raw(stage)
 
@@ -48,7 +48,7 @@ class Pipeline:
         stage = {"$sort": spec}
         return self.raw(stage)
 
-    def project(self, model: type[Model | Projection], /) -> Self:
+    def project(self, model: type[Schema | Model], /) -> Self:
         match model:
             case dict():
                 projection = model
@@ -185,7 +185,7 @@ class Pipeline:
 
     def union_with(
         self,
-        other: CollectionPipeline | type[Model | Projection],
+        other: CollectionPipeline | type[Schema | Model],
         /,
     ) -> Self:
         if isinstance(other, CollectionPipeline):
@@ -193,7 +193,7 @@ class Pipeline:
                 "coll": other.collection,
                 "pipeline": other.build(),
             }
-        elif issubclass(other, Model | Projection):
+        elif issubclass(other, Schema | Model):
             body = {
                 "coll": get_collection(other),
                 "pipeline": Pipeline().project(other).build(),
@@ -206,7 +206,7 @@ class Pipeline:
 
     def graph_lookup(
         self,
-        other: type[Model | Projection],
+        other: type[Schema | Model],
         /,
         start_with: AnyPath,
         local_field: AnyField,
@@ -238,7 +238,7 @@ class Pipeline:
 
     def lookup(
         self,
-        other: CollectionPipeline | DocumentsPipeline | type[Model | Projection],
+        other: CollectionPipeline | DocumentsPipeline | type[Schema | Model],
         /,
         *,
         local_field: Path = MISSING,
@@ -264,7 +264,7 @@ class Pipeline:
                     "as": into_field(into),
                 },
             )
-        elif isinstance(other, Model | Projection):
+        elif isinstance(other, Schema | Model):
             body = drop_missing(
                 {
                     "from": get_collection(other),

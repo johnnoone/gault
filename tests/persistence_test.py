@@ -1,7 +1,7 @@
 import pytest
 from mongo_odm.managers import Persistence
 from mongo_odm.managers import AsyncManager
-from mongo_odm.models import Model, configure
+from mongo_odm.models import Schema, configure
 
 
 @pytest.fixture(name="persistence")
@@ -9,7 +9,7 @@ def get_persistence() -> Persistence:
     return Persistence()
 
 
-class MyModel(Model, collection="my-collection"):
+class MyModel(Schema, collection="my-collection"):
     id: int = configure(pk=True)
     name: str
     tags: list[str]

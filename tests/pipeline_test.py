@@ -1,12 +1,12 @@
 from typing import Any
-from mongo_odm import AsyncManager, Model, Pipeline, Field, configure
+from mongo_odm import AsyncManager, Schema, Pipeline, Field, configure
 import pytest
 
 from mongo_odm.accumulators import Sum
 from mongo_odm.types import Path
 
 
-class MyModel(Model, collection="my-coll"):
+class MyModel(Schema, collection="my-coll"):
     id: Field[int]
     name: Field[str]
     tags: Field[list[str]]
@@ -14,7 +14,7 @@ class MyModel(Model, collection="my-coll"):
     reports_to: Field[str | None] = configure(default=None, db_alias="reportsTo")
 
 
-class Reporter(Model, collection="my-coll"):
+class Reporter(Schema, collection="my-coll"):
     name: Field[str]
     report_to: Field[str | None] = configure(
         default=None,
@@ -26,30 +26,30 @@ class Reporter(Model, collection="my-coll"):
     )
 
 
-class Sized(Model, collection="my-coll"):
+class Sized(Schema, collection="my-coll"):
     name: Field[str]
     size: str
 
 
-class MyProjection(Model, collection="my-coll"):
+class MyProjection(Schema, collection="my-coll"):
     name: Field[str]
 
 
-class MyBucket(Model, collection="my-coll"):
+class MyBucket(Schema, collection="my-coll"):
     bucket: Field[Any]
     count: Field[int]
 
 
-class Total(Model, collection="my-coll"):
+class Total(Schema, collection="my-coll"):
     count: Field[int]
 
 
-class UnwindByTag(Model, collection="my-coll"):
+class UnwindByTag(Schema, collection="my-coll"):
     name: Field[str]
     tag: Field[str]
 
 
-class Facet(Model, collection="my-coll"):
+class Facet(Schema, collection="my-coll"):
     total: Field[int]
     count: Field[int]
     avg: Field[float]
