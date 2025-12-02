@@ -5,7 +5,7 @@ description = "A lightweight Object Document Mapper for MongoDB"
 readme = "README.md"
 authors = [{ name = "Xavier Barbosa", email = "clint.northwood@gmail.com" }]
 requires-python = ">=3.12"
-dependencies = ["pymongo>=4.15.4"]
+dependencies = ["annotated-types>=0.7.0", "pymongo>=4.15.4"]
 keywords = ["mongodb", "odm", "document-mapper", "orm", "database"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -42,6 +42,7 @@ anyio_mode = "auto"
 target-version = "py312"
 
 [tool.ruff.lint]
+pylint.max-args = 8
 extend-select = ["ALL"]
 extend-ignore = [
     "A001",

@@ -1,6 +1,10 @@
-from mongo_odm import AsyncManager, Projection, Model, Pipeline, Unprocessable
+from mongo_odm.managers import AsyncManager
 from mongo_odm.accumulators import Sum
 import pytest
+
+from mongo_odm.exceptions import Forbidden, Unprocessable
+from mongo_odm.models import Model, Projection
+from mongo_odm.pipelines import Pipeline
 
 
 class MyModel(Model, collection="my-coll"):
@@ -45,10 +49,10 @@ async def test_select(manager: AsyncManager):
 
 
 async def test_insert(manager: AsyncManager):
-    with pytest.raises(Unprocessable):
+    with pytest.raises(Forbidden):
         await manager.insert(ColorsCount(color="green", count=1))
 
 
 async def test_save(manager: AsyncManager):
-    with pytest.raises(Unprocessable):
+    with pytest.raises(Forbidden):
         await manager.save(ColorsCount(color="green", count=1))

@@ -1,20 +1,19 @@
 from __future__ import annotations
-from mongo_odm import (
+from mongo_odm.operators import (
     Gt,
     Gte,
     In,
     Lt,
     Lte,
-    Model,
     Nin,
-    Attribute,
     Eq,
-    Path,
     Ne,
-    And,
     Or,
     Not,
 )
+from mongo_odm.models import Attribute, Model
+from mongo_odm.operators import And
+from mongo_odm.types import Path
 
 
 def test_operation_eq(subtests):

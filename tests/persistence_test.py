@@ -1,5 +1,7 @@
 import pytest
-from mongo_odm import Model, AsyncManager, Persistence, configure
+from mongo_odm.managers import Persistence
+from mongo_odm.managers import AsyncManager
+from mongo_odm.models import Model, configure
 
 
 @pytest.fixture(name="persistence")

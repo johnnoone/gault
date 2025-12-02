@@ -1,4 +1,6 @@
-from mongo_odm import AsyncManager, Field, Model, StateTracker
+from mongo_odm.managers import AsyncManager
+from mongo_odm.managers import StateTracker
+from mongo_odm.models import Field, Model
 
 
 class MyModel(Model, collection="my-collection"):

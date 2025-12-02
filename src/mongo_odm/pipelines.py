@@ -1,0 +1,368 @@
+from __future__ import annotations
+
+from dataclasses import MISSING, dataclass, field, replace
+from functools import singledispatchmethod
+from typing import TYPE_CHECKING, Any, Literal, Self
+
+from .mappers import get_mapper
+from .models import Attribute, Model, Projection, get_collection
+from .operators import Operator
+from .types import Path, RawField, RawPath
+from .utils import coerce_missing, drop_missing
+
+if TYPE_CHECKING:
+    from .accumulators import Accumulator
+    from .types import Document
+
+type Stage = dict[str, Any]
+
+
+@dataclass
+class Pipeline:
+    stages: list[Stage] = field(default_factory=list, kw_only=True)
+
+    @singledispatchmethod
+    def match(self, query: dict, /) -> Self:
+        stage = {"$match": query}
+        return self.raw(stage)
+
+    @match.register
+    def _(self, query: Operator, /) -> Self:
+        stage = {"$match": query.compile()}
+        return self.raw(stage)
+
+    def skip(self, size: int, /) -> Self:
+        stage = {"$skip": size}
+        return self.raw(stage)
+
+    def take(self, size: int, /) -> Self:
+        stage = {"$limit": size}
+        return self.raw(stage)
+
+    def sample(self, size: int, /) -> Self:
+        stage = {"$sample": {"size": size}}
+        return self.raw(stage)
+
+    def sort(self, spec: SortType, /) -> Self:
+        spec = normalize_sort(spec)
+        stage = {"$sort": spec}
+        return self.raw(stage)
+
+    def project(self, model: type[Model | Projection], /) -> Self:
+        match model:
+            case dict():
+                projection = model
+            case _:
+                projection = dict.fromkeys(get_mapper(model).db_fields, True)
+
+        if projection:
+            stage = {"$project": {"_id": False} | projection}
+            return self.raw(stage)
+        return self
+
+    def bucket[T](
+        self,
+        by: AnyPath,
+        /,
+        boundaries: list[T],
+        default: str = MISSING,
+        output: dict[str, Accumulator] = MISSING,
+    ) -> Self:
+        by = into_path(by)
+
+        output = coerce_missing(output, {})
+
+        stage = {
+            "$bucket": drop_missing(
+                {
+                    "groupBy": by,
+                    "boundaries": boundaries,
+                    "default": default,
+                    "output": {key: val.compile() for key, val in output.items()},
+                },
+            ),
+        }
+        return self.raw(stage)
+
+    def bucket_auto(
+        self,
+        by: AnyPath,
+        /,
+        buckets: int,
+        output: dict[str, Accumulator] = MISSING,
+        granularity: Literal[
+            "R5",
+            "R10",
+            "R20",
+            "R40",
+            "R80",
+            "1-2-5",
+            "E6",
+            "E12",
+            "E24",
+            "E48",
+            "E96",
+            "E192",
+            "POWERSOF2",
+        ] = MISSING,
+    ) -> Self:
+        by = into_path(by)
+
+        output = coerce_missing(output, {})
+
+        stage = {
+            "$bucketAuto": drop_missing(
+                {
+                    "groupBy": by,
+                    "buckets": buckets,
+                    "output": {key: val.compile() for key, val in output.items()},
+                    "granularity": granularity,
+                },
+            ),
+        }
+        return self.raw(stage)
+
+    def group(
+        self,
+        by: AnyPath,
+        /,
+        accumulators: dict[str, Accumulator] = MISSING,
+    ) -> Self:
+        by = into_path(by)
+
+        accumulators = coerce_missing(accumulators, {})
+
+        def maybe_compile(obj: Any) -> dict:
+            if isinstance(obj, dict):
+                return obj
+            return obj.compile()
+
+        stage = {
+            "$group": {
+                "_id": by,
+            }
+            | {key: maybe_compile(val) for key, val in accumulators.items()},
+        }
+        return self.raw(stage)
+
+    def set(self, fields: dict[str, Any], /) -> Self:
+        stage = {"$set": dict(fields.items())}
+        return self.raw(stage)
+
+    def unset(self, *fields: AnyField) -> Self:
+        if fields:
+            stage = {"$unset": [into_field(field) for field in fields]}
+            return self.raw(stage)
+        return self
+
+    def unwind(
+        self,
+        field: AnyField,
+        /,
+        *,
+        include_array_index: str = MISSING,
+        preserve_null_and_empty_arrays: bool = False,
+    ) -> Self:
+        stage = {
+            "$unwind": drop_missing(
+                {
+                    "path": into_path(field),
+                    "includeArrayIndex": include_array_index,
+                    "preserveNullAndEmptyArrays": preserve_null_and_empty_arrays,
+                },
+            ),
+        }
+        return self.raw(stage)
+
+    def count(self, output: AnyField, /) -> Self:
+        output = into_field(output)
+        stage = {"$count": output}
+        return self.raw(stage)
+
+    def replace_with(self, expr: Any, /) -> Self:
+        stage = {"$replaceWith": expr}
+        return self.raw(stage)
+
+    def union_with(
+        self,
+        other: CollectionPipeline | type[Model | Projection],
+        /,
+    ) -> Self:
+        if isinstance(other, CollectionPipeline):
+            body = {
+                "coll": other.collection,
+                "pipeline": other.build(),
+            }
+        elif issubclass(other, Model | Projection):
+            body = {
+                "coll": get_collection(other),
+                "pipeline": Pipeline().project(other).build(),
+            }
+        else:
+            raise NotImplementedError
+
+        stage = {"$unionWith": body}
+        return self.raw(stage)
+
+    def graph_lookup(
+        self,
+        other: type[Model | Projection],
+        /,
+        start_with: AnyPath,
+        local_field: AnyField,
+        foreign_field: AnyField,
+        into: AnyField,
+        max_depth: int = MISSING,
+        depth_field: AnyField | None = MISSING,
+        restrict_search_with_match: int = MISSING,
+    ) -> Self:
+        local_field = into_field(local_field)
+        foreign_field = into_field(foreign_field)
+        depth_field = into_field(depth_field)
+
+        stage = {
+            "$graphLookup": drop_missing(
+                {
+                    "from": get_collection(other),
+                    "startWith": into_path(start_with),
+                    "connectFromField": local_field,
+                    "connectToField": foreign_field,
+                    "as": into_field(into),
+                    "maxDepth": max_depth,
+                    "depthField": depth_field,
+                    "restrictSearchWithMatch": restrict_search_with_match,
+                },
+            ),
+        }
+        return self.raw(stage)
+
+    def lookup(
+        self,
+        other: CollectionPipeline | DocumentsPipeline | type[Model | Projection],
+        /,
+        *,
+        local_field: Path = MISSING,
+        foreign_field: Path = MISSING,
+        into: AnyField,
+    ) -> Self:
+        if isinstance(other, CollectionPipeline):
+            body = drop_missing(
+                {
+                    "from": other.collection,
+                    "localField": local_field.value,
+                    "foreignField": foreign_field.value,
+                    "pipeline": other.build(),
+                    "as": into_field(into),
+                },
+            )
+        elif isinstance(other, DocumentsPipeline):
+            body = drop_missing(
+                {
+                    "localField": local_field.value,
+                    "foreignField": foreign_field.value,
+                    "pipeline": other.build(),
+                    "as": into_field(into),
+                },
+            )
+        elif isinstance(other, Model | Projection):
+            body = drop_missing(
+                {
+                    "from": get_collection(other),
+                    "localField": local_field.value,
+                    "foreignField": foreign_field.value,
+                    "pipeline": Pipeline().project(other).build(),
+                    "as": into_field(into),
+                },
+            )
+        else:
+            raise NotImplementedError
+        stage = {"$lookup": body}
+        return self.raw(stage)
+
+    def facet(self, output: dict[str, Pipeline], /) -> Self:
+        if output:
+            body = {key: val.build() for key, val in output.items()}
+            stage = {"$facet": body}
+            return self.raw(stage)
+        return self
+
+    def raw(self, stage: Stage, /) -> Self:
+        return replace(self, stages=[*self.stages, stage])
+
+    def build(self) -> list[Stage]:
+        return list(self.stages)
+
+    @classmethod
+    def documents(cls, documents: list[Document]) -> DocumentsPipeline:
+        return DocumentsPipeline(documents)
+
+
+@dataclass
+class CollectionPipeline(Pipeline):
+    collection: str
+
+
+@dataclass
+class DocumentsPipeline(Pipeline):
+    documents: list[Document]
+
+    def build(self) -> list[Stage]:
+        stage = {"$documents": self.documents}
+        return [stage, *super().build()]
+
+
+type AnyPath = Path | RawPath
+type AnyField = Path | str
+
+
+def into_path(expr: AnyPath | None) -> RawPath | None:
+    if expr is None:
+        return None
+    if isinstance(expr, Path):
+        return "$" + expr.value
+    if expr.startswith("$"):
+        return expr
+    msg = "Expression must start with $"
+    raise ValueError(msg)
+
+
+def into_field(expr: AnyField | None) -> RawField | None:
+    if expr is MISSING:
+        return MISSING
+    if expr is None:
+        return None
+    if isinstance(expr, Path):
+        return expr.value
+    if not expr.startswith("$"):
+        return expr
+    msg = "Expression must not start with $"
+    raise ValueError(msg)
+
+
+type SortType = dict[str, Any] | str | list[str | tuple[Any, Any]] | tuple[Any, Any]
+
+
+def normalize_sort(data: SortType, /) -> dict[str, Any]:
+    if isinstance(data, str):
+        data = data.split(",")
+    elif isinstance(data, tuple):
+        data = [data]
+    elif isinstance(data, dict):
+        data = list(data.items())
+
+    result = {}
+    for item in data:
+        match item:
+            case str() if item.startswith("-"):
+                key, val = (item[1:], -1)
+            case str() if item:
+                key, val = (item, 1)
+            case Attribute(db_alias=db_alias):
+                key, val = (db_alias, 1)
+            case (Attribute(db_alias=db_alias), direction):
+                key, val = (db_alias, direction)
+            case (str() as key, direction):
+                key, val = (key, direction)
+
+        result[key] = val
+    return result

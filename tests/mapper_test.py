@@ -1,4 +1,6 @@
-from mongo_odm import Model, Mapper, Field, configure, Corres
+from mongo_odm.mappers import Corres
+from mongo_odm.mappers import Mapper
+from mongo_odm.models import Field, Model, configure
 
 
 class MyModel(Model, collection="my-collection"):

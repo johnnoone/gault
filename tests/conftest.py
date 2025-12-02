@@ -4,7 +4,8 @@ from collections.abc import AsyncIterator
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 
-from mongo_odm import AsyncManager, Persistence, StateTracker
+from mongo_odm.managers import Persistence
+from mongo_odm.managers import AsyncManager, StateTracker
 
 
 @pytest.fixture

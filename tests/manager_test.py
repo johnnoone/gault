@@ -1,14 +1,11 @@
 from pymongo.asynchronous.database import AsyncDatabase
 import pytest
-from mongo_odm import (
-    AsyncManager,
-    Field,
-    Model,
-    Persistence,
-    configure,
+from mongo_odm.utils import (
     to_list,
-    NotFound,
 )
+from mongo_odm.exceptions import NotFound
+from mongo_odm.managers import AsyncManager, Persistence
+from mongo_odm.models import Field, Model, configure
 
 
 class Person(Model, collection="my-collection"):
