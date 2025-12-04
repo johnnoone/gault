@@ -1,10 +1,10 @@
-from mongo_odm.managers import AsyncManager
-from mongo_odm.accumulators import Sum
+from strata.managers import AsyncManager
+from strata.accumulators import Sum
 import pytest
 
-from mongo_odm.exceptions import Forbidden
-from mongo_odm.models import Schema, Model
-from mongo_odm.pipelines import Pipeline
+from strata.exceptions import Forbidden
+from strata.models import Schema, Model
+from strata.pipelines import Pipeline
 
 
 class MyModel(Schema, collection="my-coll"):

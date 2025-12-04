@@ -1,5 +1,5 @@
 from __future__ import annotations
-from mongo_odm.operators import (
+from strata.operators import (
     Gt,
     Gte,
     In,
@@ -11,9 +11,9 @@ from mongo_odm.operators import (
     Or,
     Not,
 )
-from mongo_odm.models import Attribute, Schema
-from mongo_odm.operators import And
-from mongo_odm.types import Path
+from strata.models import Attribute, Schema
+from strata.operators import And
+from strata.types import Path
 
 
 def test_operation_eq(subtests):

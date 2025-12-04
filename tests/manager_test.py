@@ -1,11 +1,11 @@
 from pymongo.asynchronous.database import AsyncDatabase
 import pytest
-from mongo_odm.utils import (
+from strata.utils import (
     to_list,
 )
-from mongo_odm.exceptions import NotFound
-from mongo_odm.managers import AsyncManager, Persistence
-from mongo_odm.models import Field, Schema, configure
+from strata.exceptions import NotFound
+from strata.managers import AsyncManager, Persistence
+from strata.models import Field, Schema, configure
 
 
 class Person(Schema, collection="my-collection"):

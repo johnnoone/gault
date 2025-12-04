@@ -1,7 +1,7 @@
 import pytest
-from mongo_odm.managers import Persistence
-from mongo_odm.managers import AsyncManager
-from mongo_odm.models import Schema, configure
+from strata.managers import Persistence
+from strata.managers import AsyncManager
+from strata.models import Schema, configure
 
 
 @pytest.fixture(name="persistence")

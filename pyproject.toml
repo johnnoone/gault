@@ -1,5 +1,5 @@
 [project]
-name = "mongo-odm"
+name = "strata"
 version = "0.1.0"
 description = "A lightweight Object Document Mapper for MongoDB"
 readme = "README.md"
@@ -30,10 +30,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/johnoone/mongo-odm"
-Documentation = "https://mongo-odm.readthedocs.io"
-Repository = "https://github.com/johnoone/mongo-odm.git"
-Issues = "https://github.com/johnoone/mongo-odm/issues"
+Homepage = "https://github.com/johnoone/strata"
+Repository = "https://github.com/johnoone/strata.git"
+Issues = "https://github.com/johnoone/strata/issues"
 
 [tool.pytest.ini_options]
 anyio_mode = "auto"

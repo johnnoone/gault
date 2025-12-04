@@ -362,7 +362,7 @@ def normalize_sort(data: SortType, /) -> dict[str, Any]:
             case (Attribute(db_alias=db_alias), direction):
                 key, val = (db_alias, direction)
             case (str() as key, direction):
-                key, val = (key, direction)
+                _, val = (key, direction)
 
         result[key] = val
     return result

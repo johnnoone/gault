@@ -1,6 +1,6 @@
-from mongo_odm.managers import AsyncManager
-from mongo_odm.managers import StateTracker
-from mongo_odm.models import Field, Schema
+from strata.managers import AsyncManager
+from strata.managers import StateTracker
+from strata.models import Field, Schema
 
 
 class MyModel(Schema, collection="my-collection"):

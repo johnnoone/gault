@@ -1,6 +1,6 @@
-from mongo_odm.mappers import Corres
-from mongo_odm.mappers import Mapper
-from mongo_odm.models import Field, Schema, configure
+from strata.mappers import Corres
+from strata.mappers import Mapper
+from strata.models import Field, Schema, configure
 
 
 class MyModel(Schema, collection="my-collection"):

@@ -1,9 +1,9 @@
 from typing import Any
-from mongo_odm import AsyncManager, Schema, Pipeline, Field, configure
+from strata import AsyncManager, Schema, Pipeline, Field, configure
 import pytest
 
-from mongo_odm.accumulators import Sum
-from mongo_odm.types import Path
+from strata.accumulators import Sum
+from strata.types import Path
 
 
 class MyModel(Schema, collection="my-coll"):
