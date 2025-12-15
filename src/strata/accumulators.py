@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
+from .types import Path
+
 type Expr = Any
 
 
@@ -12,6 +14,8 @@ class Accumulator(ABC):
 
 @dataclass
 class AddToSet(Accumulator):
+    """Returns an array of unique expression values for each group."""
+
     expr: Expr
 
     def compile(self) -> Any:
@@ -20,6 +24,8 @@ class AddToSet(Accumulator):
 
 @dataclass
 class Avg(Accumulator):
+    """Returns the average of numeric values."""
+
     expr: Expr
 
     def compile(self) -> Any:
@@ -28,6 +34,8 @@ class Avg(Accumulator):
 
 @dataclass
 class Bottom(Accumulator):
+    """Returns the bottom element within a group according to the specified sort order."""
+
     sort_by: Any
     output: Expr
 
@@ -42,6 +50,8 @@ class Bottom(Accumulator):
 
 @dataclass
 class BottomN(Accumulator):
+    """Returns an aggregation of the bottom n elements within a group, according to the specified sort order."""
+
     n: Expr
     sort_by: Any
     output: Expr
@@ -58,12 +68,16 @@ class BottomN(Accumulator):
 
 @dataclass
 class Count(Accumulator):
+    """Returns the number of documents in a group."""
+
     def compile(self) -> Any:
         return {"$count": {}}
 
 
 @dataclass
 class First(Accumulator):
+    """Returns the value that results from applying an expression to the first document in a group."""
+
     value: Expr
 
     def compile(self) -> Any:
@@ -74,6 +88,8 @@ class First(Accumulator):
 
 @dataclass
 class FirstN(Accumulator):
+    """Returns an aggregation of the first n elements within a group."""
+
     value: Expr
     n: Expr
 
@@ -88,6 +104,8 @@ class FirstN(Accumulator):
 
 @dataclass
 class Last(Accumulator):
+    """Returns the value that results from applying an expression to the last document in a group."""
+
     value: Expr
 
     def compile(self) -> Any:
@@ -98,6 +116,8 @@ class Last(Accumulator):
 
 @dataclass
 class LastN(Accumulator):
+    """Returns an aggregation of the last n elements within a group."""
+
     value: Expr
     n: Expr
 
@@ -112,6 +132,8 @@ class LastN(Accumulator):
 
 @dataclass
 class Max(Accumulator):
+    """Returns the maximum value."""
+
     value: Expr
 
     def compile(self) -> Any:
@@ -122,6 +144,8 @@ class Max(Accumulator):
 
 @dataclass
 class MaxN(Accumulator):
+    """Returns an aggregation of the n maximum valued elements within a group."""
+
     value: Expr
     n: Expr
 
@@ -136,6 +160,8 @@ class MaxN(Accumulator):
 
 @dataclass
 class Median(Accumulator):
+    """Returns an approximation of the median value."""
+
     input: Expr
 
     def compile(self) -> Any:
@@ -149,6 +175,8 @@ class Median(Accumulator):
 
 @dataclass
 class MergeObjects(Accumulator):
+    """Combines multiple documents into a single document."""
+
     objects: Expr
 
     def compile(self) -> Any:
@@ -159,6 +187,8 @@ class MergeObjects(Accumulator):
 
 @dataclass
 class Min(Accumulator):
+    """Returns the minimum value."""
+
     value: Expr
 
     def compile(self) -> Any:
@@ -169,6 +199,8 @@ class Min(Accumulator):
 
 @dataclass
 class MinN(Accumulator):
+    """Returns an aggregation of the n minimum valued elements within a group."""
+
     value: Expr
     n: Expr
 
@@ -183,13 +215,15 @@ class MinN(Accumulator):
 
 @dataclass
 class Percentile(Accumulator):
+    """Returns an approximation of a percentile value."""
+
     input: Expr
     p: Expr
 
     def compile(self) -> Any:
         return {
             "$percentile": {
-                "input": compile(self.value),
+                "input": compile(self.input),
                 "p": compile(self.p),
                 "method": "approximate",
             },
@@ -198,6 +232,8 @@ class Percentile(Accumulator):
 
 @dataclass
 class Push(Accumulator):
+    """Returns an array of expression values for documents in each group."""
+
     value: Expr
 
     def compile(self) -> Any:
@@ -208,6 +244,8 @@ class Push(Accumulator):
 
 @dataclass
 class StdDevPop(Accumulator):
+    """Returns the population standard deviation of the input values."""
+
     value: Expr
     p: Expr
 
@@ -219,6 +257,8 @@ class StdDevPop(Accumulator):
 
 @dataclass
 class StdDevSamp(Accumulator):
+    """Returns the sample standard deviation of the input values."""
+
     value: Expr
     p: Expr
 
@@ -230,6 +270,8 @@ class StdDevSamp(Accumulator):
 
 @dataclass
 class Sum(Accumulator):
+    """Returns the sum of numeric values."""
+
     value: Expr
 
     def compile(self) -> Any:
@@ -238,6 +280,8 @@ class Sum(Accumulator):
 
 @dataclass
 class Top(Accumulator):
+    """Returns the top element within a group according to the specified sort order."""
+
     sort_by: Any
     output: Expr
 
@@ -252,6 +296,8 @@ class Top(Accumulator):
 
 @dataclass
 class TopN(Accumulator):
+    """Returns an aggregation of the top n elements within a group, according to the specified sort order."""
+
     n: Expr
     sort_by: Any
     output: Expr
@@ -269,4 +315,6 @@ class TopN(Accumulator):
 def compile(obj: Any) -> Any:
     if isinstance(obj, Accumulator):
         return obj.compile()
+    if isinstance(obj, Path):
+        return "$" + obj.value
     return obj

@@ -1,0 +1,16 @@
+import pytest
+from strata.expressions import CompilationError, Hour, compile_expression, compile_query
+
+
+def test_expression(context, subtests: pytest.Subtests):
+    with subtests.test():
+        op = Hour("$date")
+        result = compile_expression(op, context=context)
+        assert result == {"$hour": {"date": "$date"}}
+
+
+def test_query(context, subtests: pytest.Subtests):
+    op = Hour("$date")
+    with pytest.raises(CompilationError) as exc_info:
+        compile_query(op, context=context)
+    assert exc_info.value.target is op

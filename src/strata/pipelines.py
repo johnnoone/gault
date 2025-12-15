@@ -23,6 +23,7 @@ class Pipeline:
 
     @singledispatchmethod
     def match(self, query: dict, /) -> Self:
+        """Filter documents matching the specified condition(s)."""
         stage = {"$match": query}
         return self.raw(stage)
 
@@ -32,23 +33,28 @@ class Pipeline:
         return self.raw(stage)
 
     def skip(self, size: PositiveInteger, /) -> Self:
+        """Skip the first n documents."""
         stage = {"$skip": size}
         return self.raw(stage)
 
     def take(self, size: PositiveInteger, /) -> Self:
+        """Limit the number of documents passed to the next stage."""
         stage = {"$limit": size}
         return self.raw(stage)
 
     def sample(self, size: PositiveInteger, /) -> Self:
+        """Randomly select the specified number of documents."""
         stage = {"$sample": {"size": size}}
         return self.raw(stage)
 
     def sort(self, spec: SortType, /) -> Self:
+        """Reorder documents by the specified sort key."""
         spec = normalize_sort(spec)
         stage = {"$sort": spec}
         return self.raw(stage)
 
     def project(self, model: type[Schema | Model], /) -> Self:
+        """Reshape documents by including, excluding, or adding fields."""
         match model:
             case dict():
                 projection = model
@@ -68,6 +74,7 @@ class Pipeline:
         default: str = MISSING,
         output: dict[str, Accumulator] = MISSING,
     ) -> Self:
+        """Categorize documents into buckets based on specified boundaries."""
         by = into_path(by)
 
         output = coerce_missing(output, {})
@@ -106,6 +113,7 @@ class Pipeline:
             "POWERSOF2",
         ] = MISSING,
     ) -> Self:
+        """Automatically categorize documents into a specified number of buckets."""
         by = into_path(by)
 
         output = coerce_missing(output, {})
@@ -128,6 +136,7 @@ class Pipeline:
         /,
         accumulators: dict[str, Accumulator] = MISSING,
     ) -> Self:
+        """Group documents by a specified expression and apply accumulators."""
         by = into_path(by)
 
         accumulators = coerce_missing(accumulators, {})
@@ -146,10 +155,12 @@ class Pipeline:
         return self.raw(stage)
 
     def set(self, fields: dict[str, Any], /) -> Self:
+        """Add new fields or replace existing field values."""
         stage = {"$set": dict(fields.items())}
         return self.raw(stage)
 
     def unset(self, *fields: AnyField) -> Self:
+        """Remove specified fields from documents."""
         if fields:
             stage = {"$unset": [into_field(field) for field in fields]}
             return self.raw(stage)
@@ -163,6 +174,7 @@ class Pipeline:
         include_array_index: str = MISSING,
         preserve_null_and_empty_arrays: bool = False,
     ) -> Self:
+        """Deconstruct an array field to output a document for each element."""
         stage = {
             "$unwind": drop_missing(
                 {
@@ -175,11 +187,13 @@ class Pipeline:
         return self.raw(stage)
 
     def count(self, output: AnyField, /) -> Self:
+        """Return a count of the number of documents at this stage."""
         output = into_field(output)
         stage = {"$count": output}
         return self.raw(stage)
 
     def replace_with(self, expr: Any, /) -> Self:
+        """Replace the input document with the specified document."""
         stage = {"$replaceWith": expr}
         return self.raw(stage)
 
@@ -188,6 +202,7 @@ class Pipeline:
         other: CollectionPipeline | type[Schema | Model],
         /,
     ) -> Self:
+        """Perform a union of two collections."""
         if isinstance(other, CollectionPipeline):
             body = {
                 "coll": other.collection,
@@ -216,6 +231,7 @@ class Pipeline:
         depth_field: AnyField | None = MISSING,
         restrict_search_with_match: int = MISSING,
     ) -> Self:
+        """Perform a recursive search on a collection."""
         local_field = into_field(local_field)
         foreign_field = into_field(foreign_field)
         depth_field = into_field(depth_field)
@@ -245,6 +261,7 @@ class Pipeline:
         foreign_field: Path = MISSING,
         into: AnyField,
     ) -> Self:
+        """Perform a left outer join to another collection."""
         if isinstance(other, CollectionPipeline):
             body = drop_missing(
                 {
@@ -280,6 +297,7 @@ class Pipeline:
         return self.raw(stage)
 
     def facet(self, output: dict[str, Pipeline], /) -> Self:
+        """Process multiple pipelines within a single stage on the same input."""
         if output:
             body = {key: val.build() for key, val in output.items()}
             stage = {"$facet": body}
