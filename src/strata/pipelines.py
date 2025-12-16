@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import MISSING, dataclass, field, replace
-from functools import singledispatchmethod
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Concatenate, Literal, Self
 
 from .mappers import get_mapper
 from .models import Attribute, Model, Schema, get_collection
@@ -11,8 +10,14 @@ from .types import Path, PositiveInteger, RawField, RawPath
 from .utils import coerce_missing, drop_missing
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import ParamSpec, TypeVar
+
     from .accumulators import Accumulator
     from .types import Document
+
+    T = TypeVar("T")
+    P = ParamSpec("P")
 
 type Stage = dict[str, Any]
 
@@ -21,15 +26,34 @@ type Stage = dict[str, Any]
 class Pipeline:
     stages: list[Stage] = field(default_factory=list, kw_only=True)
 
-    @singledispatchmethod
-    def match(self, query: dict, /) -> Self:
-        """Filter documents matching the specified condition(s)."""
-        stage = {"$match": query}
-        return self.raw(stage)
+    def pipe(
+        self,
+        _0: Callable[Concatenate[Pipeline, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Self:
+        """Offers a structured way to apply a sequence of user-defined functions.
 
-    @match.register
-    def _(self, query: Operator, /) -> Self:
-        stage = {"$match": query.compile()}
+        Parameters
+        ----------
+        function
+            Callable; will receive the frame as the first parameter,
+            followed by any given args/kwargs.
+        *args
+            Arguments to pass to the UDF.
+        **kwargs
+            Keyword arguments to pass to the UDF.
+
+        """
+        return _0(self, **kwargs)
+
+    def match(self, query: dict | Operator, /) -> Self:
+        """Filter documents matching the specified condition(s)."""
+        match query:
+            case Operator():
+                stage = {"$match": query.compile()}
+            case _:
+                stage = {"$match": query}
         return self.raw(stage)
 
     def skip(self, size: PositiveInteger, /) -> Self:
