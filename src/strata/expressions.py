@@ -1,79 +1,40 @@
+"""Described here https://www.mongodb.com/docs/manual/reference/mql/expressions/."""
+
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, overload
 from typing import Literal as TypingLiteral
 
-from bson import ObjectId
+from .compilers import compile_expression, compile_field, compile_query
+from .types import (
+    Array,
+    Binary,
+    Boolean,
+    Context,
+    Date,
+    DateUnit,
+    DayWeek,
+    Direction,
+    ExpressionOperator,
+    MongoExpression,
+    MongoQuery,
+    MongoVar,
+    Null,
+    Number,
+    Object,
+    QueryPredicate,
+    String,
+    Timezone,
+)
+from .utils import nullfree_dict, nullfree_list, unwrap_array
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from uuid import UUID
 
-    from bson import Timestamp
+    from bson import ObjectId, Timestamp
 
-type MongoField = str
-type RawExpression = Any
-type MongoExpression[T: Any] = Any
-type MongoQuery = dict[MongoExpression, MongoExpression]
-type Context = Any
-type MongoType = str | int
-type MongoVar = str
-
-type String = Any
-"""An expression that resolves to a string"""
-
-type Number = Any
-"""An expression that resolves to an integer or long"""
-
-type Boolean = Any
-type Null = Any
-type Binary = Any
-type Array[T: Any] = Any
-type Object = Any
-type Date = Any
-type DateUnit = TypingLiteral[
-    "year",
-    "quarter",
-    "week",
-    "month",
-    "day",
-    "hour",
-    "minute",
-    "second",
-    "millisecond",
-]
-
-type DayWeek = TypingLiteral[
-    "monday",  # (or mon)
-    "tuesday",  # (or tue)
-    "wednesday",  # (or wed)
-    "thursday",  # (or thu)
-    "friday",  # (or fri)
-    "saturday",  # (or sat)
-    "sunday",  # (or sun)
-]
-
-type Timezone = Any
-type Direction = TypingLiteral[1, -1]
-
-
-class QueryPredicate(ABC):
-    """Described here https://www.mongodb.com/docs/manual/reference/mql/query-predicates/."""
-
-    @abstractmethod
-    def compile_query(self, context: Context) -> MongoQuery:
-        raise NotImplementedError
-
-
-class ExpressionOperator(ABC):
-    """Described here https://www.mongodb.com/docs/manual/reference/mql/expressions/."""
-
-    @abstractmethod
-    def compile_expression(self, context: Context) -> MongoExpression[RawExpression]:
-        raise NotImplementedError
+    from .fields import Field
 
 
 @dataclass()
@@ -2574,102 +2535,3 @@ class Zip(ExpressionOperator):
                 "defaults": compile_expression(self.defaults, context=context),
             },
         }
-
-
-def compile_field(value: Any, *, context: Context) -> MongoField:
-    match value:
-        case AsField():
-            return value.compile_field(context=context)
-        case str() if not value.startswith("$"):
-            return value
-        case str() if value.startswith("$"):
-            msg = f"Value {value!r} looks like a path"
-            raise CompilationError(msg, target=value)
-        case _:
-            msg = f"compile field is not implemented for type {type(value)}"
-            raise CompilationError(msg, target=value)
-
-
-def compile_query(value: Any, *, context: Context) -> MongoQuery:
-    match value:
-        case QueryPredicate():
-            return value.compile_query(context=context)
-        case str():
-            return value
-        case _:
-            msg = f"compile query is not implemented for type {type(value)}"
-            raise CompilationError(msg, target=value)
-
-
-@dataclass
-class CompilationError(Exception):
-    message: str
-    target: Any | None = None
-
-    def __post_init__(self) -> None:
-        super().__init__(self.message)
-
-
-def compile_expression(value: Any, *, context: Context) -> MongoExpression:
-    match value:
-        case ExpressionOperator():
-            return value.compile_expression(context=context)
-        case Var():
-            return value.compile_expression(context=context)
-        case (
-            str()
-            | int()
-            | float()
-            | bool()
-            | None
-            | dict()
-            | list()
-            | ObjectId()
-            | datetime()
-        ):
-            return value
-        case _:
-            msg = f"compile expression is not implemented for type {type(value)}"
-            raise CompilationError(msg, target=value)
-
-
-class AsField(ABC):
-    @abstractmethod
-    def compile_field(self, *, context: Context) -> str:
-        raise NotImplementedError
-
-
-@dataclass(frozen=True)
-class Var(AsField):
-    value: str
-
-    def compile_field(self, *, context: Context) -> str:
-        return self.value
-
-    def compile_expression(self, *, context: Context) -> str:
-        return "$$" + self.value
-
-
-@dataclass
-class Field(AsField):
-    value: str
-
-    def compile_field(self, *, context: Context) -> str:
-        return self.value
-
-    def compile_expression(self, *, context: Context) -> str:
-        return "$" + self.value
-
-
-def nullfree_dict[T: dict](mapping: T) -> T:
-    return {key: val for key, val in mapping.items() if val is not None}
-
-
-def nullfree_list[T: list](sequence: T) -> T:
-    return [element for element in sequence if element is not None]
-
-
-def unwrap_array[T](elements: Sequence[T, Sequence[T]]) -> list[T]:
-    if len(elements) == 1 and isinstance(elements[0], list | tuple):
-        return list(elements[0])
-    return list(elements)

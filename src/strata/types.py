@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Annotated, Any
+from typing import Literal as TypingLiteral
 
 from annotated_types import Ge, Predicate
+from bson import Binary as BSONBinary
+from bson import Decimal128 as BSONDecimal
+from bson import ObjectId
+from bson import Regex as BSONRegex
 
 if TYPE_CHECKING:
     from .models import Model, Schema
@@ -36,3 +44,79 @@ class AttributeBase:
 
 
 ## mongo types
+
+type MongoField = str
+type MongoExpression[T: Any] = Any
+type MongoQuery = dict[MongoExpression, MongoExpression]
+type Context = Any
+type MongoType = str | int
+type MongoVar = str
+type MongoValue = Scalar | Array[MongoValue] | Object[String, MongoValue]
+
+
+type Scalar = String | Regex | Binary | Number | Null | Boolean | ObjectId | Date
+
+
+type Regex = str | BSONRegex
+
+type String = str
+"""An expression that resolves to a string"""
+
+
+type Number = int | float | BSONDecimal | Decimal
+"""An expression that resolves to an integer or long"""
+
+type Boolean = bool
+"""An expression that resolves to a boolean value"""
+
+type Null = None
+"""An expression that resolves to null"""
+
+type Binary = bytes | BSONBinary
+"""An expression that resolves to a binary string"""
+
+type Array[T: Any] = list[Any]
+"""An expression that resolves to an array"""
+
+type Object[K: str, V: Any] = dict[K, V]
+"""An expression that resolves to an object"""
+
+type Date = datetime
+"""An expression that resolves to a date"""
+
+type DateUnit = TypingLiteral[
+    "year",
+    "quarter",
+    "week",
+    "month",
+    "day",
+    "hour",
+    "minute",
+    "second",
+    "millisecond",
+]
+
+type DayWeek = TypingLiteral[
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+]
+
+type Timezone = Any
+type Direction = TypingLiteral[1, -1]
+
+
+class QueryPredicate(ABC):
+    @abstractmethod
+    def compile_query(self, context: Context) -> MongoQuery:
+        raise NotImplementedError
+
+
+class ExpressionOperator(ABC):
+    @abstractmethod
+    def compile_expression(self, context: Context) -> MongoExpression:
+        raise NotImplementedError
