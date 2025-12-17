@@ -1,17 +1,14 @@
 import pytest
+
 from strata.compilers import CompilationError
-from strata.expressions import (
-    SortArray,
-    compile_expression,
-    compile_query,
-)
+from strata.expressions import SortArray, compile_expression, compile_query
 
 
 def test_expression(context, subtests: pytest.Subtests):
     with subtests.test():
-        op = SortArray("$input", "$sorter")
+        op = SortArray("$input", "sorter")
         result = compile_expression(op, context=context)
-        assert result == {"$sortArray": {"input": "$input", "sortBy": "$sorter"}}
+        assert result == {"$sortArray": {"input": "$input", "sortBy": {"sorter": 1}}}
 
 
 def test_query(context, subtests: pytest.Subtests):

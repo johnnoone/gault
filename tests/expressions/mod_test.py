@@ -1,4 +1,5 @@
 import pytest
+
 from strata.compilers import CompilationError
 from strata.expressions import Mod, compile_expression, compile_query
 

@@ -1,12 +1,9 @@
 import math
 
 import pytest
+
 from strata.compilers import CompilationError
-from strata.expressions import (
-    Acosh,
-    compile_expression,
-    compile_query,
-)
+from strata.expressions import Acosh, compile_expression, compile_query
 
 
 def test_expression(context, subtests: pytest.Subtests):

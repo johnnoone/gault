@@ -1,11 +1,7 @@
 import pytest
+
 from strata.compilers import CompilationError
-from strata.expressions import (
-    Let,
-    compile_expression,
-    compile_query,
-    Var,
-)
+from strata.expressions import Let, Var, compile_expression, compile_query
 
 
 def test_expression(context, subtests: pytest.Subtests):

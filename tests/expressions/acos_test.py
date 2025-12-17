@@ -1,6 +1,7 @@
 import math
 
 import pytest
+
 from strata.compilers import CompilationError
 from strata.expressions import Acos, compile_expression, compile_query
 

@@ -1,12 +1,8 @@
 import pytest
+
 from strata.compilers import CompilationError
-from strata.expressions import (
-    Filter,
-    Var,
-    compile_expression,
-    compile_query,
-    IsNumber,
-)
+from strata.expressions import (Filter, IsNumber, Var, compile_expression,
+                                compile_query)
 
 
 def test_expression(context, subtests: pytest.Subtests):

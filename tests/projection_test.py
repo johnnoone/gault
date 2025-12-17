@@ -1,9 +1,9 @@
-from strata.managers import AsyncManager
-from strata.accumulators import Sum
 import pytest
 
+from strata.accumulators import Sum
 from strata.exceptions import Forbidden
-from strata.models import Schema, Model
+from strata.managers import AsyncManager
+from strata.models import Model, Schema
 from strata.pipelines import Pipeline
 
 

@@ -1,10 +1,7 @@
 import pytest
+
 from strata.compilers import CompilationError
-from strata.expressions import (
-    UnsetField,
-    compile_expression,
-    compile_query,
-)
+from strata.expressions import UnsetField, compile_expression, compile_query
 
 
 def test_expression(context, subtests: pytest.Subtests):
@@ -13,8 +10,8 @@ def test_expression(context, subtests: pytest.Subtests):
         result = compile_expression(op, context=context)
         assert result == {
             "$unsetField": {
-                "field": "$one",
-                "input": "$two",
+                "input": "$one",
+                "field": "$two",
             }
         }
 

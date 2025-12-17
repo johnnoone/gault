@@ -1,7 +1,9 @@
+import math
+
 import pytest
+
 from strata.compilers import CompilationError
 from strata.expressions import Cosh, compile_expression, compile_query
-import math
 
 
 def test_expression(context, subtests: pytest.Subtests):

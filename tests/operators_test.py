@@ -1,18 +1,7 @@
 from __future__ import annotations
-from strata.operators import (
-    Gt,
-    Gte,
-    In,
-    Lt,
-    Lte,
-    Nin,
-    Eq,
-    Ne,
-    Or,
-    Not,
-)
+
 from strata.models import Attribute, Schema
-from strata.operators import And
+from strata.operators import And, Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Not, Or
 from strata.types import Path
 
 

@@ -1,5 +1,4 @@
-from strata.managers import AsyncManager
-from strata.managers import StateTracker
+from strata.managers import AsyncManager, StateTracker
 from strata.models import Field, Schema
 
 

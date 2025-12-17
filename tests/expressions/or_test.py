@@ -1,4 +1,5 @@
 import pytest
+
 from strata.expressions import Or, compile_expression
 
 

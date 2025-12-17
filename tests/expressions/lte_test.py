@@ -1,4 +1,5 @@
 import pytest
+
 from strata.expressions import Lte, compile_expression, compile_query
 
 

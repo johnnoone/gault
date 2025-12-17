@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, overload
 from typing import Literal as TypingLiteral
 
+from strata.pipelines import normalize_sort
+
 from .compilers import compile_expression, compile_field, compile_query
 from .fields import AsField, FieldSortInterface, FieldUtilInterface
 from .types import (
@@ -91,7 +93,7 @@ class Add(ExpressionOperator):
     def __init__(self, input: list[MongoExpression], /) -> None: ...
 
     @overload
-    def __init__(self, *input: MongoExpression) -> None: ...
+    def __init__(self, *inputs: MongoExpression) -> None: ...
 
     def __init__(self, *inputs: MongoExpression) -> None:
         inputs = unwrap_array(inputs)
@@ -1400,19 +1402,31 @@ class Map(ExpressionOperator):
     input: MongoExpression[Array]
     """any valid expression that resolves to an array"""
 
-    var: MongoExpression[String]
+    var: MongoExpression[String] | None = field(default=None, kw_only=True)
     """A name for the variable that represents each individual element of the input array. If no name is specified, the variable name defaults to this"""
 
     into: MongoExpression
     """An expression that is applied to each element of the input array"""
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
+        var = self.var
+        if isinstance(var, str):
+            var = Var(var)
+
+        if callable(self.into):
+            var = var or Var("this")
+            expression = self.into(var, context)
+        else:
+            expression = self.into
+
         return {
-            "$map": {
-                "input": compile_expression(self.input, context=context),
-                "as": compile_field(self.var, context=context),
-                "in": compile_expression(self.into, context=context),
-            },
+            "$map": nullfree_dict(
+                {
+                    "input": compile_expression(self.input, context=context),
+                    "as": compile_field(var, context=context) if self.var else None,
+                    "in": compile_expression(expression, context=context),
+                },
+            )
         }
 
 
@@ -1939,15 +1953,15 @@ class SetEquals(ExpressionOperator):
 class SetField(ExpressionOperator):
     """Adds, updates, or removes a specified field in a document."""
 
-    field: MongoExpression[String]
     input: MongoExpression[Object]
+    field: MongoExpression[String]
     value: MongoExpression
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$setField": {
-                "field": compile_expression(self.field, context=context),
                 "input": compile_expression(self.input, context=context),
+                "field": compile_expression(self.field, context=context),
                 "value": compile_expression(self.value, context=context),
             },
         }
@@ -2016,14 +2030,18 @@ class Sigmoid(ExpressionOperator):
     """Performs the sigmoid function, which calculates the percentile of a number in the normal distribution with standard deviation 1."""
 
     input: MongoExpression[Number]
-    on_null: MongoExpression
+    on_null: MongoExpression | None = None
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Number]:
         return {
             "$sigmoid": {
                 "input": compile_expression(self.input, context=context),
-                "onNull": compile_expression(self.on_null, context=context),
-            },
+            }
+            | nullfree_dict(
+                {
+                    "onNull": compile_expression(self.on_null, context=context),
+                }
+            ),
         }
 
 
@@ -2094,7 +2112,7 @@ class SortArray(ExpressionOperator):
         return {
             "$sortArray": {
                 "input": compile_expression(self.input, context=context),
-                "sortBy": compile_expression(self.sort_by, context=context),
+                "sortBy": normalize_sort(self.sort_by),
             },
         }
 
@@ -2481,14 +2499,14 @@ class Type(ExpressionOperator):
 class UnsetField(ExpressionOperator):
     """Removes a specified field in a document."""
 
-    field: MongoExpression[String]
     input: MongoExpression[Object]
+    field: MongoExpression[String]
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Object]:
         return {
             "$unsetField": {
-                "field": compile_expression(self.field, context=context),
                 "input": compile_expression(self.input, context=context),
+                "field": compile_expression(self.field, context=context),
             },
         }
 
@@ -2536,8 +2554,8 @@ class Zip(ExpressionOperator):
     """Transposes an array of input arrays."""
 
     inputs: list[MongoExpression[Array]]
-    use_longest_length: bool
-    defaults: MongoExpression[Array]
+    use_longest_length: bool | None = None
+    defaults: MongoExpression[Array] | None = None
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
         return {
@@ -2545,14 +2563,583 @@ class Zip(ExpressionOperator):
                 "inputs": [
                     compile_expression(input, context=context) for input in self.inputs
                 ],
-                "useLongestLength": self.use_longest_length,
-                "defaults": compile_expression(self.defaults, context=context),
-            },
+            }
+            | nullfree_dict(
+                {
+                    "useLongestLength": self.use_longest_length,
+                    "defaults": compile_expression(self.defaults, context=context),
+                }
+            ),
         }
 
 
 class FieldMatcherInterface:
-    pass
+    def abs(self) -> Abs:
+        return Abs(self)
+
+    def acos(self) -> Acos:
+        return Acos(self)
+
+    def acosh(self) -> Acosh:
+        return Acosh(self)
+
+    def add(self, *inputs: MongoExpression) -> Add:
+        return Add(self, *inputs)
+
+    def all_elements_true(self, *inputs: MongoExpression) -> AllElementsTrue:
+        return AllElementsTrue(self)
+
+    def any_elements_true(self, *inputs: MongoExpression) -> AnyElementsTrue:
+        return AnyElementsTrue(self)
+
+    def asin(self) -> Asin:
+        return Asin(self)
+
+    def asinh(self) -> Asinh:
+        return Asinh(self)
+
+    def atan(self) -> Atan:
+        return Atan(self)
+
+    def atan2(self, other: MongoExpression, /) -> Atan2:
+        return Atan2(self, other)
+
+    def atanh(self) -> Atanh:
+        return Atanh(self)
+
+    def binary_size(self) -> BinarySize:
+        return BinarySize(self)
+
+    def bit_and(self, *inputs: MongoExpression) -> BitAnd:
+        return BitAnd(self, *inputs)
+
+    def bit_not(self) -> BitNot:
+        return BitNot(self)
+
+    def bit_or(self, *inputs: MongoExpression) -> BitOr:
+        return BitOr(self, *inputs)
+
+    def bit_xor(self, *inputs: MongoExpression) -> BitXor:
+        return BitXor(self, *inputs)
+
+    def bson_size(self) -> BsonSize:
+        return BsonSize(self)
+
+    def ceil(self) -> Ceil:
+        return Ceil(self)
+
+    def cmp(self, other: MongoExpression, /) -> Cmp:
+        return Cmp(self, other)
+
+    def concat(self, *inputs: MongoExpression) -> Concat:
+        return Concat(self, *inputs)
+
+    def cos(self) -> Cos:
+        return Cos(self)
+
+    def cosh(self) -> Cosh:
+        return Cosh(self)
+
+    def date_add(
+        self,
+        *,
+        unit: MongoExpression[DateUnit],
+        amount: MongoExpression[Number],
+        timezone: MongoExpression | None = None,
+    ) -> DateAdd:
+        return DateAdd(
+            self,
+            unit=unit,
+            amount=amount,
+            timezone=timezone,
+        )
+
+    def date_diff(
+        self,
+        end_date: MongoExpression[Date],
+        *,
+        unit: MongoExpression[DateUnit],
+        timezone: MongoExpression | None = None,
+        start_of_week: MongoExpression[DayWeek] | None = None,
+    ) -> DateDiff:
+        return DateDiff(
+            start_date=self,
+            end_date=end_date,
+            unit=unit,
+            start_of_week=start_of_week,
+            timezone=timezone,
+        )
+
+    def date_from_string(
+        self,
+        *,
+        format: str | None = None,
+        timezone: MongoExpression[Timezone] | None = None,
+        on_error: MongoExpression | None = None,
+        on_null: MongoExpression | None = None,
+    ) -> DateFromString:
+        return DateFromString(
+            self,
+            format=format,
+            timezone=timezone,
+            on_error=on_error,
+            on_null=on_null,
+        )
+
+    def date_subtract(
+        self,
+        *,
+        unit: MongoExpression[DateUnit],
+        amount: MongoExpression[Number],
+        timezone: MongoExpression | None = None,
+    ) -> DateSubtract:
+        return DateSubtract(
+            self,
+            unit=unit,
+            amount=amount,
+            timezone=timezone,
+        )
+
+    def date_to_parts(
+        self,
+        *,
+        timezone: MongoExpression | None = None,
+    ) -> DateToParts:
+        return DateToParts(
+            self,
+            timezone=timezone,
+        )
+
+    def date_to_string(
+        self,
+        *,
+        format: str | None = None,
+        timezone: MongoExpression | None = None,
+        on_null: MongoExpression | None = None,
+    ) -> DateToString:
+        return DateToString(
+            self,
+            format=format,
+            timezone=timezone,
+            on_null=on_null,
+        )
+
+    def date_trunc(
+        self,
+        *,
+        unit: MongoExpression[DateUnit],
+        bin_size: MongoExpression[Number] | None = None,
+        timezone: MongoExpression | None = None,
+        start_of_week: MongoExpression[DayWeek] | None = None,
+    ) -> DateTrunc:
+        return DateTrunc(
+            self,
+            unit=unit,
+            bin_size=bin_size,
+            timezone=timezone,
+            start_of_week=start_of_week,
+        )
+
+    def day_of_month(
+        self,
+        *,
+        timezone: MongoExpression | None = None,
+    ) -> DayOfMonth:
+        return DayOfMonth(
+            self,
+            timezone=timezone,
+        )
+
+    def day_of_week(
+        self,
+        *,
+        timezone: MongoExpression | None = None,
+    ) -> DayOfWeek:
+        return DayOfWeek(
+            self,
+            timezone=timezone,
+        )
+
+    def day_of_year(
+        self,
+        *,
+        timezone: MongoExpression | None = None,
+    ) -> DayOfYear:
+        return DayOfYear(
+            self,
+            timezone=timezone,
+        )
+
+    def degrees_to_radians(self) -> DegreesToRadians:
+        return DegreesToRadians(self)
+
+    def exp(self) -> Exp:
+        return Exp(self)
+
+    def filter(
+        self,
+        cond: MongoExpression[Boolean]
+        | Callable[[Var, Context], MongoExpression[Boolean]],
+        *,
+        var: str | None = None,
+        limit: MongoExpression[Number] | None = None,
+    ) -> Exp:
+        return Filter(self, var=var, cond=cond, limit=limit)
+
+    def floor(self) -> Floor:
+        return Floor(self)
+
+    def get_field(self, field: str) -> GetField:
+        return GetField(input=self, field=field)
+
+    def gt(self, other: MongoExpression) -> Gt:
+        return Gt(self, other)
+
+    def gte(self, other: MongoExpression) -> Gte:
+        return Gte(self, other)
+
+    def hour(self) -> Hour:
+        return Hour(self)
+
+    def in_(self, array: MongoExpression, /) -> IfNull:
+        return IfNull(self, array)
+
+    def index_of_array(
+        self,
+        search: MongoExpression,
+        *,
+        start: MongoExpression[Number] | None = None,
+        end: MongoExpression[Number] | None = None,
+    ) -> IndexOfArray:
+        return IndexOfArray(
+            self,
+            search=search,
+            start=start,
+            end=end,
+        )
+
+    def index_of_bytes(
+        self,
+        search: MongoExpression,
+        *,
+        start: MongoExpression[Number] | None = None,
+        end: MongoExpression[Number] | None = None,
+    ) -> IndexOfBytes:
+        return IndexOfBytes(
+            self,
+            search=search,
+            start=start,
+            end=end,
+        )
+
+    def index_of_cp(
+        self,
+        search: MongoExpression,
+        *,
+        start: MongoExpression[Number] | None = None,
+        end: MongoExpression[Number] | None = None,
+    ) -> IndexOfCP:
+        return IndexOfCP(
+            self,
+            search=search,
+            start=start,
+            end=end,
+        )
+
+    def is_array(self) -> IsArray:
+        return IsArray(self)
+
+    def is_number(self) -> IsNumber:
+        return IsNumber(self)
+
+    def iso_day_of_week(
+        self, *, timezone: MongoExpression[Timezone] | None = None
+    ) -> IsoDayOfWeek:
+        return IsoDayOfWeek(self, timezone=timezone)
+
+    def iso_week_year(
+        self, *, timezone: MongoExpression[Timezone] | None = None
+    ) -> IsoWeekYear:
+        return IsoWeekYear(self, timezone=timezone)
+
+    def ln(self) -> Ln:
+        return Ln(self)
+
+    def log(self, base: MongoExpression, /) -> Log10:
+        return Log(self, base)
+
+    def log10(self) -> Log10:
+        return Log10(self)
+
+    def trim(self, chars: MongoExpression[String]) -> Ltrim:
+        return Trim(self, chars=chars)
+
+    def ltrim(self, chars: MongoExpression[String]) -> Ltrim:
+        return Ltrim(self, chars=chars)
+
+    def rtrim(self, chars: MongoExpression[String]) -> Rtrim:
+        return Rtrim(self, chars=chars)
+
+    def lt(self, other: MongoExpression) -> Lt:
+        return Lt(self, other)
+
+    def lte(self, other: MongoExpression) -> Lte:
+        return Lte(self, other)
+
+    def map(
+        self,
+        into: MongoExpression,
+        *,
+        var: MongoExpression[String] | None = None,
+    ) -> Map:
+        return Map(self, var=var, into=into)
+
+    def max_n(self, n: MongoExpression[Number], /) -> MaxN:
+        return MaxN(self, n=n)
+
+    def min_n(self, n: MongoExpression[Number], /) -> MinN:
+        return MinN(self, n=n)
+
+    def millisecond(self) -> Millisecond:
+        return Millisecond(self)
+
+    def minute(self) -> Minute:
+        return Minute(self)
+
+    def mod(self, other: MongoExpression[Number], /) -> Mod:
+        return Mod(self, other)
+
+    def month(self) -> Month:
+        return Month(self)
+
+    def multiply(self, *inputs: MongoExpression) -> Multiply:
+        return Multiply(self, *inputs)
+
+    def ne(self, other: MongoExpression, /) -> Ne:
+        return Ne(self, other)
+
+    def not_(self) -> Not:
+        return Not(self)
+
+    def object_to_array(self) -> ObjectToArray:
+        return ObjectToArray(self)
+
+    def pow(self, exponent: MongoExpression[Number], /) -> Pow:
+        return Pow(self, exponent)
+
+    def radians_to_degrees(self) -> RadiansToDegrees:
+        return RadiansToDegrees(self)
+
+    def reduce(
+        self,
+        into: MongoExpression,
+        *,
+        initial_value: MongoExpression,
+    ) -> Reduce:
+        return Reduce(self, into=into, initial_value=initial_value)
+
+    def regex_find(
+        self,
+        regex: MongoExpression[String],
+        *,
+        options: MongoExpression[String] | None = None,
+    ) -> RegexFind:
+        return RegexFind(self, regex=regex, options=options)
+
+    def regex_find_all(
+        self,
+        regex: MongoExpression[String],
+        *,
+        options: MongoExpression[String] | None = None,
+    ) -> RegexFindAll:
+        return RegexFindAll(self, regex=regex, options=options)
+
+    def regex_match(
+        self,
+        regex: MongoExpression[String],
+        *,
+        options: MongoExpression[String] | None = None,
+    ) -> RegexMatch:
+        return RegexMatch(self, regex=regex, options=options)
+
+    def replace_one(
+        self,
+        find: MongoExpression[String],
+        replacement: MongoExpression[String],
+    ) -> ReplaceOne:
+        return ReplaceOne(
+            self,
+            find=find,
+            replacement=replacement,
+        )
+
+    def replace_all(
+        self,
+        find: MongoExpression[String],
+        replacement: MongoExpression[String],
+    ) -> ReplaceAll:
+        return ReplaceAll(
+            self,
+            find=find,
+            replacement=replacement,
+        )
+
+    def reverse_array(self) -> ReverseArray:
+        return ReverseArray(self)
+
+    def round(self, place: MongoExpression[Number] = 0, /) -> Round:
+        return Round(self, place=place)
+
+    def sample_rate(self) -> SampleRate:
+        return SampleRate(self)
+
+    def second(self) -> Second:
+        return Second(self)
+
+    def set_difference(self, other: MongoExpression[Array], /) -> SetDifference:
+        return SetDifference(self, other)
+
+    def set_equals(self, other: MongoExpression[Array], /) -> SetEquals:
+        return SetEquals(self, other)
+
+    def set_intersection(self, other: MongoExpression[Array], /) -> SetIntersection:
+        return SetIntersection(self, other)
+
+    def set_is_subset(self, other: MongoExpression[Array], /) -> SetIsSubset:
+        return SetIsSubset(self, other)
+
+    def set_union(self, other: MongoExpression[Array], /) -> SetUnion:
+        return SetUnion(self, other)
+
+    def set_field(
+        self,
+        *,
+        field: MongoExpression[String],
+        value: MongoExpression,
+    ) -> SetField:
+        return SetField(self, field=field, value=value)
+
+    def sigmoid(
+        self,
+        *,
+        on_null: MongoExpression | None = None,
+    ) -> Sigmoid:
+        return Sigmoid(self, on_null=on_null)
+
+    def size(self) -> Size:
+        return Size(self)
+
+    def sin(self) -> Sin:
+        return Sin(self)
+
+    def sinh(self) -> Sinh:
+        return Sinh(self)
+
+    def sort_array(self, sort_by: Direction | dict[Field, Direction], /) -> SortArray:
+        return SortArray(self, sort_by=sort_by)
+
+    def split(self, delimiter: MongoExpression[String], /) -> Split:
+        return Split(self, delimiter=delimiter)
+
+    def sqrt(self) -> Sqrt:
+        return Sqrt(self)
+
+    def str_case_cmp(self, other: MongoExpression[String], /) -> StrCaseCmp:
+        return StrCaseCmp(self, other)
+
+    def str_len_bytes(self) -> StrLenBytes:
+        return StrLenBytes(self)
+
+    def str_len_cp(self) -> StrLenCP:
+        return StrLenCP(self)
+
+    def sub_str_bytes(
+        self,
+        start: MongoExpression[Number],
+        length: MongoExpression[Number],
+    ) -> SubStrBytes:
+        return SubStrBytes(self, start=start, length=length)
+
+    def subtract(
+        self,
+        other: MongoExpression[String | Number | Date],
+    ) -> Subtract:
+        return Subtract(self, other)
+
+    def tan(self) -> Tan:
+        return Tan(self)
+
+    def tanh(self) -> Tanh:
+        return Tanh(self)
+
+    def to_bool(self) -> ToBool:
+        return ToBool(self)
+
+    def to_date(self) -> ToDate:
+        return ToDate(self)
+
+    def to_decimal(self) -> ToDecimal:
+        return ToDecimal(self)
+
+    def to_double(self) -> ToDouble:
+        return ToDouble(self)
+
+    def to_hashed_index_key(self) -> ToHashedIndexKey:
+        return ToHashedIndexKey(self)
+
+    def to_int(self) -> ToInt:
+        return ToInt(self)
+
+    def to_long(self) -> ToLong:
+        return ToLong(self)
+
+    def to_object_id(self) -> ToObjectId:
+        return ToObjectId(self)
+
+    def to_string(self) -> ToString:
+        return ToString(self)
+
+    def to_lower(self) -> ToLower:
+        return ToLower(self)
+
+    def to_upper(self) -> ToUpper:
+        return ToUpper(self)
+
+    def to_uuid(self) -> ToUUID:
+        return ToUUID(self)
+
+    def ts_increment(self) -> TsIncrement:
+        return TsIncrement(self)
+
+    def ts_second(self) -> TsSecond:
+        return TsSecond(self)
+
+    def trunc(self, place: MongoExpression[Number]) -> Trunc:
+        return Trunc(self, place=place)
+
+    def type(self) -> Type:
+        return Type(self)
+
+    def unset_field(self, field: MongoExpression[String]) -> UnsetField:
+        return UnsetField(input=self, field=field)
+
+    def week(self) -> Week:
+        return Week(self)
+
+    def year(self) -> Year:
+        return Year(self)
+
+    def zip(
+        self,
+        *inputs: list[MongoExpression[Array]],
+        use_longest_length: bool | None = None,
+        defaults: MongoExpression[Array] | None = None,
+    ) -> Zip:
+        return Zip(
+            [self, *inputs],
+            use_longest_length=use_longest_length,
+            defaults=defaults,
+        )
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,8 @@
 from typing import Any
-from strata import AsyncManager, Schema, Pipeline, Field, configure
+
 import pytest
 
+from strata import AsyncManager, Field, Pipeline, Schema, configure
 from strata.accumulators import Sum
 from strata.types import Path
 

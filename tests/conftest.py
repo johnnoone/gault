@@ -1,11 +1,10 @@
-import pytest
-
 from collections.abc import AsyncIterator
-from pymongo.asynchronous.mongo_client import AsyncMongoClient
-from pymongo.asynchronous.database import AsyncDatabase
 
-from strata.managers import Persistence
-from strata.managers import AsyncManager, StateTracker
+import pytest
+from pymongo.asynchronous.database import AsyncDatabase
+from pymongo.asynchronous.mongo_client import AsyncMongoClient
+
+from strata.managers import AsyncManager, Persistence, StateTracker
 
 
 @pytest.fixture

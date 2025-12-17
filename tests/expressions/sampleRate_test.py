@@ -1,4 +1,5 @@
 import pytest
+
 from strata.expressions import SampleRate, compile_expression, compile_query
 
 

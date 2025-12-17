@@ -1,5 +1,4 @@
-from strata.mappers import Corres
-from strata.mappers import Mapper
+from strata.mappers import Corres, Mapper
 from strata.models import Field, Schema, configure
 
 

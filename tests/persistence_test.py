@@ -1,6 +1,6 @@
 import pytest
-from strata.managers import Persistence
-from strata.managers import AsyncManager
+
+from strata.managers import AsyncManager, Persistence
 from strata.models import Schema, configure
 
 

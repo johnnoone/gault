@@ -1,11 +1,10 @@
-import pytest
-from strata.compilers import CompilationError
-from strata.expressions import (
-    DegreesToRadians,
-    compile_expression,
-    compile_query,
-)
 import math
+
+import pytest
+
+from strata.compilers import CompilationError
+from strata.expressions import (DegreesToRadians, compile_expression,
+                                compile_query)
 
 
 def test_expression(context, subtests: pytest.Subtests):

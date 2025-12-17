@@ -1,10 +1,7 @@
 import pytest
-from strata.expressions import (
-    CompilationError,
-    DayOfMonth,
-    compile_expression,
-    compile_query,
-)
+
+from strata.expressions import (CompilationError, DayOfMonth,
+                                compile_expression, compile_query)
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,15 +1,12 @@
 import pytest
+
 from strata.compilers import CompilationError
-from strata.expressions import (
-    SetField,
-    compile_expression,
-    compile_query,
-)
+from strata.expressions import SetField, compile_expression, compile_query
 
 
 def test_expression(context, subtests: pytest.Subtests):
     with subtests.test():
-        op = SetField("$field", "$input", "$value")
+        op = SetField("$input", "$field", "$value")
         result = compile_expression(op, context=context)
         assert result == {
             "$setField": {"field": "$field", "input": "$input", "value": "$value"}
