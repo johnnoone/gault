@@ -89,7 +89,7 @@ class Attribute[T: Any](AttributeBase):
     def desc(self) -> tuple[Self, Literal[-1]]:
         return (self, DESCENDING)
 
-    def by_score(self, name: str) -> tuple[Self, Literal[-1]]:
+    def by_score(self, name: str) -> tuple[Self, dict]:
         return (self, {"$meta": name})
 
     __eq__ = eq

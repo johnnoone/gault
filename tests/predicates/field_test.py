@@ -237,3 +237,23 @@ def test_regex(field, context):
             "$regex": "pattern",
         }
     }
+
+
+def test_desc(field, context):
+    result = field.desc()
+    assert result == (field, -1)
+
+
+def test_asc(field, context):
+    result = field.asc()
+    assert result == (field, 1)
+
+
+def test_by_score(field, context):
+    result = field.by_score("new")
+    assert result == (field, {"$meta": "new"})
+
+
+def test_tmp(context):
+    result = Field.tmp()
+    assert isinstance(result, Field)

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, overload
+from typing import Any, Literal, Self, overload
 
+from bson import ObjectId
+
+from . import expressions
 from .compilers import compile_expression, compile_field, compile_query
 from .fields import AsField
 from .geo import Geo, GeoJSON, compile_geo
@@ -17,86 +21,86 @@ from .types import (
     MongoQuery,
     MongoValue,
     Number,
+    QueryPredicate,
     String,
 )
-from .types import QueryPredicate as _QueryPredicate
 from .utils import nullfree_dict, unwrap_array
 
 
 class FieldMatcherInterface:
-    def all(self, *values: MongoValue | ElemMatch) -> QueryPredicate:
+    def all(self, *values: MongoValue | ElemMatch) -> Predicate:
         op = All(*values)
         return FieldMatcher(self, op=op)
 
-    def elem_match(self, *predicates: QueryPredicate | QueryOperator) -> QueryPredicate:
+    def elem_match(self, *predicates: Predicate | Operator) -> Predicate:
         op = ElemMatch(*predicates)
         return FieldMatcher(self, op=op)
 
-    def size(self, count: Number, /) -> QueryPredicate:
+    def size(self, count: Number, /) -> Predicate:
         op = Size(count)
         return FieldMatcher(self, op=op)
 
-    def bits_all_clear(self, bits: Number | Binary | list[Number], /) -> QueryPredicate:
+    def bits_all_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAllClear(bits)
         return FieldMatcher(self, op=op)
 
-    def bits_any_clear(self, bits: Number | Binary | list[Number], /) -> QueryPredicate:
+    def bits_any_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAnyClear(bits)
         return FieldMatcher(self, op=op)
 
-    def bits_all_set(self, bits: Number | Binary | list[Number], /) -> QueryPredicate:
+    def bits_all_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAllSet(bits)
         return FieldMatcher(self, op=op)
 
-    def bits_any_set(self, bits: Number | Binary | list[Number], /) -> QueryPredicate:
+    def bits_any_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAnySet(bits)
         return FieldMatcher(self, op=op)
 
-    def eq(self, value: MongoValue, /) -> QueryPredicate:
+    def eq(self, value: MongoValue, /) -> Predicate:
         op = Eq(value)
         return FieldMatcher(self, op=op)
 
-    def gt(self, value: MongoValue, /) -> QueryPredicate:
+    def gt(self, value: MongoValue, /) -> Predicate:
         op = Gt(value)
         return FieldMatcher(self, op=op)
 
-    def gte(self, value: MongoValue, /) -> QueryPredicate:
+    def gte(self, value: MongoValue, /) -> Predicate:
         op = Gte(value)
         return FieldMatcher(self, op=op)
 
-    def in_(self, *values: MongoValue) -> QueryPredicate:
+    def in_(self, *values: MongoValue) -> Predicate:
         op = In(*values)
         return FieldMatcher(self, op=op)
 
-    def lt(self, value: MongoValue, /) -> QueryPredicate:
+    def lt(self, value: MongoValue, /) -> Predicate:
         op = Lt(value)
         return FieldMatcher(self, op=op)
 
-    def lte(self, value: MongoValue, /) -> QueryPredicate:
+    def lte(self, value: MongoValue, /) -> Predicate:
         op = Lte(value)
         return FieldMatcher(self, op=op)
 
-    def ne(self, value: MongoValue, /) -> QueryPredicate:
+    def ne(self, value: MongoValue, /) -> Predicate:
         op = Ne(value)
         return FieldMatcher(self, op=op)
 
-    def nin(self, *values: MongoValue) -> QueryPredicate:
+    def nin(self, *values: MongoValue) -> Predicate:
         op = Nin(*values)
         return FieldMatcher(self, op=op)
 
-    def exists(self, value: Boolean, /) -> QueryPredicate:
+    def exists(self, value: Boolean, /) -> Predicate:
         op = Exists(value)
         return FieldMatcher(self, op=op)
 
-    def type(self, *types: String) -> QueryPredicate:
+    def type(self, *types: String) -> Predicate:
         op = Type(*types)
         return FieldMatcher(self, op=op)
 
-    def geo_intersects(self, value: GeoJSON, /) -> QueryPredicate:
+    def geo_intersects(self, value: GeoJSON, /) -> Predicate:
         op = GeoIntersects(value)
         return FieldMatcher(self, op=op)
 
-    def geo_within(self, value: GeoJSON, /) -> QueryPredicate:
+    def geo_within(self, value: GeoJSON, /) -> Predicate:
         op = GeoWithin(value)
         return FieldMatcher(self, op=op)
 
@@ -106,7 +110,7 @@ class FieldMatcherInterface:
         /,
         min_distance: Number | None = None,
         max_distance: Number | None = None,
-    ) -> QueryPredicate:
+    ) -> Predicate:
         op = Near(
             value,
             min_distance=min_distance,
@@ -120,7 +124,7 @@ class FieldMatcherInterface:
         /,
         min_distance: Number | None = None,
         max_distance: Number | None = None,
-    ) -> QueryPredicate:
+    ) -> Predicate:
         op = NearSphere(
             value,
             min_distance=min_distance,
@@ -128,17 +132,39 @@ class FieldMatcherInterface:
         )
         return FieldMatcher(self, op=op)
 
-    def mod(self, divisor: Number, remainder: Number) -> QueryPredicate:
+    def mod(self, divisor: Number, remainder: Number) -> Predicate:
         op = Mod(divisor, remainder)
         return FieldMatcher(self, op=op)
 
-    def regex(self, regex: String, *, options: String | None = None) -> QueryPredicate:
+    def regex(self, regex: String, *, options: String | None = None) -> Predicate:
         op = Regex(regex, options=options)
         return FieldMatcher(self, op=op)
 
 
+class FieldSortInterface:
+    def asc(self) -> tuple[Self, Literal[-1]]:
+        # generate sort token
+        return (self, 1)
+
+    def desc(self) -> tuple[Self, Literal[-1]]:
+        # generate sort token
+        return (self, -1)
+
+    def by_score(self, name: str) -> tuple[Self, dict]:
+        # generate sort token
+        return (self, {"$meta": name})
+
+
+class FieldUtilInterface:
+    @classmethod
+    def tmp(cls) -> Self:
+        # instantiate field with a random name
+        name = f"__{ObjectId().__str__()}"
+        return cls(name)
+
+
 @dataclass
-class Field(AsField, FieldMatcherInterface):
+class Field(AsField, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface):
     value: str
 
     def compile_field(self, *, context: Context) -> str:
@@ -148,25 +174,35 @@ class Field(AsField, FieldMatcherInterface):
         return "$" + self.value
 
 
-class QueryPredicate(_QueryPredicate):
-    def __and__(self, other: QueryPredicate) -> And:
+class AsExpression(ABC):
+    @abstractmethod
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        raise NotImplementedError
+
+
+class Predicate(QueryPredicate):
+    def __and__(self, other: Predicate) -> And:
         return And([self, other])
 
-    def __or__(self, other: QueryPredicate) -> Or:
+    def __or__(self, other: Predicate) -> Or:
         return Or([self, other])
 
     def __invert__(self) -> Not:
         return Not(self)
 
 
-class QueryOperator(_QueryPredicate):
+class Operator(QueryPredicate):
     pass
 
 
 @dataclass
-class FieldMatcher(QueryPredicate):
+class FieldMatcher(Predicate, expressions.ExpressionOperator):
     field: str | Field
-    op: QueryOperator
+    op: Operator
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -176,9 +212,16 @@ class FieldMatcher(QueryPredicate):
             ),
         }
 
+    def compile_expression(self, context: Context) -> MongoExpression:
+        if isinstance(self.op, AsExpression):
+            expression = self.op.as_expression(self.field, context=context)
+        else:
+            raise NotImplementedError
+        return compile_expression(expression, context=context)
+
 
 @dataclass
-class And(QueryPredicate):
+class And(Predicate, expressions.ExpressionOperator):
     """Selects the documents that satisfy all the expressions."""
 
     predicates: list[MongoQuery]
@@ -200,12 +243,20 @@ class And(QueryPredicate):
             ],
         }
 
-    def __and__(self, other: QueryPredicate) -> And:
+    def compile_expression(self, context: Context) -> MongoExpression:
+        return {
+            "$and": [
+                compile_expression(predicate, context=context)
+                for predicate in self.predicates
+            ],
+        }
+
+    def __and__(self, other: Predicate) -> And:
         return And([*self.predicates, other])
 
 
 @dataclass
-class Nor(QueryPredicate):
+class Nor(Predicate):
     """Selects the documents that fail all the query predicates in the array."""
 
     predicates: list[MongoQuery]
@@ -227,15 +278,25 @@ class Nor(QueryPredicate):
             ],
         }
 
+    def compile_expression(self, context: Context) -> MongoExpression:
+        return expressions.Not(
+            {
+                "$or": [
+                    compile_expression(predicate, context=context)
+                    for predicate in self.predicates
+                ],
+            },
+        ).compile_expression(context=context)
+
     def __invert__(self) -> Or:
         return Or(self.predicates)
 
 
 @dataclass
-class Not(QueryPredicate):
+class Not(Predicate):
     """Selects the documents that do not match the predicate."""
 
-    predicate: QueryOperator | FieldMatcher
+    predicate: Operator | FieldMatcher
 
     def compile_query(self, context: Context) -> MongoQuery:
         if isinstance(self.predicate, FieldMatcher):
@@ -246,18 +307,23 @@ class Not(QueryPredicate):
                     "$not": {compile_query(op, context=context)},
                 },
             }
-        if isinstance(self.predicate, QueryOperator):
+        if isinstance(self.predicate, Operator):
             return {
                 "$not": compile_query(self.predicate, context=context),
             }
         raise NotImplementedError
+
+    def compile_expression(self, context: Context) -> MongoExpression:
+        return Not(
+            compile_expression(self.predicate, context=context),
+        ).compile_expression(context=context)
 
     def __invert__(self) -> MongoQuery:
         return self.predicate
 
 
 @dataclass
-class Or(QueryPredicate):
+class Or(Predicate):
     """Selects the documents that satisfy at least one of the predicates."""
 
     predicates: list[MongoQuery]
@@ -279,7 +345,15 @@ class Or(QueryPredicate):
             ],
         }
 
-    def __or__(self, other: QueryPredicate) -> Or:
+    def compile_expression(self, context: Context) -> MongoExpression:
+        return {
+            "$or": [
+                compile_expression(predicate, context=context)
+                for predicate in self.predicates
+            ],
+        }
+
+    def __or__(self, other: Predicate) -> Or:
         return Or([*self.predicates, other])
 
     def __invert__(self) -> Nor:
@@ -287,7 +361,7 @@ class Or(QueryPredicate):
 
 
 @dataclass
-class All(QueryOperator):
+class All(Operator):
     """Selects the documents where the value of a field matches all specified values."""
 
     values: list[MongoValue | ElemMatch]
@@ -308,16 +382,16 @@ class All(QueryOperator):
 
 
 @dataclass
-class ElemMatch(QueryOperator):
+class ElemMatch(Operator):
     """Selects the documents where the value of a field matches all specified values."""
 
-    predicates: list[QueryPredicate | QueryOperator]
+    predicates: list[Predicate | Operator]
 
     @overload
-    def __init__(self, predicate: list[QueryPredicate | QueryOperator], /) -> None: ...
+    def __init__(self, predicate: list[Predicate | Operator], /) -> None: ...
 
     @overload
-    def __init__(self, *predicates: QueryPredicate | QueryOperator) -> None: ...
+    def __init__(self, *predicates: Predicate | Operator) -> None: ...
 
     def __init__(self, *predicates: Any) -> None:
         self.predicates = unwrap_array(predicates)
@@ -333,7 +407,7 @@ class ElemMatch(QueryOperator):
 
 
 @dataclass
-class Size(QueryOperator):
+class Size(Operator, AsExpression):
     """Matches any array with the number of elements specified by the argument."""
 
     count: Number
@@ -343,9 +417,16 @@ class Size(QueryOperator):
             "$size": self.count,
         }
 
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return expressions.Eq(expressions.Size(field), self.value)
+
 
 @dataclass
-class BitsAllClear(QueryOperator):
+class BitsAllClear(Operator):
     """Matches documents where all of the bit positions given by the query are clear (i.e. 0) in field."""
 
     bits: Number | Binary | list[Number]
@@ -357,7 +438,7 @@ class BitsAllClear(QueryOperator):
 
 
 @dataclass
-class BitsAllSet(QueryOperator):
+class BitsAllSet(Operator):
     """Matches documents where all of the bit positions given by the query are set (i.e. 1) in field."""
 
     bits: Number | Binary | list[Number]
@@ -369,7 +450,7 @@ class BitsAllSet(QueryOperator):
 
 
 @dataclass
-class BitsAnyClear(QueryOperator):
+class BitsAnyClear(Operator):
     """Matches documents where any of the bit positions given by the query are clear (i.e. 0) in field."""
 
     bits: Number | Binary | list[Number]
@@ -381,7 +462,7 @@ class BitsAnyClear(QueryOperator):
 
 
 @dataclass
-class BitsAnySet(QueryOperator):
+class BitsAnySet(Operator):
     """Matches documents where any of the bit positions given by the query are set (i.e. 1) in field."""
 
     bits: Number | Binary | list[Number]
@@ -393,7 +474,7 @@ class BitsAnySet(QueryOperator):
 
 
 @dataclass
-class Eq(QueryOperator):
+class Eq(Operator, AsExpression):
     """Matches documents where the value of a field equals the specified value."""
 
     value: MongoValue
@@ -403,9 +484,16 @@ class Eq(QueryOperator):
             "$eq": self.value,
         }
 
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return expressions.Eq(field, self.value)
+
 
 @dataclass
-class Gt(QueryOperator):
+class Gt(Operator):
     """Matches documents where the value of the specified field is greater than the specified value."""
 
     value: MongoValue
@@ -415,9 +503,16 @@ class Gt(QueryOperator):
             "$gt": self.value,
         }
 
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return expressions.Gt(field, self.value)
+
 
 @dataclass
-class Gte(QueryOperator):
+class Gte(Operator, AsExpression):
     """Matches documents where the value of the specified field is greater than or equal to a specified value."""
 
     value: MongoValue
@@ -427,9 +522,16 @@ class Gte(QueryOperator):
             "$gte": self.value,
         }
 
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return expressions.Gte(field, self.value)
+
 
 @dataclass
-class In(QueryOperator):
+class In(Operator, AsExpression):
     """Selects the documents where the value of a field equals any value in the specified array."""
 
     values: list[MongoValue]
@@ -448,9 +550,16 @@ class In(QueryOperator):
             "$in": self.values,
         }
 
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return expressions.In(field, self.value)
+
 
 @dataclass
-class Lt(QueryOperator):
+class Lt(Operator, AsExpression):
     """Matches documents where the value of the specified field is less than the specified value."""
 
     value: MongoValue
@@ -460,9 +569,16 @@ class Lt(QueryOperator):
             "$lt": self.value,
         }
 
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return expressions.Lt(field, self.value)
+
 
 @dataclass
-class Lte(QueryOperator):
+class Lte(Operator, AsExpression):
     """Matches documents where the value of the specified field is less than or equal to a specified value."""
 
     value: MongoValue
@@ -472,9 +588,16 @@ class Lte(QueryOperator):
             "$lte": self.value,
         }
 
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return expressions.Lte(field, self.value)
+
 
 @dataclass
-class Ne(QueryOperator):
+class Ne(Operator, AsExpression):
     """Matches documents where the value of a specified field is not equal to the specified value."""
 
     value: MongoValue
@@ -484,9 +607,16 @@ class Ne(QueryOperator):
             "$ne": self.value,
         }
 
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return expressions.Ne(field, self.value)
+
 
 @dataclass
-class Nin(QueryOperator):
+class Nin(Operator, AsExpression):
     """Selects the documents where the specified field value is not in the specified array or the specified field does not exist."""
 
     values: list[MongoValue]
@@ -505,9 +635,16 @@ class Nin(QueryOperator):
             "$nin": self.values,
         }
 
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return ~expressions.In(field, self.value)
+
 
 @dataclass
-class Exists(QueryOperator):
+class Exists(Operator):
     """Selects the documents where the specified field value is not in the specified array or the specified field does not exist."""
 
     value: Boolean
@@ -519,7 +656,7 @@ class Exists(QueryOperator):
 
 
 @dataclass
-class Type(QueryOperator):
+class Type(Operator):
     """Selects documents where the value of the field is an instance of the specified BSON type(s)."""
 
     types: Array[String] | String
@@ -540,7 +677,7 @@ class Type(QueryOperator):
 
 
 @dataclass
-class GeoIntersects(QueryOperator):
+class GeoIntersects(Operator):
     """Selects documents whose geospatial data intersects with a specified GeoJSON object; i.e. where the intersection of the data and the specified object is non-empty."""
 
     value: GeoJSON
@@ -552,7 +689,7 @@ class GeoIntersects(QueryOperator):
 
 
 @dataclass
-class GeoWithin(QueryOperator):
+class GeoWithin(Operator):
     """Selects documents with geospatial data that exists entirely within a specified shape."""
 
     value: Geo
@@ -564,7 +701,7 @@ class GeoWithin(QueryOperator):
 
 
 @dataclass
-class Near(QueryOperator):
+class Near(Operator):
     """Specifies a point for which a geospatial query returns the documents from nearest to farthest."""
 
     value: Geo
@@ -583,7 +720,7 @@ class Near(QueryOperator):
 
 
 @dataclass
-class NearSphere(QueryOperator):
+class NearSphere(Operator):
     """Specifies a point for which a geospatial query returns the documents from nearest to farthest."""
 
     value: Geo
@@ -602,7 +739,7 @@ class NearSphere(QueryOperator):
 
 
 @dataclass
-class Expr(QueryOperator):
+class Expr(Operator):
     """Allows the use of expressions within a query predicate."""
 
     expression: MongoExpression
@@ -614,7 +751,7 @@ class Expr(QueryOperator):
 
 
 @dataclass
-class JsonSchema(QueryOperator):
+class JsonSchema(Operator):
     """Matches documents that satisfy the specified JSON Schema."""
 
     schema: Any
@@ -626,7 +763,7 @@ class JsonSchema(QueryOperator):
 
 
 @dataclass
-class Mod(QueryOperator):
+class Mod(Operator):
     """Matches documents that satisfy the specified JSON Schema."""
 
     divisor: Number
@@ -642,7 +779,7 @@ class Mod(QueryOperator):
 
 
 @dataclass
-class Regex(QueryOperator):
+class Regex(Operator, AsExpression):
     """Matches documents that satisfy the specified JSON Schema."""
 
     regex: String
@@ -656,3 +793,10 @@ class Regex(QueryOperator):
                 "$options": compile_expression(self.options, context=context),
             },
         )
+
+    def as_expression(
+        self,
+        field: Field,
+        context: Context,
+    ) -> expressions.ExpressionOperator:
+        return expressions.RegexMatch(field, regex=self.regex, options=self.options)
