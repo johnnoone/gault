@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Literal, Self, overload
-
-from bson import ObjectId
+from typing import Any, overload
 
 from . import expressions
 from .compilers import compile_expression, compile_field, compile_query
-from .fields import AsField
+from .fields import AsField, FieldSortInterface, FieldUtilInterface
 from .geo import Geo, GeoJSON, compile_geo
 from .types import (
     Array,
@@ -141,29 +139,7 @@ class FieldMatcherInterface:
         return FieldMatcher(self, op=op)
 
 
-class FieldSortInterface:
-    def asc(self) -> tuple[Self, Literal[-1]]:
-        # generate sort token
-        return (self, 1)
-
-    def desc(self) -> tuple[Self, Literal[-1]]:
-        # generate sort token
-        return (self, -1)
-
-    def by_score(self, name: str) -> tuple[Self, dict]:
-        # generate sort token
-        return (self, {"$meta": name})
-
-
-class FieldUtilInterface:
-    @classmethod
-    def tmp(cls) -> Self:
-        # instantiate field with a random name
-        name = f"__{ObjectId().__str__()}"
-        return cls(name)
-
-
-@dataclass
+@dataclass(frozen=True)
 class Field(AsField, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface):
     value: str
 

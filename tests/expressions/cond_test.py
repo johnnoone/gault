@@ -1,5 +1,6 @@
 import pytest
-from strata.expressions import Cond, CompilationError, compile_expression, compile_query
+from strata.expressions import Cond, compile_expression, compile_query
+from strata.compilers import CompilationError
 
 
 def test_expression(context, subtests: pytest.Subtests):

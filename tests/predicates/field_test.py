@@ -257,3 +257,9 @@ def test_by_score(field, context):
 def test_tmp(context):
     result = Field.tmp()
     assert isinstance(result, Field)
+
+
+def test_field(field, context):
+    result = Field("foo").field("bar")
+    assert result.compile_field(context=context) == "foo.bar"
+    assert result.compile_expression(context=context) == "$foo.bar"

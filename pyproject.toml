@@ -46,8 +46,10 @@ extend-select = ["ALL"]
 extend-ignore = [
     "A001",
     "A002",
+    "ARG001",
     "ARG002",
     "ANN401",
+    "COM812",
     "D100",
     "D101",
     "D102",
@@ -59,6 +61,7 @@ extend-ignore = [
     "D213",
     "E501",
     "F402",
+    "FBT003",
     "N818",
     "PLR2004",
     "SIM108",

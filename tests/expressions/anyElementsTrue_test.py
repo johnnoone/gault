@@ -1,7 +1,7 @@
 import pytest
+from strata.compilers import CompilationError
 from strata.expressions import (
     AnyElementsTrue,
-    CompilationError,
     compile_expression,
     compile_query,
 )

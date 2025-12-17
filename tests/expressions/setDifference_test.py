@@ -1,6 +1,6 @@
 import pytest
+from strata.compilers import CompilationError
 from strata.expressions import (
-    CompilationError,
     SetDifference,
     compile_expression,
     compile_query,

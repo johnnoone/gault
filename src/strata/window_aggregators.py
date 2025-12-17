@@ -9,7 +9,6 @@ from .expressions import (
     DateUnit,
     MongoExpression,
     Number,
-    RawExpression,
     compile_expression,
     compile_field,
 )
@@ -19,7 +18,7 @@ class WindowOperator(ABC):
     """Described here https://www.mongodb.com/docs/manual/reference/mql/expressions/."""
 
     @abstractmethod
-    def compile_expression(self, context: Context) -> MongoExpression[RawExpression]:
+    def compile_expression(self, context: Context) -> MongoExpression:
         raise NotImplementedError
 
 

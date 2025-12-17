@@ -1,5 +1,6 @@
 import pytest
-from strata.expressions import Exp, CompilationError, compile_expression, compile_query
+from strata.compilers import CompilationError
+from strata.expressions import Exp, compile_expression, compile_query
 import math
 
 

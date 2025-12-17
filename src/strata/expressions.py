@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, overload
 from typing import Literal as TypingLiteral
 
 from .compilers import compile_expression, compile_field, compile_query
+from .fields import AsField, FieldSortInterface, FieldUtilInterface
 from .types import (
     Array,
     Binary,
@@ -30,6 +31,7 @@ from .types import (
 from .utils import nullfree_dict, nullfree_list, unwrap_array
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from uuid import UUID
 
     from bson import ObjectId, Timestamp
@@ -871,17 +873,27 @@ class Filter(ExpressionOperator):
     """Selects a subset of an array to return based on the specified condition."""
 
     input: MongoExpression[Array]
-    into: str | None = field(default=None, kw_only=True)
-    cond: MongoExpression[Boolean]
+    var: str | None = field(default=None, kw_only=True)
+    cond: MongoExpression[Boolean] | Callable[[Var, Context], MongoExpression[Boolean]]
     limit: MongoExpression[Number] | None = field(default=None, kw_only=True)
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
+        var = self.var
+        if isinstance(var, str):
+            var = Var(var)
+
+        if self.cond and callable(self.cond):
+            var = var or Var("this")
+            cond = self.cond(var, context)
+        else:
+            cond = self.cond
+
         return {
             "$filter": nullfree_dict(
                 {
                     "input": compile_expression(self.input, context=context),
-                    "as": compile_field(self.into, context=context),
-                    "cond": compile_expression(self.cond, context=context),
+                    "as": compile_field(var, context=context) if self.var else None,
+                    "cond": compile_expression(cond, context=context),
                     "limit": compile_expression(self.limit, context=context),
                 },
             ),
@@ -2061,11 +2073,13 @@ class Slice(ExpressionOperator):
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
         return {
-            "$slice": [
-                compile_expression(self.input, context=context),
-                compile_expression(self.position, context=context),
-                compile_expression(self.n, context=context),
-            ],
+            "$slice": nullfree_list(
+                [
+                    compile_expression(self.input, context=context),
+                    compile_expression(self.position, context=context),
+                    compile_expression(self.n, context=context),
+                ],
+            ),
         }
 
 
@@ -2535,3 +2549,18 @@ class Zip(ExpressionOperator):
                 "defaults": compile_expression(self.defaults, context=context),
             },
         }
+
+
+class FieldMatcherInterface:
+    pass
+
+
+@dataclass(frozen=True)
+class Var(AsField, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface):
+    value: str
+
+    def compile_field(self, *, context: Context) -> str:
+        return self.value
+
+    def compile_expression(self, *, context: Context) -> str:
+        return "$$" + self.value

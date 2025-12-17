@@ -178,6 +178,10 @@ class Pipeline:
         }
         return self.raw(stage)
 
+    def set_field(self, field: field | str, value: Any, /) -> Self:
+        """Add a new field or replace existing field value."""
+        return self.set({field: value})
+
     def set(self, fields: dict[str, Any], /) -> Self:
         """Add new fields or replace existing field values."""
         stage = {"$set": dict(fields.items())}

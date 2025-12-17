@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass, replace
+from typing import Literal, Self
 
-from .types import Context, ExpressionOperator, MongoValue, QueryPredicate
+from bson import ObjectId
 
-if TYPE_CHECKING:
-    from .predicates import FieldMatcher
+from .types import Context, ExpressionOperator, QueryPredicate
 
 
 @ExpressionOperator.register
@@ -41,3 +40,32 @@ class Field(AsField):
 
     def compile_expression(self, *, context: Context) -> str:
         return "$" + self.value
+
+
+class FieldSortInterface:
+    def asc(self) -> tuple[Self, Literal[-1]]:
+        # generate sort token
+        return (self, 1)
+
+    def desc(self) -> tuple[Self, Literal[-1]]:
+        # generate sort token
+        return (self, -1)
+
+    def by_score(self, name: str) -> tuple[Self, dict]:
+        # generate sort token
+        return (self, {"$meta": name})
+
+
+class FieldUtilInterface:
+    value: str
+
+    @classmethod
+    def tmp(cls) -> Self:
+        # instantiate field with a random name
+        name = f"__{ObjectId().__str__()}"
+        return cls(name)
+
+    def field(self, name: str) -> Self:
+        # access a sub field
+        value = self.value + "." + name
+        return replace(self, value=value)
