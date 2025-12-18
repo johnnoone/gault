@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from strata.models import AttributeSpec
+from .types import DBAlias
+from .types import Direction
 
-type SortType = dict[str, Any] | str | list[str | tuple[Any, Any]] | tuple[Any, Any]
+type SortType = dict[str, Direction] | str | list[str | SortToken] | SortToken
+type SortToken = str | tuple[Sortable, Direction]
+
+
+class Sortable:
+    pass
 
 
 def normalize_sort(data: SortType, /) -> dict[str, Any]:
@@ -22,10 +28,10 @@ def normalize_sort(data: SortType, /) -> dict[str, Any]:
                 key, val = (item[1:], -1)
             case str() if item:
                 key, val = (item, 1)
-            case AttributeSpec(db_alias=db_alias):
-                key, val = (db_alias, 1)
-            case (AttributeSpec(db_alias=db_alias), direction):
-                key, val = (db_alias, direction)
+            case DBAlias() as alias:
+                key, val = (alias.get_db_alias(), 1)
+            case (DBAlias() as alias, direction):
+                key, val = (alias.get_db_alias(), direction)
             case (str() as key, direction):
                 _, val = (key, direction)
 

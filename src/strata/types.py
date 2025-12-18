@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Annotated, Any, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 from typing import Literal as TypingLiteral
 
 from annotated_types import Ge, Predicate
@@ -102,7 +102,7 @@ type DayWeek = TypingLiteral[
 ]
 
 type Timezone = Any
-type Direction = TypingLiteral[1, -1]
+type Direction = TypingLiteral[1, -1] | dict[str, Any]
 
 
 class QueryPredicate(ABC):
@@ -126,3 +126,50 @@ class Aliased[T]:
 class AsAlias:
     def alias(self, ref: str) -> Aliased[Self]:
         return Aliased(ref, self)
+
+
+class DBAlias(ABC):
+    db_name: str
+
+
+@ExpressionOperator.register
+@QueryPredicate.register
+class AsRef(ABC):
+    @abstractmethod
+    def compile_field(self, *, context: Context) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def compile_expression(self, *, context: Context) -> str:
+        raise NotImplementedError
+
+
+class FieldSortInterface:
+    name: str
+
+    def asc(self) -> tuple[Self, Literal[-1]]:
+        # generate sort token
+        return (self, 1)
+
+    def desc(self) -> tuple[Self, Literal[-1]]:
+        # generate sort token
+        return (self, -1)
+
+    def by_score(self, name: str) -> tuple[Self, dict]:
+        # generate sort token
+        return (self, {"$meta": name})
+
+
+class FieldUtilInterface:
+    value: str
+
+    @classmethod
+    def tmp(cls) -> Self:
+        # instantiate field with a random name
+        name = f"__{ObjectId().__str__()}"
+        return cls(name)
+
+    def field(self, name: str) -> Self:
+        # access a sub field
+        prefixed = self.name + "." + name
+        return replace(self, name=prefixed)

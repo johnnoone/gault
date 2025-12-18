@@ -4,13 +4,12 @@ from abc import ABC, abstractmethod
 from dataclasses import MISSING, dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Concatenate, Literal, Self, overload
 
-from strata.accumulators import compile_accumulator
-from strata.sorting import SortType, normalize_sort
-
+from .accumulators import compile_accumulator
 from .compilers import compile_expression, compile_field, compile_path, compile_query
 from .mappers import get_mapper
 from .models import Model, Schema, get_collection
 from .operators import Operator
+from .sorting import SortType, normalize_sort
 from .utils import drop_missing, nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
 
     T = TypeVar("T")
     P = ParamSpec("P")
+
 
 type Stage = dict[str, Any]
 

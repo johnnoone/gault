@@ -6,6 +6,7 @@ from weakref import WeakKeyDictionary, WeakValueDictionary
 
 from pymongo import ASCENDING, DESCENDING
 
+from .types import DBAlias
 from .operators import Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Operator
 from .types import AttributeBase, MongoExpression
 from .utils import drop_missing
@@ -55,7 +56,10 @@ class Schema(Model, collection=None):
         SCHEMAS[collection] = cls
 
 
-class AttributeSpec[T: Any](AttributeBase):
+class AttributeSpec[T: Any](DBAlias, AttributeBase):
+    def get_db_alias(self) -> str:
+        return self.db_alias
+
     def __hash__(self) -> None:
         return hash((self.owner, self.name, self.db_alias))
 

@@ -8,13 +8,15 @@ from typing import Any, overload
 
 from . import expressions
 from .compilers import compile_expression, compile_field, compile_query
-from .fields import AsField, FieldSortInterface, FieldUtilInterface
+from .types import FieldUtilInterface
 from .geo import Geo, GeoJSON, compile_geo
 from .types import (
     Array,
+    AsRef,
     Binary,
     Boolean,
     Context,
+    FieldSortInterface,
     MongoExpression,
     MongoQuery,
     MongoValue,
@@ -140,14 +142,14 @@ class FieldMatcherInterface:
 
 
 @dataclass(frozen=True)
-class Field(AsField, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface):
-    value: str
+class Field(AsRef, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface):
+    name: str
 
     def compile_field(self, *, context: Context) -> str:
-        return self.value
+        return self.name
 
     def compile_expression(self, *, context: Context) -> str:
-        return "$" + self.value
+        return "$" + self.name
 
 
 class AsExpression(ABC):

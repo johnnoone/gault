@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from .compilers import compile_field
+
 from .expressions import (
     Array,
     Context,
@@ -10,7 +12,6 @@ from .expressions import (
     MongoExpression,
     Number,
     compile_expression,
-    compile_field,
 )
 
 

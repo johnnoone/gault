@@ -7,12 +7,15 @@ from typing import TYPE_CHECKING, Any, overload
 from typing import Literal as TypingLiteral
 
 from .compilers import compile_expression, compile_field, compile_query
-from .fields import AsField, FieldSortInterface, FieldUtilInterface
+from .types import (
+    FieldUtilInterface,
+)
 from .sorting import normalize_sort
 from .types import (
     Aliased,
     Array,
     AsAlias,
+    AsRef,
     Binary,
     Boolean,
     Context,
@@ -20,6 +23,7 @@ from .types import (
     DateUnit,
     DayWeek,
     Direction,
+    FieldSortInterface,
     MongoExpression,
     MongoQuery,
     MongoVar,
@@ -41,7 +45,7 @@ if TYPE_CHECKING:
 
     from bson import ObjectId, Timestamp
 
-    from .fields import Field
+    from .predicates import Field
 
 
 class ExpressionOperator(_ExpressionOperator, AsAlias):
@@ -3170,12 +3174,12 @@ class FieldMatcherInterface:
 
 @dataclass(frozen=True)
 class Var(
-    AsField, AsAlias, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface
+    AsRef, AsAlias, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface
 ):
-    value: str
+    name: str
 
     def compile_field(self, *, context: Context) -> str:
-        return self.value
+        return self.name
 
     def compile_expression(self, *, context: Context) -> str:
-        return "$$" + self.value
+        return "$$" + self.name

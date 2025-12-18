@@ -4,9 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
-from strata.fields import AsField
-
-from .types import AttributeBase, Context
+from .types import AsRef, AttributeBase, Context
 
 
 class Operator(ABC):
@@ -161,7 +159,7 @@ class Nin(Operator):
 def prepare_lhs(obj: Any, *, context: Context | None = None) -> str:
     if isinstance(obj, AttributeBase):
         return obj.db_alias
-    if isinstance(obj, AsField):
+    if isinstance(obj, AsRef):
         return obj.compile_field(context=context)
     if isinstance(obj, str):
         return obj
@@ -172,6 +170,6 @@ def prepare_lhs(obj: Any, *, context: Context | None = None) -> str:
 def prepare_rhs(obj: Any, *, context: Context | None = None) -> Any:
     if isinstance(obj, AttributeBase):
         return "$" + obj.db_alias
-    if isinstance(obj, AsField):
+    if isinstance(obj, AsRef):
         return obj.compile_expression(context=context)
     return obj
