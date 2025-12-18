@@ -2070,7 +2070,7 @@ class SortArray(ExpressionOperator):
         return {
             "$sortArray": {
                 "input": compile_expression(self.input, context=context),
-                "sortBy": normalize_sort(self.sort_by),
+                "sortBy": normalize_sort(self.sort_by, context=context),
             },
         }
 

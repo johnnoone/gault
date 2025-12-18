@@ -128,10 +128,6 @@ class AsAlias:
         return Aliased(ref, self)
 
 
-class DBAlias(ABC):
-    db_name: str
-
-
 @ExpressionOperator.register
 @QueryPredicate.register
 class AsRef(ABC):

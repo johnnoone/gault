@@ -80,9 +80,8 @@ class Pipeline:
 
     def sort(self, spec: SortType, /) -> Self:
         """Reorder documents by the specified sort key."""
-        spec = normalize_sort(spec)
-        stage = {"$sort": spec}
-        return self.raw(stage)
+        step = SortStep(spec)
+        return self.raw(step)
 
     def project(self, model: type[Schema | Model], /) -> Self:
         """Reshape documents by including, excluding, or adding fields."""
@@ -586,4 +585,15 @@ class CountStep(Step):
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {
             "$count": compile_field(self.output, context=context),
+        }
+
+
+@dataclass
+class SortStep(Step):
+    spec: SortType
+
+    def compile(self, context: Context) -> Iterator[Stage]:
+        spec = normalize_sort(self.spec, context=context)
+        yield {
+            "$sort": spec,
         }

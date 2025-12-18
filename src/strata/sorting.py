@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from .types import DBAlias, Direction
+from .types import AsRef, Context, Direction
 
 type SortType = dict[str, Direction] | str | list[str | SortToken] | SortToken
-type SortToken = str | tuple[Sortable, Direction]
+type SortToken = str | tuple[AsRef, Direction]
 
 
 class Sortable:
     pass
 
 
-def normalize_sort(data: SortType, /) -> dict[str, Any]:
+def normalize_sort(data: SortType, /, *, context: Context) -> dict[str, Any]:
     if isinstance(data, str):
         data = data.split(",")
     elif isinstance(data, tuple):
@@ -27,10 +27,10 @@ def normalize_sort(data: SortType, /) -> dict[str, Any]:
                 key, val = (item[1:], -1)
             case str() if item:
                 key, val = (item, 1)
-            case DBAlias() as alias:
-                key, val = (alias.get_db_alias(), 1)
-            case (DBAlias() as alias, direction):
-                key, val = (alias.get_db_alias(), direction)
+            case AsRef() as alias:
+                key, val = (alias.compile_field(context=context), 1)
+            case (AsRef() as alias, direction):
+                key, val = (alias.compile_field(context=context), direction)
             case (str() as key, direction):
                 _, val = (key, direction)
 

@@ -7,7 +7,15 @@ from weakref import WeakKeyDictionary, WeakValueDictionary
 from pymongo import ASCENDING, DESCENDING
 
 from .operators import Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Operator
-from .types import AttributeBase, DBAlias, MongoExpression
+from .predicates import FieldMatcherInterface
+from .types import (
+    AsRef,
+    AttributeBase,
+    Context,
+    FieldSortInterface,
+    FieldUtilInterface,
+    MongoExpression,
+)
 from .utils import drop_missing
 
 SCHEMAS: dict[str, type[Schema]] = WeakValueDictionary()
@@ -55,7 +63,19 @@ class Schema(Model, collection=None):
         SCHEMAS[collection] = cls
 
 
-class AttributeSpec[T: Any](DBAlias, AttributeBase):
+class AttributeSpec[T: Any](
+    AttributeBase,
+    AsRef,
+    FieldMatcherInterface,
+    FieldSortInterface,
+    FieldUtilInterface,
+):
+    def compile_field(self, *, context: Context) -> str:
+        return self.db_alias
+
+    def compile_expression(self, *, context: Context) -> str:
+        return "$" + self.db_alias
+
     def get_db_alias(self) -> str:
         return self.db_alias
 
