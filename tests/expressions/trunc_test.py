@@ -1,18 +1,10 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import Trunc, compile_expression, compile_query
+from strata.expressions import Trunc
 
 
 def test_expression(context, subtests: pytest.Subtests):
     with subtests.test():
         op = Trunc("$one", "$place")
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {"$trunc": ["$one", "$place"]}
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = Trunc("$one", "$place")
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

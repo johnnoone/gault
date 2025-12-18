@@ -2,8 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import DateTrunc, compile_expression, compile_query
+from strata.expressions import DateTrunc
 
 
 def test_expression(context, subtests: pytest.Subtests):
@@ -12,20 +11,10 @@ def test_expression(context, subtests: pytest.Subtests):
             datetime.fromisoformat("2020-11-30T12:10:05Z"),
             unit="month",
         )
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {
             "$dateTrunc": {
                 "date": datetime.fromisoformat("2020-11-30T12:10:05Z"),
                 "unit": "month",
             }
         }
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = DateTrunc(
-        datetime.fromisoformat("2020-11-30T12:10:05Z"),
-        unit="month",
-    )
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

@@ -6,10 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, overload
 from typing import Literal as TypingLiteral
 
-from .compilers import compile_expression, compile_field, compile_query
-from .types import (
-    FieldUtilInterface,
-)
+from .compilers import compile_expression, compile_field
 from .sorting import normalize_sort
 from .types import (
     Aliased,
@@ -24,13 +21,13 @@ from .types import (
     DayWeek,
     Direction,
     FieldSortInterface,
+    FieldUtilInterface,
     MongoExpression,
     MongoQuery,
     MongoVar,
     Null,
     Number,
     Object,
-    QueryPredicate,
     String,
     Timezone,
 )
@@ -135,7 +132,7 @@ class AllElementsTrue(ExpressionOperator):
         }
 
 
-class And(QueryPredicate, ExpressionOperator):
+class And(ExpressionOperator):
     """Evaluates an array as a set and returns `true` if no element in the array is `false`."""
 
     inputs: list[MongoQuery | MongoExpression[Boolean]]
@@ -153,11 +150,6 @@ class And(QueryPredicate, ExpressionOperator):
             msg = "Multiple inputs is required."
             raise ValueError(msg)
         self.inputs = inputs
-
-    def compile_query(self, *, context: Context) -> MongoQuery:
-        return {
-            "$and": [compile_query(input, context=context) for input in self.inputs],
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -841,7 +833,7 @@ class Divide(ExpressionOperator):
 
 
 @dataclass
-class Eq(QueryPredicate, ExpressionOperator):
+class Eq(ExpressionOperator):
     """Compares two values.
 
     It returns:
@@ -851,13 +843,6 @@ class Eq(QueryPredicate, ExpressionOperator):
 
     lhs: MongoExpression
     rhs: MongoExpression
-
-    def compile_query(self, *, context: Context) -> MongoQuery:
-        return {
-            compile_field(self.lhs, context=context): {
-                "$eq": compile_expression(self.rhs, context=context),
-            },
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -946,7 +931,7 @@ class GetField(ExpressionOperator):
 
 
 @dataclass
-class Gt(QueryPredicate, ExpressionOperator):
+class Gt(ExpressionOperator):
     """Compares two values.
 
     It returns:
@@ -956,13 +941,6 @@ class Gt(QueryPredicate, ExpressionOperator):
 
     lhs: MongoExpression
     rhs: MongoExpression
-
-    def compile_query(self, *, context: Context) -> MongoQuery:
-        return {
-            compile_field(self.lhs, context=context): {
-                "$gt": compile_expression(self.rhs, context=context),
-            },
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -974,7 +952,7 @@ class Gt(QueryPredicate, ExpressionOperator):
 
 
 @dataclass
-class Gte(QueryPredicate, ExpressionOperator):
+class Gte(ExpressionOperator):
     """Compares two values.
 
     It returns:
@@ -984,13 +962,6 @@ class Gte(QueryPredicate, ExpressionOperator):
 
     lhs: MongoExpression
     rhs: MongoExpression
-
-    def compile_query(self, *, context: Context) -> MongoQuery:
-        return {
-            compile_field(self.lhs, context=context): {
-                "$gte": compile_expression(self.rhs, context=context),
-            },
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -1047,20 +1018,13 @@ class IfNull(ExpressionOperator):
 
 
 @dataclass
-class In(QueryPredicate, ExpressionOperator):
+class In(ExpressionOperator):
     """Returns a boolean indicating whether a specified value is in an array."""
 
     lhs: MongoExpression
     """Any valid expression expression."""
 
     rhs: MongoExpression[Array]
-
-    def compile_query(self, *, context: Context) -> MongoQuery:
-        return {
-            compile_field(self.lhs, context=context): {
-                "$in": compile_expression(self.rhs, context=context),
-            },
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -1351,7 +1315,7 @@ class Log10(ExpressionOperator):
 
 
 @dataclass
-class Lt(QueryPredicate, ExpressionOperator):
+class Lt(ExpressionOperator):
     """Compares two values.
 
     It returns:
@@ -1361,13 +1325,6 @@ class Lt(QueryPredicate, ExpressionOperator):
 
     lhs: MongoExpression
     rhs: MongoExpression
-
-    def compile_query(self, *, context: Context) -> MongoQuery[Boolean]:
-        return {
-            compile_field(self.lhs, context=context): {
-                "$lt": compile_expression(self.rhs, context=context),
-            },
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
@@ -1379,7 +1336,7 @@ class Lt(QueryPredicate, ExpressionOperator):
 
 
 @dataclass
-class Lte(QueryPredicate, ExpressionOperator):
+class Lte(ExpressionOperator):
     """Compares two values.
 
     It returns:
@@ -1389,13 +1346,6 @@ class Lte(QueryPredicate, ExpressionOperator):
 
     lhs: MongoExpression
     rhs: MongoExpression
-
-    def compile_query(self, *, context: Context) -> MongoQuery[Boolean]:
-        return {
-            compile_field(self.lhs, context=context): {
-                "$lte": compile_expression(self.rhs, context=context),
-            },
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
@@ -1602,7 +1552,7 @@ class Multiply(ExpressionOperator):
 
 
 @dataclass
-class Ne(QueryPredicate, ExpressionOperator):
+class Ne(ExpressionOperator):
     """Compares two values.
 
     It returns:
@@ -1612,13 +1562,6 @@ class Ne(QueryPredicate, ExpressionOperator):
 
     lhs: MongoExpression
     rhs: MongoExpression
-
-    def compile_query(self, *, context: Context) -> MongoQuery:
-        return {
-            compile_field(self.lhs, context=context): {
-                "$ne": compile_expression(self.rhs, context=context),
-            },
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -1630,15 +1573,10 @@ class Ne(QueryPredicate, ExpressionOperator):
 
 
 @dataclass
-class Not(QueryPredicate, ExpressionOperator):
+class Not(ExpressionOperator):
     """Evaluates a boolean and returns the opposite boolean value."""
 
     input: MongoExpression
-
-    def compile_query(self, *, context: Context) -> MongoQuery:
-        return {
-            "$not": compile_query(self.input, context=context),
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -1660,7 +1598,7 @@ class ObjectToArray(ExpressionOperator):
         }
 
 
-class Or(QueryPredicate, ExpressionOperator):
+class Or(ExpressionOperator):
     """Evaluates one or more expressions and returns true if any of the expressions are true."""
 
     inputs: list[MongoExpression]
@@ -1671,11 +1609,6 @@ class Or(QueryPredicate, ExpressionOperator):
             msg = "Values is required."
             raise ValueError(msg)
         self.inputs = inputs
-
-    def compile_query(self, *, context: Context) -> MongoQuery:
-        return {
-            "$or": [compile_query(input, context=context) for input in self.inputs],
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -1904,16 +1837,11 @@ class Rtrim(ExpressionOperator):
 
 
 @dataclass
-class SampleRate(ExpressionOperator, QueryPredicate):
+class SampleRate(ExpressionOperator):
     """Matches a random selection of input documents."""
 
     number: MongoExpression[Number]
     """any valid expression that resolves to a string"""
-
-    def compile_query(self, *, context: Context) -> MongoExpression:
-        return {
-            "$sampleRate": compile_expression(self.number, context=context),
-        }
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {

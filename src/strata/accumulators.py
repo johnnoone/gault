@@ -4,8 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
-from .types import AsRef
-from .types import AsAlias, Context
+from .types import AsAlias, AsRef, Context
 
 type Expr = Any
 

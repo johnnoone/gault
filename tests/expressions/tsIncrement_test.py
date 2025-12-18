@@ -1,18 +1,10 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import TsIncrement, compile_expression, compile_query
+from strata.expressions import TsIncrement
 
 
 def test_expression(context, subtests: pytest.Subtests):
     with subtests.test():
         op = TsIncrement("$one")
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {"$tsIncrement": "$one"}
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = TsIncrement("$one")
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

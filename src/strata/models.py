@@ -6,9 +6,8 @@ from weakref import WeakKeyDictionary, WeakValueDictionary
 
 from pymongo import ASCENDING, DESCENDING
 
-from .types import DBAlias
 from .operators import Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Operator
-from .types import AttributeBase, MongoExpression
+from .types import AttributeBase, DBAlias, MongoExpression
 from .utils import drop_missing
 
 SCHEMAS: dict[str, type[Schema]] = WeakValueDictionary()

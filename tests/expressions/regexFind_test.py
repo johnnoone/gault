@@ -1,7 +1,6 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import RegexFind, compile_expression, compile_query
+from strata.expressions import RegexFind
 
 
 def test_expression(context, subtests: pytest.Subtests):
@@ -10,20 +9,10 @@ def test_expression(context, subtests: pytest.Subtests):
             input="$category",
             regex="cafe",
         )
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {
             "$regexFind": {
                 "input": "$category",
                 "regex": "cafe",
             },
         }
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = RegexFind(
-        input="$category",
-        regex="cafe",
-    )
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

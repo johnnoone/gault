@@ -1,7 +1,6 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import GetField, compile_expression, compile_query
+from strata.expressions import GetField
 
 
 def test_expression(context, subtests: pytest.Subtests):
@@ -10,20 +9,10 @@ def test_expression(context, subtests: pytest.Subtests):
             field={"$literal": "$small"},
             input="$quantity",
         )
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {
             "$getField": {
                 "field": {"$literal": "$small"},
                 "input": "$quantity",
             }
         }
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = GetField(
-        field={"$literal": "$small"},
-        input="$quantity",
-    )
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

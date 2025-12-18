@@ -8,7 +8,6 @@ from typing import Any, overload
 
 from . import expressions
 from .compilers import compile_expression, compile_field, compile_query
-from .types import FieldUtilInterface
 from .geo import Geo, GeoJSON, compile_geo
 from .types import (
     Array,
@@ -17,6 +16,7 @@ from .types import (
     Boolean,
     Context,
     FieldSortInterface,
+    FieldUtilInterface,
     MongoExpression,
     MongoQuery,
     MongoValue,

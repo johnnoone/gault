@@ -2,8 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import DateAdd, compile_expression, compile_query
+from strata.expressions import DateAdd
 
 
 def test_expression(context, subtests: pytest.Subtests):
@@ -13,7 +12,7 @@ def test_expression(context, subtests: pytest.Subtests):
             unit="month",
             amount=1,
         )
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {
             "$dateAdd": {
                 "startDate": datetime.fromisoformat("2020-11-30T12:10:05Z"),
@@ -29,7 +28,7 @@ def test_expression(context, subtests: pytest.Subtests):
             amount=1,
             timezone="$location",
         )
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {
             "$dateAdd": {
                 "startDate": "$login",
@@ -38,15 +37,3 @@ def test_expression(context, subtests: pytest.Subtests):
                 "timezone": "$location",
             }
         }
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = DateAdd(
-        "$login",
-        unit="day",
-        amount=1,
-        timezone="$location",
-    )
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

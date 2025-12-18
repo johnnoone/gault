@@ -1,7 +1,6 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import Reduce, compile_expression, compile_query
+from strata.expressions import Reduce
 
 
 def test_expression(context, subtests: pytest.Subtests):
@@ -11,7 +10,7 @@ def test_expression(context, subtests: pytest.Subtests):
             initial_value="",
             into={"$concat": ["$$value", "$$this"]},
         )
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {
             "$reduce": {
                 "input": ["a", "b", "c"],
@@ -19,14 +18,3 @@ def test_expression(context, subtests: pytest.Subtests):
                 "in": {"$concat": ["$$value", "$$this"]},
             }
         }
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = Reduce(
-        input=["a", "b", "c"],
-        initial_value="",
-        into={"$concat": ["$$value", "$$this"]},
-    )
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

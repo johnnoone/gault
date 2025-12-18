@@ -1,18 +1,10 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import ToUUID, compile_expression, compile_query
+from strata.expressions import ToUUID
 
 
 def test_expression(context, subtests: pytest.Subtests):
     with subtests.test():
         op = ToUUID("$one")
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {"$toUUID": "$one"}
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = ToUUID("$one")
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

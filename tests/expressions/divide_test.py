@@ -1,23 +1,15 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import Divide, compile_expression, compile_query
+from strata.expressions import Divide
 
 
 def test_expression(context, subtests: pytest.Subtests):
     with subtests.test():
         op = Divide("field", "value")
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {"$divide": ["field", "value"]}
 
     with subtests.test():
         op = Divide("field", "$value")
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {"$divide": ["field", "$value"]}
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = Divide("field", "value")
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

@@ -1006,14 +1006,6 @@ def test_type(var, context):
     }
 
 
-def test_type(var, context):
-    expression = var.type()
-    result = compile_expression(expression, context=context)
-    assert result == {
-        "$type": "$$my_var",
-    }
-
-
 def test_unset_field(var, context):
     expression = var.unset_field("my_field")
     result = compile_expression(expression, context=context)

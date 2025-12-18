@@ -1,7 +1,6 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import ReplaceAll, compile_expression, compile_query
+from strata.expressions import ReplaceAll
 
 
 def test_expression(context, subtests: pytest.Subtests):
@@ -11,7 +10,7 @@ def test_expression(context, subtests: pytest.Subtests):
             find="cafe",
             replacement="croissant",
         )
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {
             "$replaceAll": {
                 "input": "$category",
@@ -19,14 +18,3 @@ def test_expression(context, subtests: pytest.Subtests):
                 "replacement": "croissant",
             },
         }
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = ReplaceAll(
-        input="$category",
-        find="cafe",
-        replacement="croissant",
-    )
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

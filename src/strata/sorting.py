@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .types import DBAlias
-from .types import Direction
+from .types import DBAlias, Direction
 
 type SortType = dict[str, Direction] | str | list[str | SortToken] | SortToken
 type SortToken = str | tuple[Sortable, Direction]

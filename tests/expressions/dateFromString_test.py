@@ -1,8 +1,6 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import (DateFromString, compile_expression,
-                                compile_query)
+from strata.expressions import DateFromString
 
 
 def test_expression(context, subtests: pytest.Subtests):
@@ -12,7 +10,7 @@ def test_expression(context, subtests: pytest.Subtests):
             timezone="$timezone",
             on_error="$date",
         )
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {
             "$dateFromString": {
                 "dateString": "$date",
@@ -20,14 +18,3 @@ def test_expression(context, subtests: pytest.Subtests):
                 "onError": "$date",
             }
         }
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = DateFromString(
-        date_string="$date",
-        timezone="$timezone",
-        on_error="$date",
-    )
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

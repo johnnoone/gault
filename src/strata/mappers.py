@@ -48,7 +48,7 @@ class Mapper[M: Schema | Model]:
         result = []
         for field in fields(self.model):
             model_field = field.name
-            metadata = cast("FieldMetadata", field.metadata)
+            metadata = cast("AttributeMetadata", field.metadata)
             db_field = metadata.get("db_alias")
             pk = metadata.get("pk") or False
             result.append(Corres(model_field, db_field or model_field, pk=pk))

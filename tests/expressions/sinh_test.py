@@ -1,18 +1,10 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import Sinh, compile_expression, compile_query
+from strata.expressions import Sinh
 
 
 def test_expression(context, subtests: pytest.Subtests):
     with subtests.test():
         op = Sinh("$one")
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {"$sinh": "$one"}
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = Sinh("$one")
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op

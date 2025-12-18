@@ -1,20 +1,12 @@
 import pytest
 
-from strata.compilers import CompilationError
-from strata.expressions import MaxN, compile_expression, compile_query
+from strata.expressions import MaxN
 
 
 def test_expression(context, subtests: pytest.Subtests):
     with subtests.test():
         op = MaxN("$input", n=2)
-        result = compile_expression(op, context=context)
+        result = op.compile_expression(context=context)
         assert result == {
             "$maxN": {"input": "$input", "n": 2},
         }
-
-
-def test_query(context, subtests: pytest.Subtests):
-    op = MaxN("$input", n=2)
-    with pytest.raises(CompilationError) as exc_info:
-        compile_query(op, context=context)
-    assert exc_info.value.target is op
