@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from strata.models import AttributeSpec, Schema
 from strata.operators import And, Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Not, Or
-from strata.types import Path
+from strata.predicates import Field
 
 
 def test_operation_eq(subtests):
@@ -19,12 +19,12 @@ def test_operation_eq(subtests):
         assert Eq("my_key", "value").compile() == {"my_key": {"$eq": "value"}}
 
     with subtests.test():
-        assert Eq("my_key", Path("my.path")).compile() == {
+        assert Eq("my_key", Field("my.path")).compile() == {
             "my_key": {"$eq": "$my.path"}
         }
 
     with subtests.test():
-        assert Eq(Path("my.path"), "value").compile() == {"my.path": {"$eq": "value"}}
+        assert Eq(Field("my.path"), "value").compile() == {"my.path": {"$eq": "value"}}
 
 
 def test_operation_ne(subtests):
@@ -41,12 +41,12 @@ def test_operation_ne(subtests):
         assert Ne("my_key", "value").compile() == {"my_key": {"$ne": "value"}}
 
     with subtests.test():
-        assert Ne("my_key", Path("my.path")).compile() == {
+        assert Ne("my_key", Field("my.path")).compile() == {
             "my_key": {"$ne": "$my.path"}
         }
 
     with subtests.test():
-        assert Ne(Path("my.path"), "value").compile() == {"my.path": {"$ne": "value"}}
+        assert Ne(Field("my.path"), "value").compile() == {"my.path": {"$ne": "value"}}
 
 
 def test_operation_lt(subtests):
@@ -63,12 +63,12 @@ def test_operation_lt(subtests):
         assert Lt("my_key", "value").compile() == {"my_key": {"$lt": "value"}}
 
     with subtests.test():
-        assert Lt("my_key", Path("my.path")).compile() == {
+        assert Lt("my_key", Field("my.path")).compile() == {
             "my_key": {"$lt": "$my.path"}
         }
 
     with subtests.test():
-        assert Lt(Path("my.path"), "value").compile() == {"my.path": {"$lt": "value"}}
+        assert Lt(Field("my.path"), "value").compile() == {"my.path": {"$lt": "value"}}
 
 
 def test_operation_lte(subtests):
@@ -85,12 +85,14 @@ def test_operation_lte(subtests):
         assert Lte("my_key", "value").compile() == {"my_key": {"$lte": "value"}}
 
     with subtests.test():
-        assert Lte("my_key", Path("my.path")).compile() == {
+        assert Lte("my_key", Field("my.path")).compile() == {
             "my_key": {"$lte": "$my.path"}
         }
 
     with subtests.test():
-        assert Lte(Path("my.path"), "value").compile() == {"my.path": {"$lte": "value"}}
+        assert Lte(Field("my.path"), "value").compile() == {
+            "my.path": {"$lte": "value"}
+        }
 
 
 def test_operation_gt(subtests):
@@ -107,12 +109,12 @@ def test_operation_gt(subtests):
         assert Gt("my_key", "value").compile() == {"my_key": {"$gt": "value"}}
 
     with subtests.test():
-        assert Gt("my_key", Path("my.path")).compile() == {
+        assert Gt("my_key", Field("my.path")).compile() == {
             "my_key": {"$gt": "$my.path"}
         }
 
     with subtests.test():
-        assert Gt(Path("my.path"), "value").compile() == {"my.path": {"$gt": "value"}}
+        assert Gt(Field("my.path"), "value").compile() == {"my.path": {"$gt": "value"}}
 
 
 def test_operation_gte(subtests):
@@ -129,12 +131,14 @@ def test_operation_gte(subtests):
         assert Gte("my_key", "value").compile() == {"my_key": {"$gte": "value"}}
 
     with subtests.test():
-        assert Gte("my_key", Path("my.path")).compile() == {
+        assert Gte("my_key", Field("my.path")).compile() == {
             "my_key": {"$gte": "$my.path"}
         }
 
     with subtests.test():
-        assert Gte(Path("my.path"), "value").compile() == {"my.path": {"$gte": "value"}}
+        assert Gte(Field("my.path"), "value").compile() == {
+            "my.path": {"$gte": "value"}
+        }
 
 
 def test_operation_in(subtests):
@@ -151,12 +155,12 @@ def test_operation_in(subtests):
         assert In("my_key", "value").compile() == {"my_key": {"$in": "value"}}
 
     with subtests.test():
-        assert In("my_key", Path("my.path")).compile() == {
+        assert In("my_key", Field("my.path")).compile() == {
             "my_key": {"$in": "$my.path"}
         }
 
     with subtests.test():
-        assert In(Path("my.path"), "value").compile() == {"my.path": {"$in": "value"}}
+        assert In(Field("my.path"), "value").compile() == {"my.path": {"$in": "value"}}
 
 
 def test_operation_nin(subtests):
@@ -173,12 +177,14 @@ def test_operation_nin(subtests):
         assert Nin("my_key", "value").compile() == {"my_key": {"$nin": "value"}}
 
     with subtests.test():
-        assert Nin("my_key", Path("my.path")).compile() == {
+        assert Nin("my_key", Field("my.path")).compile() == {
             "my_key": {"$nin": "$my.path"}
         }
 
     with subtests.test():
-        assert Nin(Path("my.path"), "value").compile() == {"my.path": {"$nin": "value"}}
+        assert Nin(Field("my.path"), "value").compile() == {
+            "my.path": {"$nin": "value"}
+        }
 
 
 def test_operation_and(subtests):

@@ -17,11 +17,6 @@ if TYPE_CHECKING:
     from .models import Model, Schema
 
 
-@dataclass
-class Path:
-    value: str
-
-
 type Document = dict[str, Any]
 RawPath = Annotated[str, Predicate(lambda x: x.startswith("$"))]
 RawField = Annotated[str, Predicate(lambda x: not x.startswith("$"))]

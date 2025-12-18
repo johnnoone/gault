@@ -11,13 +11,6 @@ from .compilers import compile_expression, compile_field, compile_path, compile_
 from .mappers import get_mapper
 from .models import Model, Schema, get_collection
 from .operators import Operator
-from .types import (
-    Aliased,
-    Context,
-    MongoExpression,
-    Path,
-    PositiveInteger,
-)
 from .utils import drop_missing, nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
@@ -26,7 +19,13 @@ if TYPE_CHECKING:
 
     from .accumulators import Accumulator
     from .predicates import Field, Predicate
-    from .types import Document
+    from .types import (
+        Aliased,
+        Context,
+        Document,
+        MongoExpression,
+        PositiveInteger,
+    )
 
     T = TypeVar("T")
     P = ParamSpec("P")
@@ -166,13 +165,11 @@ class Pipeline:
 
     def set(self, fields: dict[str, MongoExpression], /) -> Self:
         """Add new fields or replace existing field values."""
-
         step = SetStep(fields=fields)
         return self.raw(step)
 
     def unset(self, *fields: Field | str) -> Self:
         """Remove specified fields from documents."""
-
         step = UnsetStep(fields=list(fields))
         return self.raw(step)
 
@@ -185,7 +182,6 @@ class Pipeline:
         preserve_null_and_empty_arrays: bool | None = None,
     ) -> Self:
         """Deconstruct an array field to output a document for each element."""
-
         step = UnwindStep(
             field=field,
             include_array_index=include_array_index,
@@ -195,7 +191,6 @@ class Pipeline:
 
     def count(self, output: Field | str, /) -> Self:
         """Return a count of the number of documents at this stage."""
-
         step = CountStep(output)
         return self.raw(step)
 

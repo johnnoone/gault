@@ -5,7 +5,6 @@ import pytest
 from strata import AsyncManager, Attribute, Pipeline, Schema, configure
 from strata.accumulators import Sum
 from strata.predicates import Field
-from strata.types import Path
 
 
 class MyModel(Schema, collection="my-coll"):

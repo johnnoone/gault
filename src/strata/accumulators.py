@@ -4,7 +4,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
-from .types import AsAlias, Context, Path
+from strata.fields import AsField
+
+from .types import AsAlias, Context
 
 type Expr = Any
 
@@ -317,6 +319,6 @@ class TopN(Accumulator):
 def compile_accumulator(obj: Any, *, context: Context | None = None) -> Any:
     if isinstance(obj, Accumulator):
         return obj.compile()
-    if isinstance(obj, Path):
-        return "$" + obj.value
+    if isinstance(obj, AsField):
+        return obj.compile_expression(context=context)
     return obj

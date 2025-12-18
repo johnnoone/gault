@@ -7,7 +7,7 @@ from weakref import WeakKeyDictionary, WeakValueDictionary
 from pymongo import ASCENDING, DESCENDING
 
 from .operators import Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Operator
-from .types import AttributeBase, Path
+from .types import AttributeBase, MongoExpression
 from .utils import drop_missing
 
 SCHEMAS: dict[str, type[Schema]] = WeakValueDictionary()
@@ -59,28 +59,28 @@ class AttributeSpec[T: Any](AttributeBase):
     def __hash__(self) -> None:
         return hash((self.owner, self.name, self.db_alias))
 
-    def eq(self, other: T | Path | AttributeSpec) -> Operator:
+    def eq(self, other: T | MongoExpression) -> Operator:
         return Eq(self, other)
 
-    def ne(self, other: T | Path | AttributeSpec) -> Operator:
+    def ne(self, other: T | MongoExpression) -> Operator:
         return Ne(self, other)
 
-    def lt(self, other: T | Path | AttributeSpec) -> Operator:
+    def lt(self, other: T | MongoExpression) -> Operator:
         return Lt(self, other)
 
-    def lte(self, other: T | Path | AttributeSpec) -> Operator:
+    def lte(self, other: T | MongoExpression) -> Operator:
         return Lte(self, other)
 
-    def gt(self, other: T | Path | AttributeSpec) -> Operator:
+    def gt(self, other: T | MongoExpression) -> Operator:
         return Gt(self, other)
 
-    def gte(self, other: T | Path | AttributeSpec) -> Operator:
+    def gte(self, other: T | MongoExpression) -> Operator:
         return Gte(self, other)
 
-    def in_(self, other: T | Path | AttributeSpec) -> Operator:
+    def in_(self, other: T | MongoExpression) -> Operator:
         return In(self, other)
 
-    def nin(self, other: T | Path | AttributeSpec) -> Operator:
+    def nin(self, other: T | MongoExpression) -> Operator:
         return Nin(self, other)
 
     def asc(self) -> tuple[Self, Literal[-1]]:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from typing import Literal, Self
 
 from bson import ObjectId
@@ -18,28 +18,6 @@ class AsField(ABC):
 
     def compile_expression(self, *, context: Context) -> str:
         raise NotImplementedError
-
-
-@dataclass(frozen=True)
-class Var(AsField):
-    value: str
-
-    def compile_field(self, *, context: Context) -> str:
-        return self.value
-
-    def compile_expression(self, *, context: Context) -> str:
-        return "$$" + self.value
-
-
-@dataclass
-class Field(AsField):
-    value: str
-
-    def compile_field(self, *, context: Context) -> str:
-        return self.value
-
-    def compile_expression(self, *, context: Context) -> str:
-        return "$" + self.value
 
 
 class FieldSortInterface:

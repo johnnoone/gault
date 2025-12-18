@@ -17,4 +17,3 @@ from .models import configure as configure
 from .models import get_collection as get_collection
 from .models import get_schema as get_schema
 from .pipelines import Pipeline as Pipeline
-from .types import Path as Path

@@ -1,4 +1,4 @@
-from strata import Attribute, Model, Path
+from strata import Attribute, Model
 from strata.accumulators import (
     AddToSet,
     Avg,
@@ -23,6 +23,7 @@ from strata.accumulators import (
     Top,
     TopN,
 )
+from strata.predicates import Field
 
 
 class MyModel(Model, collection="my-coll"):
@@ -35,7 +36,7 @@ def test_add_to_set(subtests):
         assert acc.compile() == {"$addToSet": "$var"}
 
     with subtests.test():
-        acc = AddToSet(Path("foo.bar"))
+        acc = AddToSet(Field("foo.bar"))
         assert acc.compile() == {"$addToSet": "$foo.bar"}
 
     with subtests.test():
@@ -49,7 +50,7 @@ def test_avg(subtests):
         assert acc.compile() == {"$avg": "$var"}
 
     with subtests.test():
-        acc = Avg(Path("foo.bar"))
+        acc = Avg(Field("foo.bar"))
         assert acc.compile() == {"$avg": "$foo.bar"}
 
     with subtests.test():
@@ -63,7 +64,7 @@ def test_bottom(subtests):
         assert acc.compile() == {"$bottom": {"sortBy": {"score": 1}, "output": "$var"}}
 
     with subtests.test():
-        acc = Bottom(sort_by={"score": 1}, output=Path("foo.bar"))
+        acc = Bottom(sort_by={"score": 1}, output=Field("foo.bar"))
         assert acc.compile() == {
             "$bottom": {"sortBy": {"score": 1}, "output": "$foo.bar"}
         }
@@ -81,7 +82,7 @@ def test_bottom_n(subtests):
         }
 
     with subtests.test():
-        acc = BottomN(n=5, sort_by={"score": 1}, output=Path("foo.bar"))
+        acc = BottomN(n=5, sort_by={"score": 1}, output=Field("foo.bar"))
         assert acc.compile() == {
             "$bottomN": {"n": 5, "sortBy": {"score": 1}, "output": "$foo.bar"}
         }
@@ -105,7 +106,7 @@ def test_first(subtests):
         assert acc.compile() == {"$first": "$var"}
 
     with subtests.test():
-        acc = First(Path("foo.bar"))
+        acc = First(Field("foo.bar"))
         assert acc.compile() == {"$first": "$foo.bar"}
 
     with subtests.test():
@@ -119,7 +120,7 @@ def test_first_n(subtests):
         assert acc.compile() == {"$firstN": {"input": "$var", "n": 3}}
 
     with subtests.test():
-        acc = FirstN(value=Path("foo.bar"), n=5)
+        acc = FirstN(value=Field("foo.bar"), n=5)
         assert acc.compile() == {"$firstN": {"input": "$foo.bar", "n": 5}}
 
     with subtests.test():
@@ -133,7 +134,7 @@ def test_last(subtests):
         assert acc.compile() == {"$last": "$var"}
 
     with subtests.test():
-        acc = Last(Path("foo.bar"))
+        acc = Last(Field("foo.bar"))
         assert acc.compile() == {"$last": "$foo.bar"}
 
     with subtests.test():
@@ -147,7 +148,7 @@ def test_last_n(subtests):
         assert acc.compile() == {"$lastN": {"input": "$var", "n": 3}}
 
     with subtests.test():
-        acc = LastN(value=Path("foo.bar"), n=5)
+        acc = LastN(value=Field("foo.bar"), n=5)
         assert acc.compile() == {"$lastN": {"input": "$foo.bar", "n": 5}}
 
     with subtests.test():
@@ -161,7 +162,7 @@ def test_max(subtests):
         assert acc.compile() == {"$max": "$var"}
 
     with subtests.test():
-        acc = Max(Path("foo.bar"))
+        acc = Max(Field("foo.bar"))
         assert acc.compile() == {"$max": "$foo.bar"}
 
     with subtests.test():
@@ -175,7 +176,7 @@ def test_max_n(subtests):
         assert acc.compile() == {"$maxN": {"input": "$var", "n": 3}}
 
     with subtests.test():
-        acc = MaxN(value=Path("foo.bar"), n=5)
+        acc = MaxN(value=Field("foo.bar"), n=5)
         assert acc.compile() == {"$maxN": {"input": "$foo.bar", "n": 5}}
 
     with subtests.test():
@@ -189,7 +190,7 @@ def test_median(subtests):
         assert acc.compile() == {"$median": {"input": "$var", "method": "approximate"}}
 
     with subtests.test():
-        acc = Median(Path("foo.bar"))
+        acc = Median(Field("foo.bar"))
         assert acc.compile() == {
             "$median": {"input": "$foo.bar", "method": "approximate"}
         }
@@ -205,7 +206,7 @@ def test_merge_objects(subtests):
         assert acc.compile() == {"$mergeObjects": "$var"}
 
     with subtests.test():
-        acc = MergeObjects(Path("foo.bar"))
+        acc = MergeObjects(Field("foo.bar"))
         assert acc.compile() == {"$mergeObjects": "$foo.bar"}
 
     with subtests.test():
@@ -219,7 +220,7 @@ def test_min(subtests):
         assert acc.compile() == {"$min": "$var"}
 
     with subtests.test():
-        acc = Min(Path("foo.bar"))
+        acc = Min(Field("foo.bar"))
         assert acc.compile() == {"$min": "$foo.bar"}
 
     with subtests.test():
@@ -233,7 +234,7 @@ def test_min_n(subtests):
         assert acc.compile() == {"$minN": {"input": "$var", "n": 3}}
 
     with subtests.test():
-        acc = MinN(value=Path("foo.bar"), n=5)
+        acc = MinN(value=Field("foo.bar"), n=5)
         assert acc.compile() == {"$minN": {"input": "$foo.bar", "n": 5}}
 
     with subtests.test():
@@ -253,7 +254,7 @@ def test_percentile(subtests):
         }
 
     with subtests.test():
-        acc = Percentile(input=Path("foo.bar"), p=[0.95])
+        acc = Percentile(input=Field("foo.bar"), p=[0.95])
         assert acc.compile() == {
             "$percentile": {"input": "$foo.bar", "p": [0.95], "method": "approximate"}
         }
@@ -271,7 +272,7 @@ def test_push(subtests):
         assert acc.compile() == {"$push": "$var"}
 
     with subtests.test():
-        acc = Push(Path("foo.bar"))
+        acc = Push(Field("foo.bar"))
         assert acc.compile() == {"$push": "$foo.bar"}
 
     with subtests.test():
@@ -285,7 +286,7 @@ def test_std_dev_pop(subtests):
         assert acc.compile() == {"$stdDevPop": "$var"}
 
     with subtests.test():
-        acc = StdDevPop(value=Path("foo.bar"), p=None)
+        acc = StdDevPop(value=Field("foo.bar"), p=None)
         assert acc.compile() == {"$stdDevPop": "$foo.bar"}
 
     with subtests.test():
@@ -299,7 +300,7 @@ def test_std_dev_samp(subtests):
         assert acc.compile() == {"$stdDevSamp": "$var"}
 
     with subtests.test():
-        acc = StdDevSamp(value=Path("foo.bar"), p=None)
+        acc = StdDevSamp(value=Field("foo.bar"), p=None)
         assert acc.compile() == {"$stdDevSamp": "$foo.bar"}
 
     with subtests.test():
@@ -313,7 +314,7 @@ def test_sum(subtests):
         assert acc.compile() == {"$sum": "$var"}
 
     with subtests.test():
-        acc = Sum(Path("foo.bar"))
+        acc = Sum(Field("foo.bar"))
         assert acc.compile() == {"$sum": "$foo.bar"}
 
     with subtests.test():
@@ -327,7 +328,7 @@ def test_top(subtests):
         assert acc.compile() == {"$top": {"sortBy": {"score": -1}, "output": "$var"}}
 
     with subtests.test():
-        acc = Top(sort_by={"score": -1}, output=Path("foo.bar"))
+        acc = Top(sort_by={"score": -1}, output=Field("foo.bar"))
         assert acc.compile() == {
             "$top": {"sortBy": {"score": -1}, "output": "$foo.bar"}
         }
@@ -345,7 +346,7 @@ def test_top_n(subtests):
         }
 
     with subtests.test():
-        acc = TopN(n=5, sort_by={"score": -1}, output=Path("foo.bar"))
+        acc = TopN(n=5, sort_by={"score": -1}, output=Field("foo.bar"))
         assert acc.compile() == {
             "$topN": {"n": 5, "sortBy": {"score": -1}, "output": "$foo.bar"}
         }
