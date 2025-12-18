@@ -31,6 +31,20 @@ def compile_field(value: Any, *, context: Context) -> MongoField:
             raise CompilationError(msg, target=value)
 
 
+def compile_path(value: Any, *, context: Context) -> MongoField:
+    match value:
+        case AsField():
+            return value.compile_expression(context=context)
+        case str() if value.startswith("$"):
+            return value
+        case str() if not value.startswith("$"):
+            msg = f"Value {value!r} looks like a field"
+            raise CompilationError(msg, target=value)
+        case _:
+            msg = f"compile path is not implemented for type {type(value)}"
+            raise CompilationError(msg, target=value)
+
+
 def compile_query(value: Any, *, context: Context) -> MongoQuery:
     match value:
         case QueryPredicate():

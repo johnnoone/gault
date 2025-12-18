@@ -1,11 +1,11 @@
 from strata.managers import AsyncManager, StateTracker
-from strata.models import Field, Schema
+from strata.models import Attribute, Schema
 
 
 class MyModel(Schema, collection="my-collection"):
-    id: Field[int]
-    name: Field[str]
-    age: Field[int]
+    id: Attribute[int]
+    name: Attribute[str]
+    age: Attribute[int]
 
 
 def test_get_dirty_fields(state_tracker: StateTracker):

@@ -38,7 +38,7 @@ async def get_instances(manager: AsyncManager):
 
 @pytest.mark.usefixtures("instances")
 async def test_select(manager: AsyncManager):
-    pipeline = Pipeline().group("$color", {"count": Sum(1)}).set({"color": "$_id"})
+    pipeline = Pipeline().group({"count": Sum(1)}, by="$color").set({"color": "$_id"})
     result = {}
     async for instance in manager.select(ColorsCount, pipeline):
         result[instance.color] = instance

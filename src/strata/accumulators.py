@@ -4,12 +4,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
-from .types import Path
+from .types import AsAlias, Context, Path
 
 type Expr = Any
 
 
-class Accumulator(ABC):
+class Accumulator(ABC, AsAlias):
     @abstractmethod
     def compile(self) -> Any: ...
 
@@ -21,7 +21,7 @@ class AddToSet(Accumulator):
     expr: Expr
 
     def compile(self) -> Any:
-        return {"$addToSet": compile(self.expr)}
+        return {"$addToSet": compile_accumulator(self.expr)}
 
 
 @dataclass
@@ -31,7 +31,7 @@ class Avg(Accumulator):
     expr: Expr
 
     def compile(self) -> Any:
-        return {"$avg": compile(self.expr)}
+        return {"$avg": compile_accumulator(self.expr)}
 
 
 @dataclass
@@ -44,8 +44,8 @@ class Bottom(Accumulator):
     def compile(self) -> Any:
         return {
             "$bottom": {
-                "sortBy": compile(self.sort_by),
-                "output": compile(self.output),
+                "sortBy": compile_accumulator(self.sort_by),
+                "output": compile_accumulator(self.output),
             },
         }
 
@@ -61,9 +61,9 @@ class BottomN(Accumulator):
     def compile(self) -> Any:
         return {
             "$bottomN": {
-                "n": compile(self.n),
-                "sortBy": compile(self.sort_by),
-                "output": compile(self.output),
+                "n": compile_accumulator(self.n),
+                "sortBy": compile_accumulator(self.sort_by),
+                "output": compile_accumulator(self.output),
             },
         }
 
@@ -84,7 +84,7 @@ class First(Accumulator):
 
     def compile(self) -> Any:
         return {
-            "$first": compile(self.value),
+            "$first": compile_accumulator(self.value),
         }
 
 
@@ -98,8 +98,8 @@ class FirstN(Accumulator):
     def compile(self) -> Any:
         return {
             "$firstN": {
-                "input": compile(self.value),
-                "n": compile(self.n),
+                "input": compile_accumulator(self.value),
+                "n": compile_accumulator(self.n),
             },
         }
 
@@ -112,7 +112,7 @@ class Last(Accumulator):
 
     def compile(self) -> Any:
         return {
-            "$last": compile(self.value),
+            "$last": compile_accumulator(self.value),
         }
 
 
@@ -126,8 +126,8 @@ class LastN(Accumulator):
     def compile(self) -> Any:
         return {
             "$lastN": {
-                "input": compile(self.value),
-                "n": compile(self.n),
+                "input": compile_accumulator(self.value),
+                "n": compile_accumulator(self.n),
             },
         }
 
@@ -140,7 +140,7 @@ class Max(Accumulator):
 
     def compile(self) -> Any:
         return {
-            "$max": compile(self.value),
+            "$max": compile_accumulator(self.value),
         }
 
 
@@ -154,8 +154,8 @@ class MaxN(Accumulator):
     def compile(self) -> Any:
         return {
             "$maxN": {
-                "input": compile(self.value),
-                "n": compile(self.n),
+                "input": compile_accumulator(self.value),
+                "n": compile_accumulator(self.n),
             },
         }
 
@@ -169,7 +169,7 @@ class Median(Accumulator):
     def compile(self) -> Any:
         return {
             "$median": {
-                "input": compile(self.input),
+                "input": compile_accumulator(self.input),
                 "method": "approximate",
             },
         }
@@ -183,7 +183,7 @@ class MergeObjects(Accumulator):
 
     def compile(self) -> Any:
         return {
-            "$mergeObjects": compile(self.objects),
+            "$mergeObjects": compile_accumulator(self.objects),
         }
 
 
@@ -195,7 +195,7 @@ class Min(Accumulator):
 
     def compile(self) -> Any:
         return {
-            "$min": compile(self.value),
+            "$min": compile_accumulator(self.value),
         }
 
 
@@ -209,8 +209,8 @@ class MinN(Accumulator):
     def compile(self) -> Any:
         return {
             "$minN": {
-                "input": compile(self.value),
-                "n": compile(self.n),
+                "input": compile_accumulator(self.value),
+                "n": compile_accumulator(self.n),
             },
         }
 
@@ -225,8 +225,8 @@ class Percentile(Accumulator):
     def compile(self) -> Any:
         return {
             "$percentile": {
-                "input": compile(self.input),
-                "p": compile(self.p),
+                "input": compile_accumulator(self.input),
+                "p": compile_accumulator(self.p),
                 "method": "approximate",
             },
         }
@@ -240,7 +240,7 @@ class Push(Accumulator):
 
     def compile(self) -> Any:
         return {
-            "$push": compile(self.value),
+            "$push": compile_accumulator(self.value),
         }
 
 
@@ -253,7 +253,7 @@ class StdDevPop(Accumulator):
 
     def compile(self) -> Any:
         return {
-            "$stdDevPop": compile(self.value),
+            "$stdDevPop": compile_accumulator(self.value),
         }
 
 
@@ -266,7 +266,7 @@ class StdDevSamp(Accumulator):
 
     def compile(self) -> Any:
         return {
-            "$stdDevSamp": compile(self.value),
+            "$stdDevSamp": compile_accumulator(self.value),
         }
 
 
@@ -277,7 +277,7 @@ class Sum(Accumulator):
     value: Expr
 
     def compile(self) -> Any:
-        return {"$sum": compile(self.value)}
+        return {"$sum": compile_accumulator(self.value)}
 
 
 @dataclass
@@ -290,8 +290,8 @@ class Top(Accumulator):
     def compile(self) -> Any:
         return {
             "$top": {
-                "sortBy": compile(self.sort_by),
-                "output": compile(self.output),
+                "sortBy": compile_accumulator(self.sort_by),
+                "output": compile_accumulator(self.output),
             },
         }
 
@@ -307,14 +307,14 @@ class TopN(Accumulator):
     def compile(self) -> Any:
         return {
             "$topN": {
-                "n": compile(self.n),
-                "sortBy": compile(self.sort_by),
-                "output": compile(self.output),
+                "n": compile_accumulator(self.n),
+                "sortBy": compile_accumulator(self.sort_by),
+                "output": compile_accumulator(self.output),
             },
         }
 
 
-def compile(obj: Any) -> Any:
+def compile_accumulator(obj: Any, *, context: Context | None = None) -> Any:
     if isinstance(obj, Accumulator):
         return obj.compile()
     if isinstance(obj, Path):

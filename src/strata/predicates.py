@@ -580,7 +580,7 @@ class Ne(Operator, AsExpression):
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
-            "$ne": self.value,
+            "$ne": compile_expression(self.value, context=context),
         }
 
     def as_expression(

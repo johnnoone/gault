@@ -104,7 +104,7 @@ class AsyncManager[Queriable: Schema | Model, Writable: Schema]:
             case None:
                 filter = Pipeline()
             case list():
-                filter = Pipeline(stages=filter)
+                filter = Pipeline(steps=filter)
             case dict() | Operator():
                 filter = Pipeline().match(filter)
             case Pipeline():

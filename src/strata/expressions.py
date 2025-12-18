@@ -6,12 +6,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, overload
 from typing import Literal as TypingLiteral
 
-from strata.pipelines import normalize_sort
-
 from .compilers import compile_expression, compile_field, compile_query
 from .fields import AsField, FieldSortInterface, FieldUtilInterface
+from .sorting import normalize_sort
 from .types import (
+    Aliased,
     Array,
+    AsAlias,
     Binary,
     Boolean,
     Context,
@@ -19,7 +20,6 @@ from .types import (
     DateUnit,
     DayWeek,
     Direction,
-    ExpressionOperator as _ExpressionOperator,
     MongoExpression,
     MongoQuery,
     MongoVar,
@@ -29,6 +29,9 @@ from .types import (
     QueryPredicate,
     String,
     Timezone,
+)
+from .types import (
+    ExpressionOperator as _ExpressionOperator,
 )
 from .utils import nullfree_dict, nullfree_list, unwrap_array
 
@@ -41,19 +44,8 @@ if TYPE_CHECKING:
     from .fields import Field
 
 
-class AsAlias:
-    def alias(self, var: str | Var) -> Aliased:
-        return Aliased(var, self)
-
-
 class ExpressionOperator(_ExpressionOperator, AsAlias):
     pass
-
-
-@dataclass
-class Aliased:
-    var: str | Var
-    value: ExpressionOperator
 
 
 @dataclass()
@@ -1280,7 +1272,7 @@ class Let(ExpressionOperator):
         else:
             for aliased in variables:
                 assert isinstance(aliased, Aliased)  # noqa: S101
-                spec[aliased.var] = aliased.value
+                spec[aliased.ref] = aliased.value
         self.variables = spec
         self.into = into
 

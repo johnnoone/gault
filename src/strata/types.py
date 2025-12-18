@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, Self
 from typing import Literal as TypingLiteral
 
 from annotated_types import Ge, Predicate
@@ -120,3 +120,14 @@ class ExpressionOperator(ABC):
     @abstractmethod
     def compile_expression(self, context: Context) -> MongoExpression:
         raise NotImplementedError
+
+
+@dataclass
+class Aliased[T]:
+    ref: str
+    value: T
+
+
+class AsAlias:
+    def alias(self, ref: str) -> Aliased[Self]:
+        return Aliased(ref, self)

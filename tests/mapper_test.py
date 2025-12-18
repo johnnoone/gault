@@ -1,11 +1,11 @@
 from strata.mappers import Corres, Mapper
-from strata.models import Field, Schema, configure
+from strata.models import Attribute, Schema, configure
 
 
 class MyModel(Schema, collection="my-collection"):
-    id: Field[int] = configure(pk=True)
-    name: Field[str] = configure(db_alias="db_name")
-    age: Field[int]
+    id: Attribute[int] = configure(pk=True)
+    name: Attribute[str] = configure(db_alias="db_name")
+    age: Attribute[int]
 
 
 def test_mapper():

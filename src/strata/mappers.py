@@ -11,7 +11,7 @@ from .utils import drop_missing
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from .models import FieldMetadata, Model, Schema
+    from .models import AttributeMetadata, Model, Schema
     from .types import Document
 
 

@@ -36,7 +36,7 @@ class Model:
     def __init_subclass__(cls, collection: str | None = None) -> None:
         dataclass(cls, init=True, repr=True, kw_only=True)
         for dataclass_field in fields(cls):
-            field = Field(name=dataclass_field.name, **dataclass_field.metadata)
+            field = Attribute(name=dataclass_field.name, **dataclass_field.metadata)
             setattr(cls, dataclass_field.name, field)
 
         cls.__hash__ = object.__hash__
@@ -55,32 +55,32 @@ class Schema(Model, collection=None):
         SCHEMAS[collection] = cls
 
 
-class Attribute[T: Any](AttributeBase):
+class AttributeSpec[T: Any](AttributeBase):
     def __hash__(self) -> None:
         return hash((self.owner, self.name, self.db_alias))
 
-    def eq(self, other: T | Path | Attribute) -> Operator:
+    def eq(self, other: T | Path | AttributeSpec) -> Operator:
         return Eq(self, other)
 
-    def ne(self, other: T | Path | Attribute) -> Operator:
+    def ne(self, other: T | Path | AttributeSpec) -> Operator:
         return Ne(self, other)
 
-    def lt(self, other: T | Path | Attribute) -> Operator:
+    def lt(self, other: T | Path | AttributeSpec) -> Operator:
         return Lt(self, other)
 
-    def lte(self, other: T | Path | Attribute) -> Operator:
+    def lte(self, other: T | Path | AttributeSpec) -> Operator:
         return Lte(self, other)
 
-    def gt(self, other: T | Path | Attribute) -> Operator:
+    def gt(self, other: T | Path | AttributeSpec) -> Operator:
         return Gt(self, other)
 
-    def gte(self, other: T | Path | Attribute) -> Operator:
+    def gte(self, other: T | Path | AttributeSpec) -> Operator:
         return Gte(self, other)
 
-    def in_(self, other: T | Path | Attribute) -> Operator:
+    def in_(self, other: T | Path | AttributeSpec) -> Operator:
         return In(self, other)
 
-    def nin(self, other: T | Path | Attribute) -> Operator:
+    def nin(self, other: T | Path | AttributeSpec) -> Operator:
         return Nin(self, other)
 
     def asc(self) -> tuple[Self, Literal[-1]]:
@@ -100,7 +100,7 @@ class Attribute[T: Any](AttributeBase):
     __ge__ = gte
 
 
-class Field[T: Any]:
+class Attribute[T: Any]:
     def __init__(
         self,
         *,
@@ -116,21 +116,21 @@ class Field[T: Any]:
         self.name = name
 
     @overload
-    def __get__(self, instance: None, owner: type) -> Attribute[T]: ...
+    def __get__(self, instance: None, owner: type) -> AttributeSpec[T]: ...
 
     @overload
     def __get__(self, instance: object, owner: type) -> T: ...
 
-    def __get__(self, instance: object | None, owner: type) -> T | Attribute[T]:
+    def __get__(self, instance: object | None, owner: type) -> T | AttributeSpec[T]:
         if instance is None:
-            return Attribute(owner, self.name, db_alias=self.db_alias)
+            return AttributeSpec(owner, self.name, db_alias=self.db_alias)
         return instance.__dict__[self.name]
 
     def __set__(self, instance: object, value: T) -> None:
         instance.__dict__[self.name] = value
 
 
-class FieldMetadata(TypedDict, total=False):
+class AttributeMetadata(TypedDict, total=False):
     pk: bool
     db_alias: str
 
@@ -138,7 +138,7 @@ class FieldMetadata(TypedDict, total=False):
 def configure(
     *,
     default: Any = MISSING,
-    **metadata: Unpack[FieldMetadata],
+    **metadata: Unpack[AttributeMetadata],
 ) -> Any:
     metadata = drop_missing(metadata)
     return field(default=default, metadata=metadata)

@@ -2,58 +2,59 @@ from typing import Any
 
 import pytest
 
-from strata import AsyncManager, Field, Pipeline, Schema, configure
+from strata import AsyncManager, Attribute, Pipeline, Schema, configure
 from strata.accumulators import Sum
+from strata.predicates import Field
 from strata.types import Path
 
 
 class MyModel(Schema, collection="my-coll"):
-    id: Field[int]
-    name: Field[str]
-    tags: Field[list[str]]
-    number: Field[int] = 0
-    reports_to: Field[str | None] = configure(default=None, db_alias="reportsTo")
+    id: Attribute[int]
+    name: Attribute[str]
+    tags: Attribute[list[str]]
+    number: Attribute[int] = 0
+    reports_to: Attribute[str | None] = configure(default=None, db_alias="reportsTo")
 
 
 class Reporter(Schema, collection="my-coll"):
-    name: Field[str]
-    report_to: Field[str | None] = configure(
+    name: Attribute[str]
+    report_to: Attribute[str | None] = configure(
         default=None,
         db_alias="reportsTo",
     )
-    reporting_hierarchy: Field[dict | None] = configure(
+    reporting_hierarchy: Attribute[dict | None] = configure(
         default=None,
         db_alias="reportingHierarchy",
     )
 
 
 class Sized(Schema, collection="my-coll"):
-    name: Field[str]
+    name: Attribute[str]
     size: str
 
 
 class MyProjection(Schema, collection="my-coll"):
-    name: Field[str]
+    name: Attribute[str]
 
 
 class MyBucket(Schema, collection="my-coll"):
-    bucket: Field[Any]
-    count: Field[int]
+    bucket: Attribute[Any]
+    count: Attribute[int]
 
 
 class Total(Schema, collection="my-coll"):
-    count: Field[int]
+    count: Attribute[int]
 
 
 class UnwindByTag(Schema, collection="my-coll"):
-    name: Field[str]
-    tag: Field[str]
+    name: Attribute[str]
+    tag: Attribute[str]
 
 
 class Facet(Schema, collection="my-coll"):
-    total: Field[int]
-    count: Field[int]
-    avg: Field[float]
+    total: Attribute[int]
+    count: Attribute[int]
+    avg: Attribute[float]
 
 
 @pytest.fixture(autouse=True, name="instances")
@@ -223,7 +224,7 @@ async def test_bucket_auto(manager: AsyncManager):
 async def test_group(manager: AsyncManager):
     pipeline = (
         Pipeline()
-        .group("$number", accumulators={"count": Sum(1)})
+        .group({"count": Sum(1)}, by="$number")
         .set({"bucket": "$_id"})
         .sort({"bucket": 1})
     )
@@ -367,8 +368,8 @@ async def test_lookup(manager: AsyncManager):
         .match({"id": 1})
         .lookup(
             spec,
-            local_field=Path("id"),
-            foreign_field=Path("modelId"),
+            local_field=Field("id"),
+            foreign_field=Field("modelId"),
             into="sizes",
         )
         .set({"size": {"$first": "$sizes"}})
@@ -388,8 +389,8 @@ async def test_facet(manager: AsyncManager):
         .facet(
             {
                 "count": Pipeline().count("value"),
-                "total": Pipeline().group(None, {"value": Sum("$number")}),
-                "avg": Pipeline().group(None, {"value": {"$avg": "$number"}}),
+                "total": Pipeline().group({"value": Sum("$number")}, by=None),
+                "avg": Pipeline().group({"value": {"$avg": "$number"}}, by=None),
             }
         )
         .project(

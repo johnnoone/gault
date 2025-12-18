@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from strata.models import Attribute, Schema
+from strata.models import AttributeSpec, Schema
 from strata.operators import And, Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Not, Or
 from strata.types import Path
 
@@ -9,8 +9,8 @@ def test_operation_eq(subtests):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr1 = Attribute(Foo, "attr1", "alias1")
-    attr2 = Attribute(Foo, "attr2", "alias2")
+    attr1 = AttributeSpec(Foo, "attr1", "alias1")
+    attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
         assert Eq(attr1, attr2).compile() == {"alias1": {"$eq": "$alias2"}}
@@ -31,8 +31,8 @@ def test_operation_ne(subtests):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr1 = Attribute(Foo, "attr1", "alias1")
-    attr2 = Attribute(Foo, "attr2", "alias2")
+    attr1 = AttributeSpec(Foo, "attr1", "alias1")
+    attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
         assert Ne(attr1, attr2).compile() == {"alias1": {"$ne": "$alias2"}}
@@ -53,8 +53,8 @@ def test_operation_lt(subtests):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr1 = Attribute(Foo, "attr1", "alias1")
-    attr2 = Attribute(Foo, "attr2", "alias2")
+    attr1 = AttributeSpec(Foo, "attr1", "alias1")
+    attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
         assert Lt(attr1, attr2).compile() == {"alias1": {"$lt": "$alias2"}}
@@ -75,8 +75,8 @@ def test_operation_lte(subtests):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr1 = Attribute(Foo, "attr1", "alias1")
-    attr2 = Attribute(Foo, "attr2", "alias2")
+    attr1 = AttributeSpec(Foo, "attr1", "alias1")
+    attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
         assert Lte(attr1, attr2).compile() == {"alias1": {"$lte": "$alias2"}}
@@ -97,8 +97,8 @@ def test_operation_gt(subtests):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr1 = Attribute(Foo, "attr1", "alias1")
-    attr2 = Attribute(Foo, "attr2", "alias2")
+    attr1 = AttributeSpec(Foo, "attr1", "alias1")
+    attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
         assert Gt(attr1, attr2).compile() == {"alias1": {"$gt": "$alias2"}}
@@ -119,8 +119,8 @@ def test_operation_gte(subtests):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr1 = Attribute(Foo, "attr1", "alias1")
-    attr2 = Attribute(Foo, "attr2", "alias2")
+    attr1 = AttributeSpec(Foo, "attr1", "alias1")
+    attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
         assert Gte(attr1, attr2).compile() == {"alias1": {"$gte": "$alias2"}}
@@ -141,8 +141,8 @@ def test_operation_in(subtests):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr1 = Attribute(Foo, "attr1", "alias1")
-    attr2 = Attribute(Foo, "attr2", "alias2")
+    attr1 = AttributeSpec(Foo, "attr1", "alias1")
+    attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
         assert In(attr1, attr2).compile() == {"alias1": {"$in": "$alias2"}}
@@ -163,8 +163,8 @@ def test_operation_nin(subtests):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr1 = Attribute(Foo, "attr1", "alias1")
-    attr2 = Attribute(Foo, "attr2", "alias2")
+    attr1 = AttributeSpec(Foo, "attr1", "alias1")
+    attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
         assert Nin(attr1, attr2).compile() == {"alias1": {"$nin": "$alias2"}}
@@ -235,7 +235,7 @@ def test_attribute_operators(subtests):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr = Attribute(Foo, "attr1", "alias1")
+    attr = AttributeSpec(Foo, "attr1", "alias1")
     other = "value"
 
     with subtests.test(".__eq__(other)"):

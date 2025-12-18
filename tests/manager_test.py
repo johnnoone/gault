@@ -3,14 +3,14 @@ from pymongo.asynchronous.database import AsyncDatabase
 
 from strata.exceptions import NotFound
 from strata.managers import AsyncManager, Persistence
-from strata.models import Field, Schema, configure
+from strata.models import Attribute, Schema, configure
 from strata.utils import to_list
 
 
 class Person(Schema, collection="my-collection"):
-    id: Field[int] = configure(pk=True)
-    name: Field[str]
-    age: Field[int] = configure(db_alias="person_age")
+    id: Attribute[int] = configure(pk=True)
+    name: Attribute[str]
+    age: Attribute[int] = configure(db_alias="person_age")
 
 
 @pytest.fixture(name="people")

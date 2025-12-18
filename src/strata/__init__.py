@@ -10,7 +10,7 @@ from .managers import Persistence as Persistence
 from .managers import StateTracker as StateTracker
 from .mappers import Mapper as Mapper
 from .mappers import get_mapper as get_mapper
-from .models import Field as Field
+from .models import Attribute as Attribute
 from .models import Model as Model
 from .models import Schema as Schema
 from .models import configure as configure

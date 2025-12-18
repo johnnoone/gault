@@ -1,12 +1,32 @@
-from strata import Field, Model, Path
-from strata.accumulators import (AddToSet, Avg, Bottom, BottomN, Count, First,
-                                 FirstN, Last, LastN, Max, MaxN, Median,
-                                 MergeObjects, Min, MinN, Percentile, Push,
-                                 StdDevPop, StdDevSamp, Sum, Top, TopN)
+from strata import Attribute, Model, Path
+from strata.accumulators import (
+    AddToSet,
+    Avg,
+    Bottom,
+    BottomN,
+    Count,
+    First,
+    FirstN,
+    Last,
+    LastN,
+    Max,
+    MaxN,
+    Median,
+    MergeObjects,
+    Min,
+    MinN,
+    Percentile,
+    Push,
+    StdDevPop,
+    StdDevSamp,
+    Sum,
+    Top,
+    TopN,
+)
 
 
 class MyModel(Model, collection="my-coll"):
-    id: Field[int]
+    id: Attribute[int]
 
 
 def test_add_to_set(subtests):
