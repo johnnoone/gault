@@ -10,8 +10,8 @@ from pymongo import ReturnDocument
 from .exceptions import Forbidden, NotFound, Unprocessable
 from .mappers import get_mapper
 from .models import Model, Schema, get_collection, unwrap_model
-from .operators import Operator
 from .pipelines import Pipeline
+from .types import QueryPredicate
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pymongo.asynchronous.database import AsyncDatabase
 
 
-type Filter = Operator | Pipeline | dict | list | None
+type Filter = QueryPredicate | Pipeline | dict | list | None
 
 
 class StateTracker[M: Schema | Model]:
@@ -105,7 +105,7 @@ class AsyncManager[Queriable: Schema | Model, Writable: Schema]:
                 filter = Pipeline()
             case list():
                 filter = Pipeline(steps=filter)
-            case dict() | Operator():
+            case dict() | QueryPredicate():
                 filter = Pipeline().match(filter)
             case Pipeline():
                 pass

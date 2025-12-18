@@ -8,7 +8,6 @@ from .accumulators import compile_accumulator
 from .compilers import compile_expression, compile_field, compile_path, compile_query
 from .mappers import get_mapper
 from .models import Model, Schema, get_collection
-from .operators import Operator
 from .sorting import SortType, normalize_sort
 from .utils import drop_missing, nullfree_dict, unwrap_array
 
@@ -58,7 +57,7 @@ class Pipeline:
         """
         return _0(self, **kwargs)
 
-    def match(self, query: dict | Operator, /) -> Self:
+    def match(self, query: dict | Predicate, /) -> Self:
         """Filter documents matching the specified condition(s)."""
         step = MatchStep(query=query)
         return self.raw(step)
@@ -351,14 +350,10 @@ class FacetStep(Step):
 
 @dataclass
 class MatchStep(Step):
-    query: dict | Operator | Predicate
+    query: dict | Predicate
 
     def compile(self, context: Context) -> Iterator[Stage]:
-        match self.query:
-            case Operator():
-                stage = {"$match": self.query.compile(context=context)}
-            case _:
-                stage = {"$match": compile_query(self.query, context=context)}
+        stage = {"$match": compile_query(self.query, context=context)}
         yield stage
 
 

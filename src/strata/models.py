@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import MISSING, dataclass, field, fields
-from typing import Any, Literal, Self, TypedDict, Unpack, dataclass_transform, overload
+from typing import Any, TypedDict, Unpack, dataclass_transform, overload
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
-from pymongo import ASCENDING, DESCENDING
-
-from .operators import Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Operator
 from .predicates import FieldMatcherInterface
 from .types import (
     AsRef,
@@ -14,7 +11,6 @@ from .types import (
     Context,
     FieldSortInterface,
     FieldUtilInterface,
-    MongoExpression,
 )
 from .utils import drop_missing
 
@@ -82,45 +78,12 @@ class AttributeSpec[T: Any](
     def __hash__(self) -> None:
         return hash((self.owner, self.name, self.db_alias))
 
-    def eq(self, other: T | MongoExpression) -> Operator:
-        return Eq(self, other)
-
-    def ne(self, other: T | MongoExpression) -> Operator:
-        return Ne(self, other)
-
-    def lt(self, other: T | MongoExpression) -> Operator:
-        return Lt(self, other)
-
-    def lte(self, other: T | MongoExpression) -> Operator:
-        return Lte(self, other)
-
-    def gt(self, other: T | MongoExpression) -> Operator:
-        return Gt(self, other)
-
-    def gte(self, other: T | MongoExpression) -> Operator:
-        return Gte(self, other)
-
-    def in_(self, other: T | MongoExpression) -> Operator:
-        return In(self, other)
-
-    def nin(self, other: T | MongoExpression) -> Operator:
-        return Nin(self, other)
-
-    def asc(self) -> tuple[Self, Literal[-1]]:
-        return (self, ASCENDING)
-
-    def desc(self) -> tuple[Self, Literal[-1]]:
-        return (self, DESCENDING)
-
-    def by_score(self, name: str) -> tuple[Self, dict]:
-        return (self, {"$meta": name})
-
-    __eq__ = eq
-    __ne__ = ne
-    __lt__ = lt
-    __le__ = lte
-    __gt__ = gt
-    __ge__ = gte
+    __eq__ = FieldMatcherInterface.eq
+    __ne__ = FieldMatcherInterface.ne
+    __lt__ = FieldMatcherInterface.lt
+    __le__ = FieldMatcherInterface.lte
+    __gt__ = FieldMatcherInterface.gt
+    __ge__ = FieldMatcherInterface.gte
 
 
 class Attribute[T: Any]:
