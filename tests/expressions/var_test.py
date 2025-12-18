@@ -4,11 +4,6 @@ from strata.compilers import compile_expression
 from strata.expressions import Var
 
 
-@pytest.fixture(name="context")
-def get_context():
-    return {}
-
-
 @pytest.fixture(name="var")
 def get_var():
     return Var("my_var")

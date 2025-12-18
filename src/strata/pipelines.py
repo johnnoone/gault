@@ -300,7 +300,7 @@ class Pipeline:
         return replace(self, steps=[*self.steps, stage])
 
     def build(self, *, context: Context | None = None) -> list[Stage]:
-        context = {}
+        context = context or {}
         stages = []
         for step in self.steps:
             stages += step.compile(context=context)
@@ -321,7 +321,8 @@ class CollectionPipeline(Pipeline):
 class DocumentsPipeline(Pipeline):
     documents: list[Document]
 
-    def build(self, *, context: Context = None) -> list[Stage]:
+    def build(self, *, context: Context | None = None) -> list[Stage]:
+        context = context or {}
         stage = {"$documents": self.documents}
         return [stage, *super().build(context=context)]
 
@@ -356,7 +357,7 @@ class MatchStep(Step):
     def compile(self, context: Context) -> Iterator[Stage]:
         match self.query:
             case Operator():
-                stage = {"$match": self.query.compile()}
+                stage = {"$match": self.query.compile(context=context)}
             case _:
                 stage = {"$match": compile_query(self.query, context=context)}
         yield stage
@@ -371,7 +372,7 @@ class GroupStep(Step):
         def maybe_compile(obj: Any) -> dict:
             if isinstance(obj, dict):
                 return obj
-            return obj.compile()
+            return obj.compile(context=context)
 
         yield {
             "$group": {

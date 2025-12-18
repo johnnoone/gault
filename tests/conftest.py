@@ -47,3 +47,8 @@ def get_persistence() -> Persistence:
 @pytest.fixture(name="state_tracker")
 def get_state_tracker():
     return StateTracker()
+
+
+@pytest.fixture(name="context")
+def get_context():
+    return {}

@@ -12,7 +12,7 @@ type Expr = Any
 
 class Accumulator(ABC, AsAlias):
     @abstractmethod
-    def compile(self) -> Any: ...
+    def compile(self, *, context: Context) -> Any: ...
 
 
 @dataclass
@@ -21,8 +21,8 @@ class AddToSet(Accumulator):
 
     expr: Expr
 
-    def compile(self) -> Any:
-        return {"$addToSet": compile_accumulator(self.expr)}
+    def compile(self, *, context: Context) -> Any:
+        return {"$addToSet": compile_accumulator(self.expr, context=context)}
 
 
 @dataclass
@@ -31,8 +31,8 @@ class Avg(Accumulator):
 
     expr: Expr
 
-    def compile(self) -> Any:
-        return {"$avg": compile_accumulator(self.expr)}
+    def compile(self, *, context: Context) -> Any:
+        return {"$avg": compile_accumulator(self.expr, context=context)}
 
 
 @dataclass
@@ -42,11 +42,11 @@ class Bottom(Accumulator):
     sort_by: Any
     output: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$bottom": {
-                "sortBy": compile_accumulator(self.sort_by),
-                "output": compile_accumulator(self.output),
+                "sortBy": compile_accumulator(self.sort_by, context=context),
+                "output": compile_accumulator(self.output, context=context),
             },
         }
 
@@ -59,12 +59,12 @@ class BottomN(Accumulator):
     sort_by: Any
     output: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$bottomN": {
-                "n": compile_accumulator(self.n),
-                "sortBy": compile_accumulator(self.sort_by),
-                "output": compile_accumulator(self.output),
+                "n": compile_accumulator(self.n, context=context),
+                "sortBy": compile_accumulator(self.sort_by, context=context),
+                "output": compile_accumulator(self.output, context=context),
             },
         }
 
@@ -73,7 +73,7 @@ class BottomN(Accumulator):
 class Count(Accumulator):
     """Returns the number of documents in a group."""
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {"$count": {}}
 
 
@@ -83,9 +83,9 @@ class First(Accumulator):
 
     value: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$first": compile_accumulator(self.value),
+            "$first": compile_accumulator(self.value, context=context),
         }
 
 
@@ -96,11 +96,11 @@ class FirstN(Accumulator):
     value: Expr
     n: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$firstN": {
-                "input": compile_accumulator(self.value),
-                "n": compile_accumulator(self.n),
+                "input": compile_accumulator(self.value, context=context),
+                "n": compile_accumulator(self.n, context=context),
             },
         }
 
@@ -111,9 +111,9 @@ class Last(Accumulator):
 
     value: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$last": compile_accumulator(self.value),
+            "$last": compile_accumulator(self.value, context=context),
         }
 
 
@@ -124,11 +124,11 @@ class LastN(Accumulator):
     value: Expr
     n: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$lastN": {
-                "input": compile_accumulator(self.value),
-                "n": compile_accumulator(self.n),
+                "input": compile_accumulator(self.value, context=context),
+                "n": compile_accumulator(self.n, context=context),
             },
         }
 
@@ -139,9 +139,9 @@ class Max(Accumulator):
 
     value: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$max": compile_accumulator(self.value),
+            "$max": compile_accumulator(self.value, context=context),
         }
 
 
@@ -152,11 +152,11 @@ class MaxN(Accumulator):
     value: Expr
     n: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$maxN": {
-                "input": compile_accumulator(self.value),
-                "n": compile_accumulator(self.n),
+                "input": compile_accumulator(self.value, context=context),
+                "n": compile_accumulator(self.n, context=context),
             },
         }
 
@@ -167,10 +167,10 @@ class Median(Accumulator):
 
     input: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$median": {
-                "input": compile_accumulator(self.input),
+                "input": compile_accumulator(self.input, context=context),
                 "method": "approximate",
             },
         }
@@ -182,9 +182,9 @@ class MergeObjects(Accumulator):
 
     objects: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$mergeObjects": compile_accumulator(self.objects),
+            "$mergeObjects": compile_accumulator(self.objects, context=context),
         }
 
 
@@ -194,9 +194,9 @@ class Min(Accumulator):
 
     value: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$min": compile_accumulator(self.value),
+            "$min": compile_accumulator(self.value, context=context),
         }
 
 
@@ -207,11 +207,11 @@ class MinN(Accumulator):
     value: Expr
     n: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$minN": {
-                "input": compile_accumulator(self.value),
-                "n": compile_accumulator(self.n),
+                "input": compile_accumulator(self.value, context=context),
+                "n": compile_accumulator(self.n, context=context),
             },
         }
 
@@ -223,11 +223,11 @@ class Percentile(Accumulator):
     input: Expr
     p: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$percentile": {
-                "input": compile_accumulator(self.input),
-                "p": compile_accumulator(self.p),
+                "input": compile_accumulator(self.input, context=context),
+                "p": compile_accumulator(self.p, context=context),
                 "method": "approximate",
             },
         }
@@ -239,9 +239,9 @@ class Push(Accumulator):
 
     value: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$push": compile_accumulator(self.value),
+            "$push": compile_accumulator(self.value, context=context),
         }
 
 
@@ -252,9 +252,9 @@ class StdDevPop(Accumulator):
     value: Expr
     p: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$stdDevPop": compile_accumulator(self.value),
+            "$stdDevPop": compile_accumulator(self.value, context=context),
         }
 
 
@@ -265,9 +265,9 @@ class StdDevSamp(Accumulator):
     value: Expr
     p: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$stdDevSamp": compile_accumulator(self.value),
+            "$stdDevSamp": compile_accumulator(self.value, context=context),
         }
 
 
@@ -277,8 +277,8 @@ class Sum(Accumulator):
 
     value: Expr
 
-    def compile(self) -> Any:
-        return {"$sum": compile_accumulator(self.value)}
+    def compile(self, *, context: Context) -> Any:
+        return {"$sum": compile_accumulator(self.value, context=context)}
 
 
 @dataclass
@@ -288,11 +288,11 @@ class Top(Accumulator):
     sort_by: Any
     output: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$top": {
-                "sortBy": compile_accumulator(self.sort_by),
-                "output": compile_accumulator(self.output),
+                "sortBy": compile_accumulator(self.sort_by, context=context),
+                "output": compile_accumulator(self.output, context=context),
             },
         }
 
@@ -305,19 +305,19 @@ class TopN(Accumulator):
     sort_by: Any
     output: Expr
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
             "$topN": {
-                "n": compile_accumulator(self.n),
-                "sortBy": compile_accumulator(self.sort_by),
-                "output": compile_accumulator(self.output),
+                "n": compile_accumulator(self.n, context=context),
+                "sortBy": compile_accumulator(self.sort_by, context=context),
+                "output": compile_accumulator(self.output, context=context),
             },
         }
 
 
-def compile_accumulator(obj: Any, *, context: Context | None = None) -> Any:
+def compile_accumulator(obj: Any, *, context: Context) -> Any:
     if isinstance(obj, Accumulator):
-        return obj.compile()
+        return obj.compile(context=context)
     if isinstance(obj, AsRef):
         return obj.compile_expression(context=context)
     return obj

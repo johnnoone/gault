@@ -9,7 +9,7 @@ from .types import AsRef, AttributeBase, Context
 
 class Operator(ABC):
     @abstractmethod
-    def compile(self) -> Any: ...
+    def compile(self, *, context: Context) -> Any: ...
 
     def __and__(self, other: Operator) -> And:
         return And(operators=[self, other])
@@ -32,9 +32,9 @@ class And(Operator):
             operators = [other]
         return And(operators=self.operators + operators)
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$and": [operator.compile() for operator in self.operators],
+            "$and": [operator.compile(context=context) for operator in self.operators],
         }
 
 
@@ -49,9 +49,9 @@ class Or(Operator):
             operators = [other]
         return Or(operators=self.operators + operators)
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$or": [operator.compile() for operator in self.operators],
+            "$or": [operator.compile(context=context) for operator in self.operators],
         }
 
 
@@ -62,9 +62,9 @@ class Not(Operator):
     def __invert__(self) -> Operator:
         return self.operator
 
-    def compile(self) -> Any:
+    def compile(self, *, context: Context) -> Any:
         return {
-            "$not": self.operator.compile(),
+            "$not": self.operator.compile(context=context),
         }
 
 
@@ -73,9 +73,9 @@ class Eq(Operator):
     lhs: Any
     rhs: Any
 
-    def compile(self) -> Any:
-        key = prepare_lhs(self.lhs)
-        val = prepare_rhs(self.rhs)
+    def compile(self, *, context: Context) -> Any:
+        key = prepare_lhs(self.lhs, context=context)
+        val = prepare_rhs(self.rhs, context=context)
         return {key: {"$eq": val}}
 
 
@@ -84,9 +84,9 @@ class Ne(Operator):
     lhs: Any
     rhs: Any
 
-    def compile(self) -> Any:
-        key = prepare_lhs(self.lhs)
-        val = prepare_rhs(self.rhs)
+    def compile(self, *, context: Context) -> Any:
+        key = prepare_lhs(self.lhs, context=context)
+        val = prepare_rhs(self.rhs, context=context)
         return {key: {"$ne": val}}
 
 
@@ -95,9 +95,9 @@ class Lt(Operator):
     lhs: Any
     rhs: Any
 
-    def compile(self) -> Any:
-        key = prepare_lhs(self.lhs)
-        val = prepare_rhs(self.rhs)
+    def compile(self, *, context: Context) -> Any:
+        key = prepare_lhs(self.lhs, context=context)
+        val = prepare_rhs(self.rhs, context=context)
         return {key: {"$lt": val}}
 
 
@@ -106,9 +106,9 @@ class Lte(Operator):
     lhs: Any
     rhs: Any
 
-    def compile(self) -> Any:
-        key = prepare_lhs(self.lhs)
-        val = prepare_rhs(self.rhs)
+    def compile(self, *, context: Context) -> Any:
+        key = prepare_lhs(self.lhs, context=context)
+        val = prepare_rhs(self.rhs, context=context)
         return {key: {"$lte": val}}
 
 
@@ -117,9 +117,9 @@ class Gt(Operator):
     lhs: Any
     rhs: Any
 
-    def compile(self) -> Any:
-        key = prepare_lhs(self.lhs)
-        val = prepare_rhs(self.rhs)
+    def compile(self, *, context: Context) -> Any:
+        key = prepare_lhs(self.lhs, context=context)
+        val = prepare_rhs(self.rhs, context=context)
         return {key: {"$gt": val}}
 
 
@@ -128,9 +128,9 @@ class Gte(Operator):
     lhs: Any
     rhs: Any
 
-    def compile(self) -> Any:
-        key = prepare_lhs(self.lhs)
-        val = prepare_rhs(self.rhs)
+    def compile(self, *, context: Context) -> Any:
+        key = prepare_lhs(self.lhs, context=context)
+        val = prepare_rhs(self.rhs, context=context)
         return {key: {"$gte": val}}
 
 
@@ -139,9 +139,9 @@ class In(Operator):
     lhs: Any
     rhs: Any
 
-    def compile(self) -> Any:
-        key = prepare_lhs(self.lhs)
-        val = prepare_rhs(self.rhs)
+    def compile(self, *, context: Context) -> Any:
+        key = prepare_lhs(self.lhs, context=context)
+        val = prepare_rhs(self.rhs, context=context)
         return {key: {"$in": val}}
 
 
@@ -150,13 +150,13 @@ class Nin(Operator):
     lhs: Any
     rhs: Any
 
-    def compile(self) -> Any:
-        key = prepare_lhs(self.lhs)
-        val = prepare_rhs(self.rhs)
+    def compile(self, *, context: Context) -> Any:
+        key = prepare_lhs(self.lhs, context=context)
+        val = prepare_rhs(self.rhs, context=context)
         return {key: {"$nin": val}}
 
 
-def prepare_lhs(obj: Any, *, context: Context | None = None) -> str:
+def prepare_lhs(obj: Any, *, context: Context) -> str:
     if isinstance(obj, AttributeBase):
         return obj.db_alias
     if isinstance(obj, AsRef):
@@ -167,7 +167,7 @@ def prepare_lhs(obj: Any, *, context: Context | None = None) -> str:
     raise NotImplementedError
 
 
-def prepare_rhs(obj: Any, *, context: Context | None = None) -> Any:
+def prepare_rhs(obj: Any, *, context: Context) -> Any:
     if isinstance(obj, AttributeBase):
         return "$" + obj.db_alias
     if isinstance(obj, AsRef):

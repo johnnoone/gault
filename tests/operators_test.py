@@ -5,7 +5,7 @@ from strata.operators import And, Eq, Gt, Gte, In, Lt, Lte, Ne, Nin, Not, Or
 from strata.predicates import Field
 
 
-def test_operation_eq(subtests):
+def test_operation_eq(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
@@ -13,21 +13,27 @@ def test_operation_eq(subtests):
     attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
-        assert Eq(attr1, attr2).compile() == {"alias1": {"$eq": "$alias2"}}
+        assert Eq(attr1, attr2).compile(context=context) == {
+            "alias1": {"$eq": "$alias2"}
+        }
 
     with subtests.test():
-        assert Eq("my_key", "value").compile() == {"my_key": {"$eq": "value"}}
+        assert Eq("my_key", "value").compile(context=context) == {
+            "my_key": {"$eq": "value"}
+        }
 
     with subtests.test():
-        assert Eq("my_key", Field("my.path")).compile() == {
+        assert Eq("my_key", Field("my.path")).compile(context=context) == {
             "my_key": {"$eq": "$my.path"}
         }
 
     with subtests.test():
-        assert Eq(Field("my.path"), "value").compile() == {"my.path": {"$eq": "value"}}
+        assert Eq(Field("my.path"), "value").compile(context=context) == {
+            "my.path": {"$eq": "value"}
+        }
 
 
-def test_operation_ne(subtests):
+def test_operation_ne(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
@@ -35,21 +41,27 @@ def test_operation_ne(subtests):
     attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
-        assert Ne(attr1, attr2).compile() == {"alias1": {"$ne": "$alias2"}}
+        assert Ne(attr1, attr2).compile(context=context) == {
+            "alias1": {"$ne": "$alias2"}
+        }
 
     with subtests.test():
-        assert Ne("my_key", "value").compile() == {"my_key": {"$ne": "value"}}
+        assert Ne("my_key", "value").compile(context=context) == {
+            "my_key": {"$ne": "value"}
+        }
 
     with subtests.test():
-        assert Ne("my_key", Field("my.path")).compile() == {
+        assert Ne("my_key", Field("my.path")).compile(context=context) == {
             "my_key": {"$ne": "$my.path"}
         }
 
     with subtests.test():
-        assert Ne(Field("my.path"), "value").compile() == {"my.path": {"$ne": "value"}}
+        assert Ne(Field("my.path"), "value").compile(context=context) == {
+            "my.path": {"$ne": "value"}
+        }
 
 
-def test_operation_lt(subtests):
+def test_operation_lt(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
@@ -57,21 +69,27 @@ def test_operation_lt(subtests):
     attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
-        assert Lt(attr1, attr2).compile() == {"alias1": {"$lt": "$alias2"}}
+        assert Lt(attr1, attr2).compile(context=context) == {
+            "alias1": {"$lt": "$alias2"}
+        }
 
     with subtests.test():
-        assert Lt("my_key", "value").compile() == {"my_key": {"$lt": "value"}}
+        assert Lt("my_key", "value").compile(context=context) == {
+            "my_key": {"$lt": "value"}
+        }
 
     with subtests.test():
-        assert Lt("my_key", Field("my.path")).compile() == {
+        assert Lt("my_key", Field("my.path")).compile(context=context) == {
             "my_key": {"$lt": "$my.path"}
         }
 
     with subtests.test():
-        assert Lt(Field("my.path"), "value").compile() == {"my.path": {"$lt": "value"}}
+        assert Lt(Field("my.path"), "value").compile(context=context) == {
+            "my.path": {"$lt": "value"}
+        }
 
 
-def test_operation_lte(subtests):
+def test_operation_lte(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
@@ -79,23 +97,27 @@ def test_operation_lte(subtests):
     attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
-        assert Lte(attr1, attr2).compile() == {"alias1": {"$lte": "$alias2"}}
+        assert Lte(attr1, attr2).compile(context=context) == {
+            "alias1": {"$lte": "$alias2"}
+        }
 
     with subtests.test():
-        assert Lte("my_key", "value").compile() == {"my_key": {"$lte": "value"}}
+        assert Lte("my_key", "value").compile(context=context) == {
+            "my_key": {"$lte": "value"}
+        }
 
     with subtests.test():
-        assert Lte("my_key", Field("my.path")).compile() == {
+        assert Lte("my_key", Field("my.path")).compile(context=context) == {
             "my_key": {"$lte": "$my.path"}
         }
 
     with subtests.test():
-        assert Lte(Field("my.path"), "value").compile() == {
+        assert Lte(Field("my.path"), "value").compile(context=context) == {
             "my.path": {"$lte": "value"}
         }
 
 
-def test_operation_gt(subtests):
+def test_operation_gt(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
@@ -103,21 +125,27 @@ def test_operation_gt(subtests):
     attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
-        assert Gt(attr1, attr2).compile() == {"alias1": {"$gt": "$alias2"}}
+        assert Gt(attr1, attr2).compile(context=context) == {
+            "alias1": {"$gt": "$alias2"}
+        }
 
     with subtests.test():
-        assert Gt("my_key", "value").compile() == {"my_key": {"$gt": "value"}}
+        assert Gt("my_key", "value").compile(context=context) == {
+            "my_key": {"$gt": "value"}
+        }
 
     with subtests.test():
-        assert Gt("my_key", Field("my.path")).compile() == {
+        assert Gt("my_key", Field("my.path")).compile(context=context) == {
             "my_key": {"$gt": "$my.path"}
         }
 
     with subtests.test():
-        assert Gt(Field("my.path"), "value").compile() == {"my.path": {"$gt": "value"}}
+        assert Gt(Field("my.path"), "value").compile(context=context) == {
+            "my.path": {"$gt": "value"}
+        }
 
 
-def test_operation_gte(subtests):
+def test_operation_gte(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
@@ -125,23 +153,27 @@ def test_operation_gte(subtests):
     attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
-        assert Gte(attr1, attr2).compile() == {"alias1": {"$gte": "$alias2"}}
+        assert Gte(attr1, attr2).compile(context=context) == {
+            "alias1": {"$gte": "$alias2"}
+        }
 
     with subtests.test():
-        assert Gte("my_key", "value").compile() == {"my_key": {"$gte": "value"}}
+        assert Gte("my_key", "value").compile(context=context) == {
+            "my_key": {"$gte": "value"}
+        }
 
     with subtests.test():
-        assert Gte("my_key", Field("my.path")).compile() == {
+        assert Gte("my_key", Field("my.path")).compile(context=context) == {
             "my_key": {"$gte": "$my.path"}
         }
 
     with subtests.test():
-        assert Gte(Field("my.path"), "value").compile() == {
+        assert Gte(Field("my.path"), "value").compile(context=context) == {
             "my.path": {"$gte": "value"}
         }
 
 
-def test_operation_in(subtests):
+def test_operation_in(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
@@ -149,21 +181,27 @@ def test_operation_in(subtests):
     attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
-        assert In(attr1, attr2).compile() == {"alias1": {"$in": "$alias2"}}
+        assert In(attr1, attr2).compile(context=context) == {
+            "alias1": {"$in": "$alias2"}
+        }
 
     with subtests.test():
-        assert In("my_key", "value").compile() == {"my_key": {"$in": "value"}}
+        assert In("my_key", "value").compile(context=context) == {
+            "my_key": {"$in": "value"}
+        }
 
     with subtests.test():
-        assert In("my_key", Field("my.path")).compile() == {
+        assert In("my_key", Field("my.path")).compile(context=context) == {
             "my_key": {"$in": "$my.path"}
         }
 
     with subtests.test():
-        assert In(Field("my.path"), "value").compile() == {"my.path": {"$in": "value"}}
+        assert In(Field("my.path"), "value").compile(context=context) == {
+            "my.path": {"$in": "value"}
+        }
 
 
-def test_operation_nin(subtests):
+def test_operation_nin(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
@@ -171,34 +209,38 @@ def test_operation_nin(subtests):
     attr2 = AttributeSpec(Foo, "attr2", "alias2")
 
     with subtests.test():
-        assert Nin(attr1, attr2).compile() == {"alias1": {"$nin": "$alias2"}}
+        assert Nin(attr1, attr2).compile(context=context) == {
+            "alias1": {"$nin": "$alias2"}
+        }
 
     with subtests.test():
-        assert Nin("my_key", "value").compile() == {"my_key": {"$nin": "value"}}
+        assert Nin("my_key", "value").compile(context=context) == {
+            "my_key": {"$nin": "value"}
+        }
 
     with subtests.test():
-        assert Nin("my_key", Field("my.path")).compile() == {
+        assert Nin("my_key", Field("my.path")).compile(context=context) == {
             "my_key": {"$nin": "$my.path"}
         }
 
     with subtests.test():
-        assert Nin(Field("my.path"), "value").compile() == {
+        assert Nin(Field("my.path"), "value").compile(context=context) == {
             "my.path": {"$nin": "value"}
         }
 
 
-def test_operation_and(subtests):
+def test_operation_and(subtests, context):
     op1 = Eq("attr1", "val1")
     op2 = Eq("attr2", "val2")
     op3 = Eq("attr3", "val3")
     op4 = Eq("attr4", "val4")
 
-    comp1 = op1.compile()
-    comp2 = op2.compile()
+    comp1 = op1.compile(context=context)
+    comp2 = op2.compile(context=context)
 
     op = op1 & op2
     assert op == And([op1, op2])
-    assert op.compile() == {"$and": [comp1, comp2]}
+    assert op.compile(context=context) == {"$and": [comp1, comp2]}
 
     op = op1 & op2 & op3
     assert op == And([op1, op2, op3])
@@ -207,18 +249,18 @@ def test_operation_and(subtests):
     assert op == And([op1, op2, op3, op4])
 
 
-def test_operation_or(subtests):
+def test_operation_or(subtests, context):
     op1 = Eq("attr1", "val1")
     op2 = Eq("attr2", "val2")
     op3 = Eq("attr3", "val3")
     op4 = Eq("attr4", "val4")
 
-    comp1 = op1.compile()
-    comp2 = op2.compile()
+    comp1 = op1.compile(context=context)
+    comp2 = op2.compile(context=context)
 
     op = op1 | op2
     assert op == Or([op1, op2])
-    assert op.compile() == {"$or": [comp1, comp2]}
+    assert op.compile(context=context) == {"$or": [comp1, comp2]}
 
     op = op1 | op2 | op3
     assert op == Or([op1, op2, op3])
@@ -227,17 +269,17 @@ def test_operation_or(subtests):
     assert op == Or([op1, op2, op3, op4])
 
 
-def test_operation_not(subtests):
+def test_operation_not(subtests, context):
     op = ~Eq("attr1", "val1")
     assert op == Not(Eq("attr1", "val1"))
-    assert op.compile() == {"$not": {"attr1": {"$eq": "val1"}}}
+    assert op.compile(context=context) == {"$not": {"attr1": {"$eq": "val1"}}}
 
     op = ~Not(Eq("attr1", "val1"))
     assert op == Eq("attr1", "val1")
-    assert op.compile() == {"attr1": {"$eq": "val1"}}
+    assert op.compile(context=context) == {"attr1": {"$eq": "val1"}}
 
 
-def test_attribute_operators(subtests):
+def test_attribute_operators(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
