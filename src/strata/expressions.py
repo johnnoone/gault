@@ -19,7 +19,7 @@ from .types import (
     DateUnit,
     DayWeek,
     Direction,
-    ExpressionOperator,
+    ExpressionOperator as _ExpressionOperator,
     MongoExpression,
     MongoQuery,
     MongoVar,
@@ -39,6 +39,21 @@ if TYPE_CHECKING:
     from bson import ObjectId, Timestamp
 
     from .fields import Field
+
+
+class AsAlias:
+    def alias(self, var: str | Var) -> Aliased:
+        return Aliased(var, self)
+
+
+class ExpressionOperator(_ExpressionOperator, AsAlias):
+    pass
+
+
+@dataclass
+class Aliased:
+    var: str | Var
+    value: ExpressionOperator
 
 
 @dataclass()
@@ -1247,8 +1262,27 @@ class Let(ExpressionOperator):
     variables: dict[MongoVar, MongoExpression]
     """Assignment block for the variables accessible in the in expression."""
 
-    into: MongoExpression
+    into: MongoExpression = field(kw_only=True)
     """The expression to evaluate."""
+
+    @overload
+    def __init__(
+        self, variables: dict[MongoVar, MongoExpression], /, into: MongoExpression
+    ) -> None: ...
+
+    @overload
+    def __init__(self, *variables: Aliased, into: MongoExpression) -> None: ...
+
+    def __init__(self, *variables: Any, into: MongoExpression) -> None:
+        spec = {}
+        if len(variables) == 1 and isinstance(variables[0], dict):
+            spec |= variables[0]
+        else:
+            for aliased in variables:
+                assert isinstance(aliased, Aliased)  # noqa: S101
+                spec[aliased.var] = aliased.value
+        self.variables = spec
+        self.into = into
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
@@ -3143,7 +3177,9 @@ class FieldMatcherInterface:
 
 
 @dataclass(frozen=True)
-class Var(AsField, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface):
+class Var(
+    AsField, AsAlias, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface
+):
     value: str
 
     def compile_field(self, *, context: Context) -> str:
