@@ -1,6 +1,6 @@
 [project]
 name = "gault"
-version = "0.2.1"
+version = "0.3.0"
 description = "A lightweight Object Document Mapper for MongoDB"
 readme = "README.md"
 authors = [{ name = "Xavier Barbosa", email = "clint.northwood@gmail.com" }]
