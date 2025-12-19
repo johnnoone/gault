@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Not
+from gault.expressions import Not
 
 
 def test_expression(context, subtests: pytest.Subtests):

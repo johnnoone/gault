@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from strata.expressions import Atan
+from gault.expressions import Atan
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,4 +1,4 @@
-from strata.predicates import Or
+from gault.predicates import Or
 
 
 def test_compile_unwrapped(context):

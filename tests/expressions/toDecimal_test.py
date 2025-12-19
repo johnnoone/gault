@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ToDecimal
+from gault.expressions import ToDecimal
 
 
 def test_expression(context, subtests: pytest.Subtests):

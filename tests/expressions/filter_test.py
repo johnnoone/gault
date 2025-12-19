@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Filter, IsNumber, Var
+from gault.expressions import Filter, IsNumber, Var
 
 
 def test_expression(context, subtests: pytest.Subtests):

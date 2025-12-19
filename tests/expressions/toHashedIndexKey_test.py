@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ToHashedIndexKey
+from gault.expressions import ToHashedIndexKey
 
 
 def test_expression(context, subtests: pytest.Subtests):

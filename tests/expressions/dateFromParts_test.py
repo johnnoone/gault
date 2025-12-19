@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import DateFromParts
+from gault.expressions import DateFromParts
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,4 +1,4 @@
-from strata.predicates import ElemMatch, Ne
+from gault.predicates import ElemMatch, Ne
 
 
 def test_compile_unwrapped(context):

@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Divide
+from gault.expressions import Divide
 
 
 def test_expression(context, subtests: pytest.Subtests):

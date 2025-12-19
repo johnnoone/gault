@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Or
+from gault.expressions import Or
 
 
 def test_expression(context, subtests: pytest.Subtests):

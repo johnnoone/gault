@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from strata.expressions import Cosh
+from gault.expressions import Cosh
 
 
 def test_expression(context, subtests: pytest.Subtests):

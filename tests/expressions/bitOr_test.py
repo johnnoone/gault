@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import BitOr
+from gault.expressions import BitOr
 
 
 def test_expression(context, subtests: pytest.Subtests):

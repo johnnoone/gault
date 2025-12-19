@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Trunc
+from gault.expressions import Trunc
 
 
 def test_expression(context, subtests: pytest.Subtests):

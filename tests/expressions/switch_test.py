@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Switch
+from gault.expressions import Switch
 
 
 def test_expression(context, subtests: pytest.Subtests):

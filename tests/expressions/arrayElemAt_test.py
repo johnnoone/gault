@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ArrayElemAt
+from gault.expressions import ArrayElemAt
 
 
 def test_expression(context, subtests: pytest.Subtests):

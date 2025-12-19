@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import MISSING, dataclass, field, fields
-from typing import TYPE_CHECKING, Any, TypedDict, Unpack, dataclass_transform, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    TypedDict,
+    TypeVar,
+    Unpack,
+    dataclass_transform,
+    overload,
+)
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
 from .predicates import ConditionInterface
@@ -11,11 +20,15 @@ from .utils import drop_missing
 if TYPE_CHECKING:
     from .types import Context
 
+M = TypeVar("M", bound="Model")
+T = TypeVar("T")
+
+
 SCHEMAS: WeakValueDictionary[str, type[Schema]] = WeakValueDictionary()
 COLLECTIONS: WeakKeyDictionary[type[Model], str] = WeakKeyDictionary()
 
 
-def unwrap_model[M: Model](model: M | type[M]) -> type[M]:
+def unwrap_model(model: M | type[M]) -> type[M]:
     if isinstance(model, Model):
         model = type(model)
     return model
@@ -57,12 +70,13 @@ class Schema(Model, collection=None):
         SCHEMAS[collection] = cls
 
 
-class AttributeSpec[T: Any](
+class AttributeSpec(
     AttributeBase,
     AsRef,
     ConditionInterface,
     FieldSortInterface,
     SubfieldInterface,
+    Generic[T],
 ):
     def compile_field(self, *, context: Context) -> str:
         return self.db_alias
@@ -84,7 +98,7 @@ class AttributeSpec[T: Any](
     __ge__ = ConditionInterface.gte
 
 
-class Attribute[T: Any]:
+class Attribute(Generic[T]):
     def __init__(
         self,
         *,

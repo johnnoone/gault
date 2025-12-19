@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ReplaceOne
+from gault.expressions import ReplaceOne
 
 
 def test_expression(context, subtests: pytest.Subtests):

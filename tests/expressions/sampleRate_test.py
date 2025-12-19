@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import SampleRate
+from gault.expressions import SampleRate
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Year
+from gault.expressions import Year
 
 
 def test_expression(context, subtests: pytest.Subtests):

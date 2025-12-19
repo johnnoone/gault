@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Millisecond
+from gault.expressions import Millisecond
 
 
 def test_expression(context, subtests: pytest.Subtests):

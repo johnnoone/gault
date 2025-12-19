@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ToUpper
+from gault.expressions import ToUpper
 
 
 def test_expression(context, subtests: pytest.Subtests):

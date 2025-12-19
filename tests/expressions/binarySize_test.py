@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import BinarySize
+from gault.expressions import BinarySize
 
 
 def test_expression(context, subtests: pytest.Subtests):

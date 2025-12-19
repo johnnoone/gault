@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import IsoWeekYear
+from gault.expressions import IsoWeekYear
 
 
 def test_expression(context, subtests: pytest.Subtests):

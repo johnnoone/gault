@@ -2,9 +2,9 @@ from typing import Any
 
 import pytest
 
-from strata import AsyncManager, Attribute, Pipeline, Schema, configure
-from strata.accumulators import Sum
-from strata.predicates import Field
+from gault import AsyncManager, Attribute, Pipeline, Schema, configure
+from gault.accumulators import Sum
+from gault.predicates import Field
 
 
 class MyModel(Schema, collection="my-coll"):

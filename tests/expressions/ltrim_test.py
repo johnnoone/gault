@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Ltrim
+from gault.expressions import Ltrim
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import SetIsSubset
+from gault.expressions import SetIsSubset
 
 
 def test_expression(context, subtests: pytest.Subtests):

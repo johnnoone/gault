@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import DateToString
+from gault.expressions import DateToString
 
 
 def test_expression(context, subtests: pytest.Subtests):

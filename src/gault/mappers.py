@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import MISSING, fields
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NamedTuple, cast
+from typing import TYPE_CHECKING, Any, Generic, NamedTuple, TypeVar, cast
 from weakref import WeakKeyDictionary
 
 from .models import unwrap_model
@@ -14,11 +14,12 @@ if TYPE_CHECKING:
     from .models import AttributeMetadata, Model
     from .types import Document
 
+M = TypeVar("M", bound="Model")
 
 MAPPERS: WeakKeyDictionary[type[Model], Mapper] = WeakKeyDictionary()
 
 
-def get_mapper[M: Model](model: M | type[M]) -> Mapper[M]:
+def get_mapper(model: M | type[M]) -> Mapper[M]:
     model = unwrap_model(model)
     if mapper := MAPPERS.get(model):
         return mapper
@@ -39,7 +40,7 @@ class CoinCoin(NamedTuple):
     pk: bool
 
 
-class Mapper[M: Model]:
+class Mapper(Generic[M]):
     def __init__(self, model: type[M]) -> None:
         self.model = model
 

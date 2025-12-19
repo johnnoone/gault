@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from strata.expressions import DateSubtract
+from gault.expressions import DateSubtract
 
 
 def test_expression(context, subtests: pytest.Subtests):

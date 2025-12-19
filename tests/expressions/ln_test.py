@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from strata.expressions import Ln
+from gault.expressions import Ln
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,8 +1,8 @@
 import pytest
-from strata.expressions import Var
-from strata.pipelines import CollectionPipeline, Pipeline
-from strata import Model, Schema, Attribute, accumulators
-from strata.predicates import Field
+from gault.expressions import Var
+from gault.pipelines import CollectionPipeline, Pipeline
+from gault import Model, Schema, Attribute, accumulators
+from gault.predicates import Field
 
 
 def test_pipe():

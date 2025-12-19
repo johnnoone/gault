@@ -1,5 +1,5 @@
-from strata import Attribute, Model
-from strata.accumulators import (
+from gault import Attribute, Model
+from gault.accumulators import (
     AddToSet,
     Avg,
     Bottom,
@@ -23,7 +23,7 @@ from strata.accumulators import (
     Top,
     TopN,
 )
-from strata.predicates import Field
+from gault.predicates import Field
 
 
 class MyModel(Model, collection="my-coll"):

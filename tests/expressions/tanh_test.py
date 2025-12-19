@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Tanh
+from gault.expressions import Tanh
 
 
 def test_expression(context, subtests: pytest.Subtests):

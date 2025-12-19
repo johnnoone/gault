@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import IfNull
+from gault.expressions import IfNull
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import StrLenBytes
+from gault.expressions import StrLenBytes
 
 
 def test_expression(context, subtests: pytest.Subtests):

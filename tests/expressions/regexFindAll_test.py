@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import RegexFindAll
+from gault.expressions import RegexFindAll
 
 
 def test_expression(context, subtests: pytest.Subtests):

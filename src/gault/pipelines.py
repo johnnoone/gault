@@ -2,7 +2,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Any, Concatenate, Literal, Self, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Concatenate,
+    Generic,
+    Literal,
+    ParamSpec,
+    Self,
+    TypeAlias,
+    TypeVar,
+    overload,
+)
 
 from .accumulators import compile_accumulator
 from .compilers import compile_expression, compile_field, compile_path, compile_query
@@ -13,7 +24,6 @@ from .utils import drop_missing, nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
-    from typing import ParamSpec, TypeVar
 
     from .accumulators import Accumulator
     from .predicates import Field, Predicate
@@ -27,11 +37,11 @@ if TYPE_CHECKING:
         PositiveInteger,
     )
 
-    T = TypeVar("T")
-    P = ParamSpec("P")
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
-type Stage = dict[str, Any]
+Stage: TypeAlias = dict[str, Any]
 
 
 @dataclass
@@ -104,7 +114,7 @@ class Pipeline:
         step = ProjectStep(model)
         return self.raw(step)
 
-    def bucket[T](
+    def bucket(
         self,
         by: MongoExpression,
         /,
@@ -493,7 +503,7 @@ class GraphLookupStep(Step):
 
 
 @dataclass
-class BucketStep[T](Step):
+class BucketStep(Step, Generic[T]):
     by: MongoExpression
     boundaries: list[T]
     default: str | None

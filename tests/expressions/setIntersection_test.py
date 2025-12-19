@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import SetIntersection
+from gault.expressions import SetIntersection
 
 
 def test_expression(context, subtests: pytest.Subtests):

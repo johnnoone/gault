@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import IsoDayOfWeek
+from gault.expressions import IsoDayOfWeek
 
 
 def test_expression(context, subtests: pytest.Subtests):

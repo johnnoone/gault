@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import DayOfWeek
+from gault.expressions import DayOfWeek
 
 
 def test_expression(context, subtests: pytest.Subtests):

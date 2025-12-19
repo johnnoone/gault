@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import DayOfYear
+from gault.expressions import DayOfYear
 
 
 def test_expression(context, subtests: pytest.Subtests):

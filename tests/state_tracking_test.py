@@ -1,5 +1,5 @@
-from strata.managers import AsyncManager, StateTracker
-from strata.models import Attribute, Schema
+from gault.managers import AsyncManager, StateTracker
+from gault.models import Attribute, Schema
 
 
 class MyModel(Schema, collection="my-collection"):

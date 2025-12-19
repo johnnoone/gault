@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Ne
+from gault.expressions import Ne
 
 
 def test_expression(context, subtests: pytest.Subtests):

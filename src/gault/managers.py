@@ -1,9 +1,8 @@
 from __future__ import annotations
-from collections.abc import Iterator
 
 from copy import deepcopy
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar
 from weakref import WeakKeyDictionary, WeakSet
 
 from pymongo import ReturnDocument
@@ -15,7 +14,7 @@ from .pipelines import Pipeline, RawStep
 from .predicates import Predicate
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Iterator
 
     from pymongo.asynchronous.database import AsyncDatabase
     from pymongo.synchronous.database import Database
@@ -23,10 +22,13 @@ if TYPE_CHECKING:
     from .pipelines import Stage
     from .types import MongoQuery
 
-    type Filter = Predicate | Pipeline | MongoQuery | list[Stage] | None
+    Filter: TypeAlias = Predicate | Pipeline | MongoQuery | list[Stage] | None
+
+M = TypeVar("M", bound="Model")
+S = TypeVar("S", bound="Schema")
 
 
-class StateTracker[M: Model]:
+class StateTracker(Generic[M]):
     def __init__(self) -> None:
         self._states: WeakKeyDictionary[M, Any] = WeakKeyDictionary()
 
@@ -46,7 +48,7 @@ class StateTracker[M: Model]:
         return dirty_fields
 
 
-class Persistence[M: Model]:
+class Persistence(Generic[M]):
     def __init__(self) -> None:
         self._instances: WeakSet[M] = WeakSet()
 
@@ -60,7 +62,7 @@ class Persistence[M: Model]:
         self._instances.remove(instance)
 
 
-class AsyncManager[Queriable: Model, Writable: Schema]:
+class AsyncManager(Generic[M, S]):
     def __init__(
         self,
         database: AsyncDatabase,
@@ -82,28 +84,28 @@ class AsyncManager[Queriable: Model, Writable: Schema]:
         state_tracker = self._state_tracker = self._state_tracker or StateTracker()
         return state_tracker
 
-    async def get(self, model: type[Queriable], filter: Filter = None) -> Queriable:
+    async def get(self, model: type[M], filter: Filter = None) -> M:
         if instance := await self.find(model, filter):
             return instance
         raise NotFound(model, filter)
 
     async def find(
         self,
-        model: type[Queriable],
+        model: type[M],
         filter: Filter = None,
-    ) -> Queriable | None:
+    ) -> M | None:
         async for instance in self.select(model, filter, take=1):
             return instance
         return None
 
     async def select(
         self,
-        model: type[Queriable],
+        model: type[M],
         filter: Filter = None,
         *,
         skip: int | None = None,
         take: int | None = None,
-    ) -> AsyncIterator[Queriable]:
+    ) -> AsyncIterator[M]:
         match filter:
             case None:
                 filter = Pipeline()
@@ -140,7 +142,7 @@ class AsyncManager[Queriable: Model, Writable: Schema]:
             self.state_tracker.snapshot(instance)
             yield instance
 
-    async def insert(self, instance: Writable) -> Writable:
+    async def insert(self, instance: S) -> S:
         if not isinstance(instance, Schema):
             raise Forbidden(
                 unwrap_model(instance),
@@ -155,11 +157,11 @@ class AsyncManager[Queriable: Model, Writable: Schema]:
 
     async def save(
         self,
-        instance: Writable,
+        instance: S,
         *,
         refresh: bool = False,
         atomic: bool = False,
-    ) -> Writable:
+    ) -> S:
         if not isinstance(instance, Schema):
             raise Forbidden(
                 unwrap_model(instance),
@@ -208,7 +210,7 @@ class AsyncManager[Queriable: Model, Writable: Schema]:
         self.state_tracker.snapshot(instance)
         return instance
 
-    async def refresh(self, instance: Queriable) -> Queriable:
+    async def refresh(self, instance: M) -> M:
         collection = get_collection(instance)
         mapper = get_mapper(instance)
         filter = mapper.to_filter(instance)
@@ -227,7 +229,7 @@ class AsyncManager[Queriable: Model, Writable: Schema]:
         raise NotFound(type(instance), filter)
 
 
-class Manager[Queriable: Model, Writable: Schema]:
+class Manager(Generic[M, S]):
     def __init__(
         self,
         database: Database,
@@ -249,28 +251,28 @@ class Manager[Queriable: Model, Writable: Schema]:
         state_tracker = self._state_tracker = self._state_tracker or StateTracker()
         return state_tracker
 
-    def get(self, model: type[Queriable], filter: Filter = None) -> Queriable:
+    def get(self, model: type[M], filter: Filter = None) -> M:
         if instance := self.find(model, filter):
             return instance
         raise NotFound(model, filter)
 
     def find(
         self,
-        model: type[Queriable],
+        model: type[M],
         filter: Filter = None,
-    ) -> Queriable | None:
+    ) -> M | None:
         for instance in self.select(model, filter, take=1):
             return instance
         return None
 
     def select(
         self,
-        model: type[Queriable],
+        model: type[M],
         filter: Filter = None,
         *,
         skip: int | None = None,
         take: int | None = None,
-    ) -> Iterator[Queriable]:
+    ) -> Iterator[M]:
         match filter:
             case None:
                 filter = Pipeline()
@@ -307,7 +309,7 @@ class Manager[Queriable: Model, Writable: Schema]:
             self.state_tracker.snapshot(instance)
             yield instance
 
-    def insert(self, instance: Writable) -> Writable:
+    def insert(self, instance: S) -> S:
         if not isinstance(instance, Schema):
             raise Forbidden(
                 unwrap_model(instance),
@@ -322,11 +324,11 @@ class Manager[Queriable: Model, Writable: Schema]:
 
     def save(
         self,
-        instance: Writable,
+        instance: S,
         *,
         refresh: bool = False,
         atomic: bool = False,
-    ) -> Writable:
+    ) -> S:
         if not isinstance(instance, Schema):
             raise Forbidden(
                 unwrap_model(instance),
@@ -375,7 +377,7 @@ class Manager[Queriable: Model, Writable: Schema]:
         self.state_tracker.snapshot(instance)
         return instance
 
-    def refresh(self, instance: Queriable) -> Queriable:
+    def refresh(self, instance: M) -> M:
         collection = get_collection(instance)
         mapper = get_mapper(instance)
         filter = mapper.to_filter(instance)

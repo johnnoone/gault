@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Sinh
+from gault.expressions import Sinh
 
 
 def test_expression(context, subtests: pytest.Subtests):

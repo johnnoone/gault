@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ToLower
+from gault.expressions import ToLower
 
 
 def test_expression(context, subtests: pytest.Subtests):

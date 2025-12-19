@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Rand
+from gault.expressions import Rand
 
 
 def test_expression(context, subtests: pytest.Subtests):

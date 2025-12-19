@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ReverseArray
+from gault.expressions import ReverseArray
 
 
 def test_expression(context, subtests: pytest.Subtests):

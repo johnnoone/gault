@@ -1,10 +1,10 @@
 import pytest
 
-from strata.accumulators import Sum
-from strata.exceptions import Forbidden
-from strata.managers import AsyncManager
-from strata.models import Model, Schema
-from strata.pipelines import Pipeline
+from gault.accumulators import Sum
+from gault.exceptions import Forbidden
+from gault.managers import AsyncManager
+from gault.models import Model, Schema
+from gault.pipelines import Pipeline
 
 
 class MyModel(Schema, collection="my-coll"):

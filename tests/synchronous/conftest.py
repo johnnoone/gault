@@ -4,7 +4,7 @@ import pytest
 from pymongo.synchronous.database import Database
 from pymongo.synchronous.mongo_client import MongoClient
 
-from strata.managers import Manager, Persistence, StateTracker
+from gault.managers import Manager, Persistence, StateTracker
 
 
 @pytest.fixture(name="client")

@@ -1,5 +1,5 @@
-from strata.mappers import Corres, Mapper
-from strata.models import Attribute, Schema, configure
+from gault.mappers import Corres, Mapper
+from gault.models import Attribute, Schema, configure
 
 
 class MyModel(Schema, collection="my-collection"):

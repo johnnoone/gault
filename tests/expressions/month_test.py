@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Month
+from gault.expressions import Month
 
 
 def test_expression(context, subtests: pytest.Subtests):

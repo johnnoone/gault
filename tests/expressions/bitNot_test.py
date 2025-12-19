@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import BitNot
+from gault.expressions import BitNot
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Slice
+from gault.expressions import Slice
 
 
 def test_expression(context, subtests: pytest.Subtests):

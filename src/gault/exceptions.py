@@ -4,10 +4,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from strata import Model
-
     from .managers import Filter
-    from .models import Schema
+    from .models import Model, Schema
     from .pipelines import Pipeline
 
 

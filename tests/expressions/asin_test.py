@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from strata.expressions import Asin
+from gault.expressions import Asin
 
 
 def test_expression(context, subtests: pytest.Subtests):

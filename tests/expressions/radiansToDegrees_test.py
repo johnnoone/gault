@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import RadiansToDegrees
+from gault.expressions import RadiansToDegrees
 
 
 def test_expression(context, subtests: pytest.Subtests):

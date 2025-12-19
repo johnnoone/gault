@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import BsonSize
+from gault.expressions import BsonSize
 
 
 def test_expression(context, subtests: pytest.Subtests):

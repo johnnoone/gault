@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from strata.expressions import Cos
+from gault.expressions import Cos
 
 
 def test_expression(context, subtests: pytest.Subtests):

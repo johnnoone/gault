@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Let, Literal, Var
+from gault.expressions import Let, Literal, Var
 
 
 def test_expression1(context, subtests: pytest.Subtests):

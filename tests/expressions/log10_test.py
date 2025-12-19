@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Log10
+from gault.expressions import Log10
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Annotated, Any, Self
+from typing import TYPE_CHECKING, Annotated, Any, Generic, Self, TypeAlias, TypeVar
 from typing import Literal as TypingLiteral
 
 from bson import ObjectId
+
+T = TypeVar("T")
+K = TypeVar("K")
+V = TypeVar("V")
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -18,49 +22,53 @@ if TYPE_CHECKING:
 
     from .models import Model
 
-    type Document = dict[str, Any]
+    Document: TypeAlias = dict[str, Any]
     """A mongo document"""
 
-    type PositiveInteger = Annotated[int, Ge(0)]
+    PositiveInteger: TypeAlias = Annotated[int, Ge(0)]
 
-    type MongoField = str
-    type MongoPath = str
-    type MongoExpression[T: Any] = T | Any
+    MongoField: TypeAlias = str
+    MongoPath: TypeAlias = str
+    MongoExpression: TypeAlias = T | Any
     """An expression that resolves to given type"""
 
-    type MongoQuery = dict[MongoField | str, MongoExpression]
-    type Context = Any
-    type MongoValue = Scalar | Array[MongoValue] | Object[String, MongoValue]
+    MongoQuery: TypeAlias = dict[MongoField | str, MongoExpression]
+    Context: TypeAlias = Any
 
-    type Scalar = String | Regex | Binary | Number | Null | Boolean | ObjectId | Date
+    Regex: TypeAlias = str | BSONRegex
 
-    type Regex = str | BSONRegex
-
-    type String = str
+    String: TypeAlias = str
     """An expression that resolves to a string"""
 
-    type Number = int | float | BSONDecimal | Decimal
+    Number: TypeAlias = int | float | BSONDecimal | Decimal
     """An expression that resolves to an integer or long"""
 
-    type Boolean = bool
+    Boolean: TypeAlias = bool
     """An expression that resolves to a boolean value"""
 
-    type Null = None
+    Null: TypeAlias = None
     """An expression that resolves to null"""
 
-    type Binary = bytes | BSONBinary
+    Binary: TypeAlias = bytes | BSONBinary
     """An expression that resolves to a binary string"""
 
-    type Array[T: Any] = list[Any]
+    Array: TypeAlias = list[T]
     """An expression that resolves to an array"""
 
-    type Object[K: str, V: Any] = dict[K, V]
+    Object: TypeAlias = dict[K, V]
     """An expression that resolves to an object"""
 
-    type Date = datetime
+    Date: TypeAlias = datetime
     """An expression that resolves to a date"""
 
-    type DateUnit = TypingLiteral[
+    Scalar: TypeAlias = (
+        String | Regex | Binary | Number | Null | Boolean | ObjectId | Date
+    )
+    MongoValue: TypeAlias = (
+        Scalar | Array["MongoValue"] | Object["String", "MongoValue"]
+    )
+
+    DateUnit: TypeAlias = TypingLiteral[
         "year",
         "quarter",
         "week",
@@ -72,7 +80,7 @@ if TYPE_CHECKING:
         "millisecond",
     ]
 
-    type DayWeek = TypingLiteral[
+    DayWeek: TypeAlias = TypingLiteral[
         "monday",
         "tuesday",
         "wednesday",
@@ -82,8 +90,8 @@ if TYPE_CHECKING:
         "sunday",
     ]
 
-    type Timezone = Any
-    type Direction = TypingLiteral[1, -1] | dict[str, Any]
+    Timezone: TypeAlias = Any
+    Direction: TypeAlias = TypingLiteral[1, -1] | dict[str, Any]
 
 
 class AttributeBase:
@@ -113,7 +121,7 @@ class ExpressionOperator(ABC):
 
 
 @dataclass
-class Aliased[T]:
+class Aliased(Generic[T]):
     ref: str
     value: T
 

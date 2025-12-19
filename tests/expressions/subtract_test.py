@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Subtract
+from gault.expressions import Subtract
 
 
 def test_expression(context, subtests: pytest.Subtests):

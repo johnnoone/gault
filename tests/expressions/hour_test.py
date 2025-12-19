@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Hour
+from gault.expressions import Hour
 
 
 def test_expression(context, subtests: pytest.Subtests):

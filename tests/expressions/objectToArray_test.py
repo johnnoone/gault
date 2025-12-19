@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ObjectToArray
+from gault.expressions import ObjectToArray
 
 
 def test_expression(context, subtests: pytest.Subtests):

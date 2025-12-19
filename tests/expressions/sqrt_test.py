@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Sqrt
+from gault.expressions import Sqrt
 
 
 def test_expression(context, subtests: pytest.Subtests):

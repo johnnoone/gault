@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, assert_never
+from typing import TYPE_CHECKING, Any, Literal, assert_never, TypeAlias
 
 from .types import AsRef
 
@@ -9,14 +9,13 @@ if TYPE_CHECKING:
 
     from .types import Context
 
-    type Direction = Literal[-1, 1] | dict[str, Any]
-
-    type Sort = dict[str, Direction]
-    type SortParam = tuple[str, Direction]
-    type SortValue = int | str | Direction | None
-    type SortField = AsRef | str
-    type SortToken = SortField | tuple[SortField, SortValue]
-    type SortPayload = SortToken | list[SortToken] | dict[SortField, SortValue]
+    Direction: TypeAlias = Literal[-1, 1] | dict[str, Any]
+    Sort: TypeAlias = dict[str, Direction]
+    SortParam: TypeAlias = tuple[str, Direction]
+    SortValue: TypeAlias = int | str | Direction | None
+    SortField: TypeAlias = AsRef | str
+    SortToken: TypeAlias = SortField | tuple[SortField, SortValue]
+    SortPayload: TypeAlias = SortToken | list[SortToken] | dict[SortField, SortValue]
 
 
 def normalize_sort(obj: SortPayload | None, *, context: Context) -> Sort | None:

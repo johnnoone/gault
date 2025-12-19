@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Abs
+from gault.expressions import Abs
 
 
 def test_expression(context, subtests: pytest.Subtests):

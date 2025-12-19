@@ -1,5 +1,5 @@
-from strata.compilers import compile_query
-from strata.predicates import Eq, Not
+from gault.compilers import compile_query
+from gault.predicates import Eq, Not
 
 
 def test_compile(context):

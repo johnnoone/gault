@@ -1,7 +1,7 @@
 import pytest
 
-from strata.compilers import compile_expression
-from strata.expressions import Var
+from gault.compilers import compile_expression
+from gault.expressions import Var
 
 
 @pytest.fixture(name="var")

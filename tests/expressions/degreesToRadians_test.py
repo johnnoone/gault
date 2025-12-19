@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from strata.expressions import DegreesToRadians
+from gault.expressions import DegreesToRadians
 
 
 def test_expression(context, subtests: pytest.Subtests):

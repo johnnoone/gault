@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ToLong
+from gault.expressions import ToLong
 
 
 def test_expression(context, subtests: pytest.Subtests):

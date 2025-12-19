@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ToBool
+from gault.expressions import ToBool
 
 
 def test_expression(context, subtests: pytest.Subtests):

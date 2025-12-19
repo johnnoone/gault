@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Week
+from gault.expressions import Week
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,5 +1,5 @@
-from strata.compilers import compile_query
-from strata.predicates import BitsAnySet
+from gault.compilers import compile_query
+from gault.predicates import BitsAnySet
 
 
 def test_compile(context):

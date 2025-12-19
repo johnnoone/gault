@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import StrCaseCmp
+from gault.expressions import StrCaseCmp
 
 
 def test_expression(context, subtests: pytest.Subtests):

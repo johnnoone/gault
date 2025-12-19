@@ -4,7 +4,7 @@ import pytest
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
 
-from strata.managers import AsyncManager, Persistence, StateTracker
+from gault.managers import AsyncManager, Persistence, StateTracker
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import TsIncrement
+from gault.expressions import TsIncrement
 
 
 def test_expression(context, subtests: pytest.Subtests):

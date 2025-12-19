@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import IndexOfCP
+from gault.expressions import IndexOfCP
 
 
 def test_expression(context, subtests: pytest.Subtests):

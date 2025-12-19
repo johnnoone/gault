@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ToDouble
+from gault.expressions import ToDouble
 
 
 def test_expression(context, subtests: pytest.Subtests):

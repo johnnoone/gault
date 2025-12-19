@@ -1,4 +1,4 @@
-# Strata
+# Gault
 
 A lightweight Object Document Mapper (ODM) for MongoDB with Python type hints and state tracking.
 
@@ -15,13 +15,13 @@ A lightweight Object Document Mapper (ODM) for MongoDB with Python type hints an
 ## Installation
 
 ```bash
-pip install strata
+pip install gault
 ```
 
 ## Quick Start
 
 ```python
-from strata import Schema, Model, Field, configure, AsyncManager
+from gault import Schema, Model, Field, configure, AsyncManager
 
 # Schema: Persistent documents mapped to MongoDB collections
 class Person(Schema, collection="people"):
@@ -68,7 +68,7 @@ class Person(Schema, collection="people"):
 
 ## Querying with Filters
 
-Strata provides multiple ways to filter documents using type-safe field expressions.
+Gault provides multiple ways to filter documents using type-safe field expressions.
 
 ### Operator Expressions
 
@@ -99,7 +99,7 @@ filter = (Person.age >= 18) & ((Person.name == "Alice") | (Person.name == "Bob")
 For advanced queries, use the `Pipeline` API with aggregation stages:
 
 ```python
-from strata import Pipeline
+from gault import Pipeline
 
 # Match and sort
 pipeline = Pipeline().match(Person.age >= 18).sort(Person.age.asc())
@@ -108,7 +108,7 @@ pipeline = Pipeline().match(Person.age >= 18).sort(Person.age.asc())
 pipeline = Pipeline().skip(10).take(20)
 
 # Group and aggregate
-from strata import Sum
+from gault import Sum
 pipeline = (
     Pipeline()
     .match(Person.age >= 18)
@@ -218,7 +218,7 @@ await manager.save(person, atomic=True)  # Only updates 'person_age' field
 
 ## Persistence and Dirty Fields
 
-Strata tracks the persistence state and modifications of your documents automatically.
+Gault tracks the persistence state and modifications of your documents automatically.
 
 ### Persistence Tracking
 
@@ -240,7 +240,7 @@ assert manager.persistence.is_persisted(new_person)
 
 ### Dirty Field Tracking
 
-Strata snapshots document state and tracks which fields have been modified:
+Gault snapshots document state and tracks which fields have been modified:
 
 ```python
 person = await manager.get(Person, filter=Person.id == 1)

@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ToInt
+from gault.expressions import ToInt
 
 
 def test_expression(context, subtests: pytest.Subtests):

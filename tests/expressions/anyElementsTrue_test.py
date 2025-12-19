@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import AnyElementsTrue
+from gault.expressions import AnyElementsTrue
 
 
 def test_expression(context, subtests: pytest.Subtests):

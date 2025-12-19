@@ -1,5 +1,5 @@
-from strata.compilers import compile_query
-from strata.predicates import Ne
+from gault.compilers import compile_query
+from gault.predicates import Ne
 
 
 def test_compile(context):

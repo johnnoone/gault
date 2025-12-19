@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Round
+from gault.expressions import Round
 
 
 def test_expression(context, subtests: pytest.Subtests):

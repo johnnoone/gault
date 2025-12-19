@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from strata.expressions import Ceil
+from gault.expressions import Ceil
 
 
 def test_expression(context, subtests: pytest.Subtests):

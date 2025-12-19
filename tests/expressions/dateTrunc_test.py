@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from strata.expressions import DateTrunc
+from gault.expressions import DateTrunc
 
 
 def test_expression(context, subtests: pytest.Subtests):

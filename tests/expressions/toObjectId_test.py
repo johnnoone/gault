@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ToObjectId
+from gault.expressions import ToObjectId
 
 
 def test_expression(context, subtests: pytest.Subtests):

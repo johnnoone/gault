@@ -1,7 +1,7 @@
 import pytest
 
-from strata.managers import AsyncManager, Persistence
-from strata.models import Schema, configure
+from gault.managers import AsyncManager, Persistence
+from gault.models import Schema, configure
 
 
 @pytest.fixture(name="persistence")

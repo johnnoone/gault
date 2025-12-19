@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from strata.expressions import DateDiff
+from gault.expressions import DateDiff
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 if TYPE_CHECKING:
     from .types import Context
 
-type Geo = Box | Center | CenterSphere | GeoJSON
-type Box = Any
-type Center = Any
-type CenterSphere = Any
-type GeoJSON = Any
+    Geo: TypeAlias = "Box" | "Center" | "CenterSphere" | "GeoJSON"
+    Box: TypeAlias = Any
+    Center: TypeAlias = Any
+    CenterSphere: TypeAlias = Any
+    GeoJSON: TypeAlias = Any
 
 
 def compile_geo(value: Geo, *, context: Context) -> Any:

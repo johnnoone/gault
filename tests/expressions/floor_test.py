@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from strata.expressions import Floor
+from gault.expressions import Floor
 
 
 def test_expression(context, subtests: pytest.Subtests):

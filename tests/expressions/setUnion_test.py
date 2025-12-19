@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import SetUnion
+from gault.expressions import SetUnion
 
 
 def test_expression(context, subtests: pytest.Subtests):

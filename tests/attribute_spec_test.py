@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from strata.models import AttributeSpec, Schema
+from gault.models import AttributeSpec, Schema
 
 
 def test_predicates(subtests, context):

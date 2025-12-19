@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from strata.expressions import Acosh
+from gault.expressions import Acosh
 
 
 def test_expression(context, subtests: pytest.Subtests):

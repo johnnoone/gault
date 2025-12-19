@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import SortArray
+from gault.expressions import SortArray
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import SetDifference
+from gault.expressions import SetDifference
 
 
 def test_expression(context, subtests: pytest.Subtests):

@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import MinN
+from gault.expressions import MinN
 
 
 def test_expression(context, subtests: pytest.Subtests):

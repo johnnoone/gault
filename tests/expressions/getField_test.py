@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import GetField
+from gault.expressions import GetField
 
 
 def test_expression(context, subtests: pytest.Subtests):

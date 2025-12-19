@@ -1,4 +1,4 @@
-from strata.predicates import And
+from gault.predicates import And
 
 
 def test_compile_unwrapped(context):

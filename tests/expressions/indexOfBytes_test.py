@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import IndexOfBytes
+from gault.expressions import IndexOfBytes
 
 
 def test_expression(context, subtests: pytest.Subtests):

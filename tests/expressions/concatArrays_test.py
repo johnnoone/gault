@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import ConcatArrays
+from gault.expressions import ConcatArrays
 
 
 def test_expression(context, subtests: pytest.Subtests):

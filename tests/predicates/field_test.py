@@ -1,8 +1,8 @@
 import pytest
 
-from strata.compilers import compile_query
-from strata.predicates import Field
-from strata.predicates import Eq
+from gault.compilers import compile_query
+from gault.predicates import Field
+from gault.predicates import Eq
 
 
 @pytest.fixture(name="field")

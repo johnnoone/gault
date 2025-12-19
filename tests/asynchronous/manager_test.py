@@ -1,10 +1,10 @@
 import pytest
 from pymongo.asynchronous.database import AsyncDatabase
 
-from strata.exceptions import NotFound
-from strata.managers import AsyncManager, Persistence
-from strata.models import Attribute, Schema, configure
-from strata.utils import to_list
+from gault.exceptions import NotFound
+from gault.managers import AsyncManager, Persistence
+from gault.models import Attribute, Schema, configure
+from gault.utils import to_list
 
 
 class Person(Schema, collection="my-collection"):

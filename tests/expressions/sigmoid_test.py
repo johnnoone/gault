@@ -1,6 +1,6 @@
 import pytest
 
-from strata.expressions import Sigmoid
+from gault.expressions import Sigmoid
 
 
 def test_expression(context, subtests: pytest.Subtests):

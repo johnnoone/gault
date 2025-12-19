@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, cast, overload
 
 from . import expressions
 from .compilers import compile_expression, compile_field, compile_query
-from .geo import Geo, GeoJSON, compile_geo
+from .geo import compile_geo
 from .types import (
     AsRef,
     FieldSortInterface,
@@ -19,6 +19,7 @@ from .types import (
 from .utils import nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
+    from .geo import Geo, GeoJSON
     from .types import (
         Array,
         Binary,
