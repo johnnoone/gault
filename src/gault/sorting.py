@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, assert_never, TypeAlias
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias, assert_never
 
 from .types import AsRef
 
