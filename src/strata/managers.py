@@ -11,15 +11,16 @@ from .exceptions import Forbidden, NotFound, Unprocessable
 from .mappers import get_mapper
 from .models import Model, Schema, get_collection, unwrap_model
 from .pipelines import Pipeline, RawStep, Stage
-from .types import QueryPredicate
+from .predicates import Predicate
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pymongo.asynchronous.database import AsyncDatabase
 
+    from .types import MongoQuery
 
-type Filter = QueryPredicate | Pipeline | dict | list[Stage] | None
+    type Filter = Predicate | Pipeline | MongoQuery | list[Stage] | None
 
 
 class StateTracker[M: Model]:
@@ -104,8 +105,8 @@ class AsyncManager[Queriable: Model, Writable: Schema]:
             case None:
                 filter = Pipeline()
             case list():
-                filter = Pipeline(steps=[RawStep(stage) for stage in filter])
-            case dict() | QueryPredicate():
+                filter = Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
+            case dict() | Predicate():
                 filter = Pipeline().match(filter)
             case Pipeline():
                 pass

@@ -42,7 +42,7 @@ class AttributeBase:
 
 type MongoField = str
 type MongoExpression[T: Any] = Any
-type MongoQuery = dict[MongoExpression, MongoExpression]
+type MongoQuery = dict[MongoField, MongoExpression]
 type Context = Any
 type MongoType = str | int
 type MongoVar = str

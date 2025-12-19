@@ -209,13 +209,13 @@ class FieldMatcher(Predicate, expressions.ExpressionOperator):
 class And(Predicate, expressions.ExpressionOperator):
     """Selects the documents that satisfy all the expressions."""
 
-    predicates: list[MongoQuery]
+    predicates: list[Predicate | MongoQuery]
 
     @overload
-    def __init__(self, predicate: list[MongoQuery], /) -> None: ...
+    def __init__(self, predicate: list[Predicate | MongoQuery], /) -> None: ...
 
     @overload
-    def __init__(self, *predicates: MongoQuery) -> None: ...
+    def __init__(self, *predicates: Predicate | MongoQuery) -> None: ...
 
     def __init__(self, *predicates: Any) -> None:
         self.predicates = unwrap_array(predicates)
@@ -281,7 +281,7 @@ class Nor(Predicate):
 class Not(Predicate):
     """Selects the documents that do not match the predicate."""
 
-    predicate: Operator | FieldMatcher
+    predicate: Predicate | MongoQuery
 
     def compile_query(self, context: Context) -> MongoQuery:
         if isinstance(self.predicate, FieldMatcher):
@@ -303,7 +303,7 @@ class Not(Predicate):
             compile_expression(self.predicate, context=context),
         ).compile_expression(context=context)
 
-    def __invert__(self) -> MongoQuery:
+    def __invert__(self) -> Predicate | MongoQuery:
         return self.predicate
 
 
@@ -311,13 +311,13 @@ class Not(Predicate):
 class Or(Predicate):
     """Selects the documents that satisfy at least one of the predicates."""
 
-    predicates: list[MongoQuery]
+    predicates: list[Predicate | MongoQuery]
 
     @overload
-    def __init__(self, predicate: list[MongoQuery], /) -> None: ...
+    def __init__(self, predicate: list[Predicate | MongoQuery], /) -> None: ...
 
     @overload
-    def __init__(self, *predicates: MongoQuery) -> None: ...
+    def __init__(self, *predicates: Predicate | MongoQuery) -> None: ...
 
     def __init__(self, *predicates: Any) -> None:
         self.predicates = unwrap_array(predicates)
