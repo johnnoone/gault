@@ -4,28 +4,32 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, cast, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 from . import expressions
 from .compilers import compile_expression, compile_field, compile_query
 from .geo import Geo, GeoJSON, compile_geo
 from .types import (
-    Array,
     AsRef,
-    Binary,
-    Boolean,
-    Context,
     FieldSortInterface,
-    MongoExpression,
-    MongoQuery,
-    MongoValue,
-    Number,
     QueryPredicate,
-    String,
     SubfieldInterface,
     TempFieldInterface,
 )
 from .utils import nullfree_dict, unwrap_array
+
+if TYPE_CHECKING:
+    from .types import (
+        Array,
+        Binary,
+        Boolean,
+        Context,
+        MongoExpression,
+        MongoQuery,
+        MongoValue,
+        Number,
+        String,
+    )
 
 
 class ConditionInterface:
@@ -81,7 +85,7 @@ class ConditionInterface:
         op = Lte(value)
         return Condition(cast("AsRef", self), op=op)
 
-    def ne(self, value: AsRef | MongoExpression, /) -> Predicate:
+    def ne(self, value: AsRef | MongoValue, /) -> Predicate:
         op = Ne(value)
         return Condition(cast("AsRef", self), op=op)
 
@@ -93,7 +97,7 @@ class ConditionInterface:
         op = Exists(value)
         return Condition(cast("AsRef", self), op=op)
 
-    def type(self, *types: String) -> Predicate:
+    def type(self, *types: String | Number) -> Predicate:
         op = Type(*types)
         return Condition(cast("AsRef", self), op=op)
 

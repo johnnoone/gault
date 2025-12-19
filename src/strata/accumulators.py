@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .types import AsAlias, AsRef, Context
+from .types import AsAlias, AsRef
 
-type Expr = Any
+if TYPE_CHECKING:
+    type Expr = Any
+
+    from .types import Context
 
 
 class Accumulator(ABC, AsAlias):

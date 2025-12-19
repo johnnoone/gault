@@ -10,30 +10,14 @@ from .compilers import compile_expression, compile_field
 from .sorting import normalize_sort
 from .types import (
     Aliased,
-    Array,
     AsAlias,
     AsRef,
-    Binary,
-    Boolean,
-    Context,
-    Date,
-    DateUnit,
-    DayWeek,
     FieldSortInterface,
-    MongoExpression,
-    MongoQuery,
-    MongoVar,
-    Null,
-    Number,
-    Object,
-    String,
+    MongoField,
     SubfieldInterface,
     TempFieldInterface,
-    Timezone,
 )
-from .types import (
-    ExpressionOperator as _ExpressionOperator,
-)
+from .types import ExpressionOperator as _ExpressionOperator
 from .utils import nullfree_dict, nullfree_list, unwrap_array
 
 if TYPE_CHECKING:
@@ -43,6 +27,22 @@ if TYPE_CHECKING:
     from bson import ObjectId, Timestamp
 
     from .sorting import SortPayload
+    from .types import (
+        Array,
+        Binary,
+        Boolean,
+        Context,
+        Date,
+        DateUnit,
+        DayWeek,
+        MongoExpression,
+        MongoQuery,
+        Null,
+        Number,
+        Object,
+        String,
+        Timezone,
+    )
 
 
 class ExpressionOperator(_ExpressionOperator, AsAlias):
@@ -1219,7 +1219,7 @@ class IsoWeekYear(ExpressionOperator):
 class Let(ExpressionOperator):
     """Binds variables for use in the specified expression, and returns the result of the expression."""
 
-    variables: dict[MongoVar, MongoExpression]
+    variables: dict[MongoField, MongoExpression]
     """Assignment block for the variables accessible in the in expression."""
 
     into: MongoExpression = field(kw_only=True)

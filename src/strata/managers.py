@@ -10,7 +10,7 @@ from pymongo import ReturnDocument
 from .exceptions import Forbidden, NotFound, Unprocessable
 from .mappers import get_mapper
 from .models import Model, Schema, get_collection, unwrap_model
-from .pipelines import Pipeline, RawStep, Stage
+from .pipelines import Pipeline, RawStep
 from .predicates import Predicate
 
 if TYPE_CHECKING:
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     from pymongo.asynchronous.database import AsyncDatabase
 
+    from .pipelines import Stage
     from .types import MongoQuery
 
     type Filter = Predicate | Pipeline | MongoQuery | list[Stage] | None
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 
 class StateTracker[M: Model]:
     def __init__(self) -> None:
-        self._states: dict[M, Any] = WeakKeyDictionary()
+        self._states: WeakKeyDictionary[M, Any] = WeakKeyDictionary()
 
     def snapshot(self, instance: M) -> None:
         self._states[instance] = deepcopy(instance.__dict__)
@@ -45,7 +46,7 @@ class StateTracker[M: Model]:
 
 class Persistence[M: Model]:
     def __init__(self) -> None:
-        self._instances: set[M] = WeakSet()
+        self._instances: WeakSet[M] = WeakSet()
 
     def is_persisted(self, instance: M) -> bool:
         return instance in self._instances

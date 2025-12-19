@@ -2,26 +2,88 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
-from datetime import datetime
-from decimal import Decimal
 from typing import TYPE_CHECKING, Annotated, Any, Self
 from typing import Literal as TypingLiteral
 
-from annotated_types import Ge, Predicate
-from bson import Binary as BSONBinary
-from bson import Decimal128 as BSONDecimal
 from bson import ObjectId
-from bson import Regex as BSONRegex
 
 if TYPE_CHECKING:
+    from datetime import datetime
+    from decimal import Decimal
+
+    from annotated_types import Ge
+    from bson import Binary as BSONBinary
+    from bson import Decimal128 as BSONDecimal
+    from bson import Regex as BSONRegex
+
     from .models import Model
 
+    type Document = dict[str, Any]
+    """A mongo document"""
 
-type Document = dict[str, Any]
-RawPath = Annotated[str, Predicate(lambda x: x.startswith("$"))]
-RawField = Annotated[str, Predicate(lambda x: not x.startswith("$"))]
+    type PositiveInteger = Annotated[int, Ge(0)]
 
-PositiveInteger = Annotated[int, Ge(0)]
+    type MongoField = str
+    type MongoPath = str
+    type MongoExpression[T: Any] = T | Any
+    """An expression that resolves to given type"""
+
+    type MongoQuery = dict[MongoField | str, MongoExpression]
+    type Context = Any
+    type MongoValue = Scalar | Array[MongoValue] | Object[String, MongoValue]
+
+    type Scalar = String | Regex | Binary | Number | Null | Boolean | ObjectId | Date
+
+    type Regex = str | BSONRegex
+
+    type String = str
+    """An expression that resolves to a string"""
+
+    type Number = int | float | BSONDecimal | Decimal
+    """An expression that resolves to an integer or long"""
+
+    type Boolean = bool
+    """An expression that resolves to a boolean value"""
+
+    type Null = None
+    """An expression that resolves to null"""
+
+    type Binary = bytes | BSONBinary
+    """An expression that resolves to a binary string"""
+
+    type Array[T: Any] = list[Any]
+    """An expression that resolves to an array"""
+
+    type Object[K: str, V: Any] = dict[K, V]
+    """An expression that resolves to an object"""
+
+    type Date = datetime
+    """An expression that resolves to a date"""
+
+    type DateUnit = TypingLiteral[
+        "year",
+        "quarter",
+        "week",
+        "month",
+        "day",
+        "hour",
+        "minute",
+        "second",
+        "millisecond",
+    ]
+
+    type DayWeek = TypingLiteral[
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ]
+
+    type Timezone = Any
+    type Direction = TypingLiteral[1, -1] | dict[str, Any]
 
 
 class AttributeBase:
@@ -36,73 +98,6 @@ class AttributeBase:
         self.owner = owner
         self.name = name
         self.db_alias = db_alias or name
-
-
-## mongo types
-
-type MongoField = str
-type MongoExpression[T: Any] = Any
-type MongoQuery = dict[MongoField, MongoExpression]
-type Context = Any
-type MongoType = str | int
-type MongoVar = str
-type MongoValue = Scalar | Array[MongoValue] | Object[String, MongoValue]
-
-
-type Scalar = String | Regex | Binary | Number | Null | Boolean | ObjectId | Date
-
-
-type Regex = str | BSONRegex
-
-type String = str
-"""An expression that resolves to a string"""
-
-
-type Number = int | float | BSONDecimal | Decimal
-"""An expression that resolves to an integer or long"""
-
-type Boolean = bool
-"""An expression that resolves to a boolean value"""
-
-type Null = None
-"""An expression that resolves to null"""
-
-type Binary = bytes | BSONBinary
-"""An expression that resolves to a binary string"""
-
-type Array[T: Any] = list[Any]
-"""An expression that resolves to an array"""
-
-type Object[K: str, V: Any] = dict[K, V]
-"""An expression that resolves to an object"""
-
-type Date = datetime
-"""An expression that resolves to a date"""
-
-type DateUnit = TypingLiteral[
-    "year",
-    "quarter",
-    "week",
-    "month",
-    "day",
-    "hour",
-    "minute",
-    "second",
-    "millisecond",
-]
-
-type DayWeek = TypingLiteral[
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-    "sunday",
-]
-
-type Timezone = Any
-type Direction = TypingLiteral[1, -1] | dict[str, Any]
 
 
 class QueryPredicate(ABC):

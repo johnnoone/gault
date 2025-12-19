@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from .accumulators import Accumulator
     from .predicates import Field, Predicate
-    from .sorting import SortPayload
+    from .sorting import SortField, SortPayload, SortToken, SortValue
     from .types import (
         Aliased,
         AsRef,
@@ -80,18 +80,21 @@ class Pipeline:
         return self.raw(stage)
 
     @overload
-    def sort(self, *tokens: SortPayload) -> Self: ...
+    def sort(self, *tokens: SortToken) -> Self: ...
 
     @overload
-    def sort(self, spec: SortPayload, /) -> Self: ...
+    def sort(self, tokens: list[SortToken]) -> Self: ...
 
-    def sort(self, *spec: Any) -> Self:
+    @overload
+    def sort(self, spec: dict[SortField, SortValue], /) -> Self: ...
+
+    def sort(self, *spec: SortPayload) -> Self:
         """Reorder documents by the specified sort key."""
         if spec and isinstance(spec[0], dict):
             payload = spec[0]
         else:
             payload = list(spec)
-        step = SortStep(payload)
+        step = SortStep(payload)  # ty:ignore[invalid-argument-type]
         return self.raw(step)
 
     def project(
@@ -322,7 +325,7 @@ class Pipeline:
 
     def build(self, *, context: Context | None = None) -> list[Stage]:
         context = context or {}
-        stages = []
+        stages: list[Stage] = []
         for step in self.steps:
             stages += step.compile(context=context)
         return stages
@@ -340,8 +343,8 @@ class Pipeline:
 
     @classmethod
     def documents(cls, *documents: Any) -> DocumentsPipeline:
-        documents: list[Document] = unwrap_array(documents)
-        return DocumentsPipeline(documents)
+        data: list[Document] = unwrap_array(documents)
+        return DocumentsPipeline(data)
 
 
 @dataclass

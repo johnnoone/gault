@@ -6,17 +6,10 @@ from typing import TYPE_CHECKING, Any
 
 from bson import ObjectId
 
-from .types import (
-    AsRef,
-    Context,
-    ExpressionOperator,
-    MongoExpression,
-    MongoQuery,
-    QueryPredicate,
-)
+from .types import AsRef, ExpressionOperator, QueryPredicate
 
 if TYPE_CHECKING:
-    from .types import MongoField
+    from .types import Context, MongoExpression, MongoField, MongoPath, MongoQuery
 
 
 def compile_query(value: Any, *, context: Context) -> MongoQuery:
@@ -41,10 +34,10 @@ class CompilationError(Exception):
         super().__init__(self.message)
 
 
-def compile_expression(value: Any, *, context: Context) -> MongoExpression:
-    match value:
+def compile_expression(obj: Any, *, context: Context) -> MongoExpression:
+    match obj:
         case ExpressionOperator():
-            return value.compile_expression(context=context)
+            return obj.compile_expression(context=context)
         case (
             str()
             | int()
@@ -56,35 +49,35 @@ def compile_expression(value: Any, *, context: Context) -> MongoExpression:
             | ObjectId()
             | datetime()
         ):
-            return value
+            return obj
         case _:
-            msg = f"compile expression is not implemented for type {type(value)}"
-            raise CompilationError(msg, target=value)
+            msg = f"compile expression is not implemented for type {type(obj)}"
+            raise CompilationError(msg, target=obj)
 
 
-def compile_path(value: Any, *, context: Context) -> MongoField:
-    match value:
+def compile_path(obj: Any, *, context: Context) -> MongoPath:
+    match obj:
         case AsRef():
-            return value.compile_expression(context=context)
-        case str() if value.startswith("$"):
-            return value
-        case str() if not value.startswith("$"):
-            msg = f"Value {value!r} looks like a field"
-            raise CompilationError(msg, target=value)
+            return obj.compile_expression(context=context)
+        case str() if obj.startswith("$"):
+            return obj
+        case str() if not obj.startswith("$"):
+            msg = f"Value {obj!r} looks like a field"
+            raise CompilationError(msg, target=obj)
         case _:
-            msg = f"compile path is not implemented for type {type(value)}"
-            raise CompilationError(msg, target=value)
+            msg = f"compile path is not implemented for type {type(obj)}"
+            raise CompilationError(msg, target=obj)
 
 
-def compile_field(value: Any, *, context: Context) -> MongoField:
-    match value:
+def compile_field(obj: Any, *, context: Context) -> MongoField:
+    match obj:
         case AsRef():
-            return value.compile_field(context=context)
-        case str() if not value.startswith("$"):
-            return value
-        case str() if value.startswith("$"):
-            msg = f"Value {value!r} looks like a path"
-            raise CompilationError(msg, target=value)
+            return obj.compile_field(context=context)
+        case str() if not obj.startswith("$"):
+            return obj
+        case str() if obj.startswith("$"):
+            msg = f"Value {obj!r} looks like a path"
+            raise CompilationError(msg, target=obj)
         case _:
-            msg = f"compile field is not implemented for type {type(value)}"
-            raise CompilationError(msg, target=value)
+            msg = f"compile field is not implemented for type {type(obj)}"
+            raise CompilationError(msg, target=obj)

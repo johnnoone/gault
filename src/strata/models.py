@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import MISSING, dataclass, field, fields
-from typing import Any, TypedDict, Unpack, dataclass_transform, overload
+from typing import TYPE_CHECKING, Any, TypedDict, Unpack, dataclass_transform, overload
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
 from .predicates import ConditionInterface
-from .types import (
-    AsRef,
-    AttributeBase,
-    Context,
-    FieldSortInterface,
-    SubfieldInterface,
-)
+from .types import AsRef, AttributeBase, FieldSortInterface, SubfieldInterface
 from .utils import drop_missing
+
+if TYPE_CHECKING:
+    from .types import Context
 
 SCHEMAS: WeakValueDictionary[str, type[Schema]] = WeakValueDictionary()
 COLLECTIONS: WeakKeyDictionary[type[Model], str] = WeakKeyDictionary()
@@ -38,7 +35,9 @@ class Model:
     def __init_subclass__(cls, collection: str | None = None) -> None:
         dataclass(cls, init=True, repr=True, kw_only=True)  # ty:ignore[no-matching-overload]
         for dataclass_field in fields(cls):
-            field = Attribute(name=dataclass_field.name, **dataclass_field.metadata)
+            field: Attribute = Attribute(
+                name=dataclass_field.name, **dataclass_field.metadata
+            )
             setattr(cls, dataclass_field.name, field)
 
         cls.__hash__ = object.__hash__
