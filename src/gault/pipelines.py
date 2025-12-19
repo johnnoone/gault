@@ -48,6 +48,9 @@ Stage: TypeAlias = dict[str, Any]
 class Pipeline:
     steps: list[Step] = field(default_factory=list, kw_only=True)
 
+    def alias(self, ref: str) -> Aliased[Self]:
+        return Aliased(ref, self)
+
     def pipe(
         self,
         _0: Callable[Concatenate[Self, P], Self],
