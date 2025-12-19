@@ -19,9 +19,7 @@ from .types import (
     Date,
     DateUnit,
     DayWeek,
-    Direction,
     FieldSortInterface,
-    FieldUtilInterface,
     MongoExpression,
     MongoQuery,
     MongoVar,
@@ -29,6 +27,8 @@ from .types import (
     Number,
     Object,
     String,
+    SubfieldInterface,
+    TempFieldInterface,
     Timezone,
 )
 from .types import (
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 
     from bson import ObjectId, Timestamp
 
-    from .predicates import Field
+    from .sorting import SortPayload
 
 
 class ExpressionOperator(_ExpressionOperator, AsAlias):
@@ -104,11 +104,11 @@ class Add(ExpressionOperator):
     def __init__(self, *inputs: MongoExpression) -> None: ...
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        if len(inputs) < 2:
+        others = unwrap_array(inputs)
+        if len(others) < 2:
             msg = "Multiple values is required."
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Date | Number]:
         return {
@@ -145,11 +145,11 @@ class And(ExpressionOperator):
     def __init__(self, *inputs: MongoExpression) -> None: ...
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        if len(inputs) < 1:
+        others = unwrap_array(inputs)
+        if len(others) < 1:
             msg = "Multiple inputs is required."
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -287,11 +287,11 @@ class BitAnd(ExpressionOperator):
     inputs: list[MongoExpression[Number]]
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        if len(inputs) < 2:
+        others = unwrap_array(inputs)
+        if len(others) < 2:
             msg = "Multiple values required."
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Number]:
         return {
@@ -319,11 +319,11 @@ class BitOr(ExpressionOperator):
     inputs: list[MongoExpression[Number]]
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        if len(inputs) < 2:
+        others = unwrap_array(inputs)
+        if len(others) < 2:
             msg = "Multiple values required."
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Number]:
         return {
@@ -339,11 +339,11 @@ class BitXor(ExpressionOperator):
     inputs: list[MongoExpression[Number]]
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        if not inputs:
+        others = unwrap_array(inputs)
+        if not others:
             msg = "Values is required."
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Number]:
         return {
@@ -403,11 +403,11 @@ class Concat(ExpressionOperator):
     inputs: list[MongoExpression[String]]
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        if not inputs:
+        others = unwrap_array(inputs)
+        if not others:
             msg = "Values is required."
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[String | Null]:
         return {
@@ -423,11 +423,11 @@ class ConcatArrays(ExpressionOperator):
     inputs: list[MongoExpression[Array]]
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        if not inputs:
+        others = unwrap_array(inputs)
+        if not others:
             msg = "Values is required."
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
@@ -871,7 +871,7 @@ class Filter(ExpressionOperator):
     """Selects a subset of an array to return based on the specified condition."""
 
     input: MongoExpression[Array]
-    var: str | None = field(default=None, kw_only=True)
+    var: str | AsRef | None = field(default=None, kw_only=True)
     cond: MongoExpression[Boolean] | Callable[[Var, Context], MongoExpression[Boolean]]
     limit: MongoExpression[Number] | None = field(default=None, kw_only=True)
 
@@ -1003,11 +1003,11 @@ class IfNull(ExpressionOperator):
     inputs: list[MongoExpression]
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        if len(inputs) < 1:
+        others = unwrap_array(inputs)
+        if len(others) < 1:
             msg = "Multiple inputs is required."
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
@@ -1227,7 +1227,7 @@ class Let(ExpressionOperator):
 
     @overload
     def __init__(
-        self, variables: dict[MongoVar, MongoExpression], /, into: MongoExpression
+        self, variables: dict[AsRef | str, MongoExpression], /, into: MongoExpression
     ) -> None: ...
 
     @overload
@@ -1540,8 +1540,8 @@ class Multiply(ExpressionOperator):
     inputs: list[MongoExpression[Number]]
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        self.inputs = inputs
+        others = unwrap_array(inputs)
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Number]:
         return {
@@ -1604,11 +1604,11 @@ class Or(ExpressionOperator):
     inputs: list[MongoExpression]
 
     def __init__(self, *inputs: MongoExpression) -> None:
-        inputs = unwrap_array(inputs)
-        if not inputs:
+        others = unwrap_array(inputs)
+        if not others:
             msg = "Values is required."
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -1893,11 +1893,11 @@ class SetEquals(ExpressionOperator):
     inputs: list[MongoExpression[Array]]
 
     def __init__(self, *inputs: MongoExpression[Array]) -> None:
-        inputs = unwrap_array(inputs)
-        if len(inputs) < 2:
+        others = unwrap_array(inputs)
+        if len(others) < 2:
             msg = "Requires at least 2 sets"
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -1932,11 +1932,11 @@ class SetIntersection(ExpressionOperator):
     inputs: list[MongoExpression[Array]]
 
     def __init__(self, *inputs: MongoExpression[Array]) -> None:
-        inputs = unwrap_array(inputs)
-        if len(inputs) < 2:
+        others = unwrap_array(inputs)
+        if len(others) < 2:
             msg = "Requires at least 2 sets"
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
         return {
@@ -1969,11 +1969,11 @@ class SetUnion(ExpressionOperator):
     inputs: MongoExpression | list[MongoExpression]
 
     def __init__(self, *inputs: MongoExpression[Array]) -> None:
-        inputs = unwrap_array(inputs)
-        if len(inputs) < 2:
+        others = unwrap_array(inputs)
+        if len(others) < 2:
             msg = "Requires at least 2 sets"
             raise ValueError(msg)
-        self.inputs = inputs
+        self.inputs = others
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
         return {
@@ -2064,7 +2064,7 @@ class SortArray(ExpressionOperator):
     """Sorts an array based on its elements."""
 
     input: MongoExpression[Array]
-    sort_by: Direction | dict[Field, Direction]
+    sort_by: SortPayload
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
         return {
@@ -2741,7 +2741,7 @@ class FieldMatcherInterface:
         *,
         var: str | None = None,
         limit: MongoExpression[Number] | None = None,
-    ) -> Exp:
+    ) -> Filter:
         return Filter(self, var=var, cond=cond, limit=limit)
 
     def floor(self) -> Floor:
@@ -2823,13 +2823,13 @@ class FieldMatcherInterface:
     def ln(self) -> Ln:
         return Ln(self)
 
-    def log(self, base: MongoExpression, /) -> Log10:
+    def log(self, base: MongoExpression, /) -> Log:
         return Log(self, base)
 
     def log10(self) -> Log10:
         return Log10(self)
 
-    def trim(self, chars: MongoExpression[String]) -> Ltrim:
+    def trim(self, chars: MongoExpression[String]) -> Trim:
         return Trim(self, chars=chars)
 
     def ltrim(self, chars: MongoExpression[String]) -> Ltrim:
@@ -2993,7 +2993,7 @@ class FieldMatcherInterface:
     def sinh(self) -> Sinh:
         return Sinh(self)
 
-    def sort_array(self, sort_by: Direction | dict[Field, Direction], /) -> SortArray:
+    def sort_array(self, sort_by: SortPayload, /) -> SortArray:
         return SortArray(self, sort_by=sort_by)
 
     def split(self, delimiter: MongoExpression[String], /) -> Split:
@@ -3102,7 +3102,12 @@ class FieldMatcherInterface:
 
 @dataclass(frozen=True)
 class Var(
-    AsRef, AsAlias, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface
+    AsRef,
+    AsAlias,
+    FieldMatcherInterface,
+    FieldSortInterface,
+    SubfieldInterface,
+    TempFieldInterface,
 ):
     name: str
 

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from strata import Model
+
     from .managers import Filter
     from .models import Schema
     from .pipelines import Pipeline
@@ -31,7 +33,7 @@ class Forbidden(TypeError):
 
 @dataclass
 class NotFound(LookupError):
-    model: type[Schema]
+    model: type[Model]
     filter: Filter
 
     def __post_init__(self) -> None:

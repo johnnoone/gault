@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, overload
+from typing import Any, cast, overload
 
 from . import expressions
 from .compilers import compile_expression, compile_field, compile_query
@@ -16,13 +16,14 @@ from .types import (
     Boolean,
     Context,
     FieldSortInterface,
-    FieldUtilInterface,
     MongoExpression,
     MongoQuery,
     MongoValue,
     Number,
     QueryPredicate,
     String,
+    SubfieldInterface,
+    TempFieldInterface,
 )
 from .utils import nullfree_dict, unwrap_array
 
@@ -30,79 +31,79 @@ from .utils import nullfree_dict, unwrap_array
 class FieldMatcherInterface:
     def all(self, *values: MongoValue | ElemMatch) -> Predicate:
         op = All(*values)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def elem_match(self, *predicates: Predicate | Operator) -> Predicate:
         op = ElemMatch(*predicates)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def size(self, count: Number, /) -> Predicate:
         op = Size(count)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def bits_all_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAllClear(bits)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def bits_any_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAnyClear(bits)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def bits_all_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAllSet(bits)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def bits_any_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAnySet(bits)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def eq(self, value: MongoValue, /) -> Predicate:
         op = Eq(value)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def gt(self, value: MongoValue, /) -> Predicate:
         op = Gt(value)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def gte(self, value: MongoValue, /) -> Predicate:
         op = Gte(value)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def in_(self, *values: MongoValue) -> Predicate:
         op = In(*values)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def lt(self, value: MongoValue, /) -> Predicate:
         op = Lt(value)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def lte(self, value: MongoValue, /) -> Predicate:
         op = Lte(value)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
-    def ne(self, value: MongoValue, /) -> Predicate:
+    def ne(self, value: AsRef | MongoExpression, /) -> Predicate:
         op = Ne(value)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def nin(self, *values: MongoValue) -> Predicate:
         op = Nin(*values)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def exists(self, value: Boolean, /) -> Predicate:
         op = Exists(value)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def type(self, *types: String) -> Predicate:
         op = Type(*types)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def geo_intersects(self, value: GeoJSON, /) -> Predicate:
         op = GeoIntersects(value)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def geo_within(self, value: GeoJSON, /) -> Predicate:
         op = GeoWithin(value)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def near(
         self,
@@ -116,7 +117,7 @@ class FieldMatcherInterface:
             min_distance=min_distance,
             max_distance=max_distance,
         )
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def near_sphere(
         self,
@@ -130,19 +131,25 @@ class FieldMatcherInterface:
             min_distance=min_distance,
             max_distance=max_distance,
         )
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def mod(self, divisor: Number, remainder: Number) -> Predicate:
         op = Mod(divisor, remainder)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
     def regex(self, regex: String, *, options: String | None = None) -> Predicate:
         op = Regex(regex, options=options)
-        return FieldMatcher(self, op=op)
+        return FieldMatcher(cast("AsRef", self), op=op)
 
 
 @dataclass(frozen=True)
-class Field(AsRef, FieldMatcherInterface, FieldSortInterface, FieldUtilInterface):
+class Field(
+    AsRef,
+    FieldMatcherInterface,
+    FieldSortInterface,
+    TempFieldInterface,
+    SubfieldInterface,
+):
     name: str
 
     def compile_field(self, *, context: Context) -> str:
@@ -156,7 +163,7 @@ class AsExpression(ABC):
     @abstractmethod
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
         raise NotImplementedError
@@ -179,7 +186,7 @@ class Operator(QueryPredicate):
 
 @dataclass
 class FieldMatcher(Predicate, expressions.ExpressionOperator):
-    field: str | Field
+    field: str | AsRef
     op: Operator
 
     def compile_query(self, context: Context) -> MongoQuery:
@@ -363,13 +370,15 @@ class All(Operator):
 class ElemMatch(Operator):
     """Selects the documents where the value of a field matches all specified values."""
 
-    predicates: list[Predicate | Operator]
+    predicates: list[Predicate | Operator | MongoExpression]
 
     @overload
-    def __init__(self, predicate: list[Predicate | Operator], /) -> None: ...
+    def __init__(
+        self, predicate: list[Predicate | Operator | MongoExpression], /
+    ) -> None: ...
 
     @overload
-    def __init__(self, *predicates: Predicate | Operator) -> None: ...
+    def __init__(self, *predicates: Predicate | Operator | MongoExpression) -> None: ...
 
     def __init__(self, *predicates: Any) -> None:
         self.predicates = unwrap_array(predicates)
@@ -397,10 +406,10 @@ class Size(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
-        return expressions.Eq(expressions.Size(field), self.value)
+        return expressions.Eq(expressions.Size(field), self.count)
 
 
 @dataclass
@@ -464,7 +473,7 @@ class Eq(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Eq(field, self.value)
@@ -502,7 +511,7 @@ class Gte(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Gte(field, self.value)
@@ -530,10 +539,10 @@ class In(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
-        return expressions.In(field, self.value)
+        return expressions.In(field, self.values)
 
 
 @dataclass
@@ -549,7 +558,7 @@ class Lt(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Lt(field, self.value)
@@ -568,7 +577,7 @@ class Lte(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Lte(field, self.value)
@@ -578,7 +587,7 @@ class Lte(Operator, AsExpression):
 class Ne(Operator, AsExpression):
     """Matches documents where the value of a specified field is not equal to the specified value."""
 
-    value: MongoValue
+    value: AsRef | MongoExpression
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -587,7 +596,7 @@ class Ne(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Ne(field, self.value)
@@ -615,10 +624,10 @@ class Nin(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
-        return ~expressions.In(field, self.value)
+        return ~expressions.In(field, self.values)
 
 
 @dataclass
@@ -637,13 +646,13 @@ class Exists(Operator):
 class Type(Operator):
     """Selects documents where the value of the field is an instance of the specified BSON type(s)."""
 
-    types: Array[String] | String
+    types: Array[String | Number]
 
     @overload
-    def __init__(self, type: Array[String], /) -> None: ...
+    def __init__(self, type: Array[String | Number], /) -> None: ...
 
     @overload
-    def __init__(self, *types: String) -> None: ...
+    def __init__(self, *types: String | Number) -> None: ...
 
     def __init__(self, *types: Any) -> None:
         self.types = unwrap_array(types)
@@ -774,7 +783,7 @@ class Regex(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: Field,
+        field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.RegexMatch(field, regex=self.regex, options=self.options)

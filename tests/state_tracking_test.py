@@ -9,7 +9,7 @@ class MyModel(Schema, collection="my-collection"):
 
 
 def test_get_dirty_fields(state_tracker: StateTracker):
-    instance = MyModel(id="string", name=124, age=24)
+    instance = MyModel(id=123, name="john doe", age=24)
 
     state_tracker.snapshot(instance)
     assert state_tracker.get_dirty_fields(instance) == set()
@@ -22,7 +22,7 @@ def test_get_dirty_fields(state_tracker: StateTracker):
 
 
 def test_reset(state_tracker: StateTracker):
-    instance = MyModel(id="string", name=124, age=24)
+    instance = MyModel(id=124, name="john doe", age=24)
     state_tracker.snapshot(instance)
 
     instance.age = 99

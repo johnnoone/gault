@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from weakref import WeakKeyDictionary, WeakSet
 
 from pymongo import ReturnDocument
@@ -10,7 +10,7 @@ from pymongo import ReturnDocument
 from .exceptions import Forbidden, NotFound, Unprocessable
 from .mappers import get_mapper
 from .models import Model, Schema, get_collection, unwrap_model
-from .pipelines import Pipeline
+from .pipelines import Pipeline, RawStep, Stage
 from .types import QueryPredicate
 
 if TYPE_CHECKING:
@@ -19,12 +19,12 @@ if TYPE_CHECKING:
     from pymongo.asynchronous.database import AsyncDatabase
 
 
-type Filter = QueryPredicate | Pipeline | dict | list | None
+type Filter = QueryPredicate | Pipeline | dict | list[Stage] | None
 
 
-class StateTracker[M: Schema | Model]:
+class StateTracker[M: Model]:
     def __init__(self) -> None:
-        self._states: dict[M, str] = WeakKeyDictionary()
+        self._states: dict[M, Any] = WeakKeyDictionary()
 
     def snapshot(self, instance: M) -> None:
         self._states[instance] = deepcopy(instance.__dict__)
@@ -42,7 +42,7 @@ class StateTracker[M: Schema | Model]:
         return dirty_fields
 
 
-class Persistence[M: Schema | Model]:
+class Persistence[M: Model]:
     def __init__(self) -> None:
         self._instances: set[M] = WeakSet()
 
@@ -56,7 +56,7 @@ class Persistence[M: Schema | Model]:
         self._instances.remove(instance)
 
 
-class AsyncManager[Queriable: Schema | Model, Writable: Schema]:
+class AsyncManager[Queriable: Model, Writable: Schema]:
     def __init__(
         self,
         database: AsyncDatabase,
@@ -104,7 +104,7 @@ class AsyncManager[Queriable: Schema | Model, Writable: Schema]:
             case None:
                 filter = Pipeline()
             case list():
-                filter = Pipeline(steps=filter)
+                filter = Pipeline(steps=[RawStep(stage) for stage in filter])
             case dict() | QueryPredicate():
                 filter = Pipeline().match(filter)
             case Pipeline():
@@ -113,7 +113,7 @@ class AsyncManager[Queriable: Schema | Model, Writable: Schema]:
                 raise NotImplementedError(filter)
 
         if skip:
-            filter = filter.skip(take)
+            filter = filter.skip(skip)
         if take:
             filter = filter.take(take)
         filter = filter.project(model).build()

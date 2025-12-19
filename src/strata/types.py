@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Self
 from typing import Literal as TypingLiteral
 
 from annotated_types import Ge, Predicate
@@ -14,7 +14,7 @@ from bson import ObjectId
 from bson import Regex as BSONRegex
 
 if TYPE_CHECKING:
-    from .models import Model, Schema
+    from .models import Model
 
 
 type Document = dict[str, Any]
@@ -29,7 +29,7 @@ class AttributeBase:
 
     def __init__(
         self,
-        owner: type[Schema | Model],
+        owner: type[Model],
         name: str,
         db_alias: str | None = None,
     ) -> None:
@@ -107,13 +107,13 @@ type Direction = TypingLiteral[1, -1] | dict[str, Any]
 
 class QueryPredicate(ABC):
     @abstractmethod
-    def compile_query(self, context: Context) -> MongoQuery:
+    def compile_query(self, *, context: Context) -> MongoQuery:
         raise NotImplementedError
 
 
 class ExpressionOperator(ABC):
     @abstractmethod
-    def compile_expression(self, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         raise NotImplementedError
 
 
@@ -143,29 +143,31 @@ class AsRef(ABC):
 class FieldSortInterface:
     name: str
 
-    def asc(self) -> tuple[Self, Literal[-1]]:
+    def asc(self) -> tuple[Self, Direction]:
         # generate sort token
         return (self, 1)
 
-    def desc(self) -> tuple[Self, Literal[-1]]:
+    def desc(self) -> tuple[Self, Direction]:
         # generate sort token
         return (self, -1)
 
-    def by_score(self, name: str) -> tuple[Self, dict]:
+    def by_score(self, name: str) -> tuple[Self, Direction]:
         # generate sort token
         return (self, {"$meta": name})
 
 
-class FieldUtilInterface:
-    value: str
-
+class TempFieldInterface:
     @classmethod
     def tmp(cls) -> Self:
         # instantiate field with a random name
         name = f"__{ObjectId().__str__()}"
-        return cls(name)
+        return cls(name)  # ty:ignore[too-many-positional-arguments]
+
+
+class SubfieldInterface:
+    name: str
 
     def field(self, name: str) -> Self:
         # access a sub field
         prefixed = self.name + "." + name
-        return replace(self, name=prefixed)
+        return replace(self, name=prefixed)  # ty:ignore[invalid-argument-type]

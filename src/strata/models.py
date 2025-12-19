@@ -10,23 +10,21 @@ from .types import (
     AttributeBase,
     Context,
     FieldSortInterface,
-    FieldUtilInterface,
+    SubfieldInterface,
 )
 from .utils import drop_missing
 
-SCHEMAS: dict[str, type[Schema]] = WeakValueDictionary()
-COLLECTIONS: dict[type[Schema | Model], str] = WeakKeyDictionary()
+SCHEMAS: WeakValueDictionary[str, type[Schema]] = WeakValueDictionary()
+COLLECTIONS: WeakKeyDictionary[type[Model], str] = WeakKeyDictionary()
 
 
-def unwrap_model(
-    model: Schema | Model | type[Schema | Model],
-) -> type[Schema | Model]:
-    if isinstance(model, Schema | Model):
+def unwrap_model[M: Model](model: M | type[M]) -> type[M]:
+    if isinstance(model, Model):
         model = type(model)
     return model
 
 
-def get_collection(model: type[Schema | Model] | Schema | Model) -> str:
+def get_collection(model: type[Model] | Model) -> str:
     model = unwrap_model(model)
     return COLLECTIONS[model]
 
@@ -38,14 +36,15 @@ def get_schema(collection: str) -> type[Schema]:
 @dataclass_transform(kw_only_default=True)
 class Model:
     def __init_subclass__(cls, collection: str | None = None) -> None:
-        dataclass(cls, init=True, repr=True, kw_only=True)
+        dataclass(cls, init=True, repr=True, kw_only=True)  # ty:ignore[no-matching-overload]
         for dataclass_field in fields(cls):
             field = Attribute(name=dataclass_field.name, **dataclass_field.metadata)
             setattr(cls, dataclass_field.name, field)
 
         cls.__hash__ = object.__hash__
 
-        COLLECTIONS[cls] = collection
+        if collection:
+            COLLECTIONS[cls] = collection
 
 
 @dataclass_transform(kw_only_default=True)
@@ -64,7 +63,7 @@ class AttributeSpec[T: Any](
     AsRef,
     FieldMatcherInterface,
     FieldSortInterface,
-    FieldUtilInterface,
+    SubfieldInterface,
 ):
     def compile_field(self, *, context: Context) -> str:
         return self.db_alias
@@ -75,11 +74,11 @@ class AttributeSpec[T: Any](
     def get_db_alias(self) -> str:
         return self.db_alias
 
-    def __hash__(self) -> None:
+    def __hash__(self) -> int:
         return hash((self.owner, self.name, self.db_alias))
 
-    __eq__ = FieldMatcherInterface.eq
-    __ne__ = FieldMatcherInterface.ne
+    __eq__ = FieldMatcherInterface.eq  # ty:ignore[invalid-method-override]
+    __ne__ = FieldMatcherInterface.ne  # ty:ignore[invalid-method-override]
     __lt__ = FieldMatcherInterface.lt
     __le__ = FieldMatcherInterface.lte
     __gt__ = FieldMatcherInterface.gt
@@ -91,7 +90,7 @@ class Attribute[T: Any]:
         self,
         *,
         name: str | None = None,
-        pk: bool = bool,
+        pk: bool = False,
         db_alias: str | None = None,
     ) -> None:
         self.name: str | None = name
@@ -107,12 +106,16 @@ class Attribute[T: Any]:
     @overload
     def __get__(self, instance: object, owner: type) -> T: ...
 
-    def __get__(self, instance: object | None, owner: type) -> T | AttributeSpec[T]:
+    def __get__(
+        self, instance: object | None, owner: type[Model]
+    ) -> T | AttributeSpec[T]:
+        assert self.name  # noqa: S101
         if instance is None:
             return AttributeSpec(owner, self.name, db_alias=self.db_alias)
         return instance.__dict__[self.name]
 
     def __set__(self, instance: object, value: T) -> None:
+        assert self.name  # noqa: S101
         instance.__dict__[self.name] = value
 
 

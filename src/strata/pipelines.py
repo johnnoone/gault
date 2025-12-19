@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import MISSING, dataclass, field, replace
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Concatenate, Literal, Self, overload
 
 from .accumulators import compile_accumulator
 from .compilers import compile_expression, compile_field, compile_path, compile_query
 from .mappers import get_mapper
-from .models import Model, Schema, get_collection
-from .sorting import SortType, normalize_sort
+from .models import Model, get_collection
+from .sorting import normalize_sort
 from .utils import drop_missing, nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
@@ -17,8 +17,10 @@ if TYPE_CHECKING:
 
     from .accumulators import Accumulator
     from .predicates import Field, Predicate
+    from .sorting import SortPayload
     from .types import (
         Aliased,
+        AsRef,
         Context,
         Document,
         MongoExpression,
@@ -38,7 +40,7 @@ class Pipeline:
 
     def pipe(
         self,
-        _0: Callable[Concatenate[Pipeline, P], T],
+        _0: Callable[Concatenate[Self, P], Self],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Self:
@@ -77,23 +79,35 @@ class Pipeline:
         stage = {"$sample": {"size": size}}
         return self.raw(stage)
 
-    def sort(self, spec: SortType, /) -> Self:
+    @overload
+    def sort(self, *tokens: SortPayload) -> Self: ...
+
+    @overload
+    def sort(self, spec: SortPayload, /) -> Self: ...
+
+    def sort(self, *spec: Any) -> Self:
         """Reorder documents by the specified sort key."""
+        if spec and isinstance(spec[0], dict):
+            spec = spec[0]
+        else:
+            spec = list(spec)
         step = SortStep(spec)
         return self.raw(step)
 
-    def project(self, model: type[Schema | Model], /) -> Self:
+    def project(
+        self, model: type[Model] | dict[AsRef | str, MongoExpression], /
+    ) -> Self:
         """Reshape documents by including, excluding, or adding fields."""
         step = ProjectStep(model)
         return self.raw(step)
 
     def bucket[T](
         self,
-        by: str | Field,
+        by: MongoExpression,
         /,
         boundaries: list[T],
-        default: str = MISSING,
-        output: dict[str, Accumulator] = MISSING,
+        default: str | None = None,
+        output: dict[AsRef | str, Accumulator | MongoExpression] | None = None,
     ) -> Self:
         """Categorize documents into buckets based on specified boundaries."""
         step = BucketStep(
@@ -106,10 +120,10 @@ class Pipeline:
 
     def bucket_auto(
         self,
-        by: str | Field,
+        by: MongoExpression,
         /,
         buckets: int,
-        output: dict[str, Accumulator] | None = None,
+        output: dict[AsRef | str, Accumulator | MongoExpression] | None = None,
         granularity: Literal[
             "R5",
             "R10",
@@ -138,7 +152,15 @@ class Pipeline:
 
     @overload
     def group(
-        self, accumulators: dict[str, Accumulator], *, by: MongoExpression
+        self,
+        accumulators: dict[AsRef | str, Accumulator | MongoExpression],
+        *,
+        by: MongoExpression,
+    ) -> Self: ...
+
+    @overload
+    def group(
+        self, accumulators: list[Aliased[Accumulator]], *, by: MongoExpression
     ) -> Self: ...
 
     @overload
@@ -149,7 +171,7 @@ class Pipeline:
     def group(self, *accumulators: Any, by: MongoExpression = None) -> Self:
         """Group documents by a specified expression and apply accumulators."""
         if accumulators and isinstance(accumulators[0], dict):
-            mapping: dict[str, Accumulator] = accumulators[0]
+            mapping: dict[AsRef | str, Accumulator | MongoExpression] = accumulators[0]
         else:
             mapping = {
                 aliased.ref: aliased.value for aliased in unwrap_array(accumulators)
@@ -161,7 +183,7 @@ class Pipeline:
         """Add a new field or replace existing field value."""
         return self.set({field: value})
 
-    def set(self, fields: dict[str, MongoExpression], /) -> Self:
+    def set(self, fields: dict[Field | str, MongoExpression], /) -> Self:
         """Add new fields or replace existing field values."""
         step = SetStep(fields=fields)
         return self.raw(step)
@@ -199,7 +221,7 @@ class Pipeline:
 
     def union_with(
         self,
-        other: CollectionPipeline | type[Schema | Model],
+        other: CollectionPipeline | type[Model],
         /,
     ) -> Self:
         """Perform a union of two collections."""
@@ -208,7 +230,7 @@ class Pipeline:
                 "coll": other.collection,
                 "pipeline": other.build(),
             }
-        elif issubclass(other, Schema | Model):
+        elif issubclass(other, Model):
             body = {
                 "coll": get_collection(other),
                 "pipeline": Pipeline().project(other).build(),
@@ -221,7 +243,7 @@ class Pipeline:
 
     def graph_lookup(
         self,
-        other: type[Schema | Model],
+        other: type[Model],
         /,
         start_with: str | Field,
         local_field: str | Field,
@@ -246,7 +268,7 @@ class Pipeline:
 
     def lookup(
         self,
-        other: CollectionPipeline | DocumentsPipeline | type[Schema | Model],
+        other: CollectionPipeline | DocumentsPipeline | type[Model],
         /,
         *,
         local_field: str | Field | None = None,
@@ -260,7 +282,7 @@ class Pipeline:
         elif isinstance(other, DocumentsPipeline):
             collection = None
             pipeline = other
-        elif other and issubclass(other, Schema | Model):
+        elif other and issubclass(other, Model):
             collection = get_collection(other)
             pipeline = None
         else:
@@ -286,6 +308,7 @@ class Pipeline:
         if facets and isinstance(facets[0], dict):
             mapping = facets[0]
         else:
+            mapping = {}
             for aliased in unwrap_array(facets):
                 mapping[aliased.ref] = aliased.value
 
@@ -294,7 +317,7 @@ class Pipeline:
 
     def raw(self, stage: Step | Stage, /) -> Self:
         if not isinstance(stage, Step):
-            stage = Raw(stage)
+            stage = RawStep(stage)
         return replace(self, steps=[*self.steps, stage])
 
     def build(self, *, context: Context | None = None) -> list[Stage]:
@@ -304,9 +327,20 @@ class Pipeline:
             stages += step.compile(context=context)
         return stages
 
+    @overload
     @classmethod
-    def documents(cls, *documents: list[Document]) -> DocumentsPipeline:
-        documents = unwrap_array(documents)
+    def documents(cls, *documents: Document) -> DocumentsPipeline: ...
+
+    @overload
+    @classmethod
+    def documents(
+        cls,
+        documents: list[Document],
+    ) -> DocumentsPipeline: ...
+
+    @classmethod
+    def documents(cls, *documents: Any) -> DocumentsPipeline:
+        documents: list[Document] = unwrap_array(documents)
         return DocumentsPipeline(documents)
 
 
@@ -331,8 +365,8 @@ class Step(ABC):
 
 
 @dataclass
-class Raw(Step):
-    stage: dict
+class RawStep(Step):
+    stage: Stage
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield self.stage
@@ -360,7 +394,7 @@ class MatchStep(Step):
 @dataclass
 class GroupStep(Step):
     by: MongoExpression
-    accumulators: dict[str, Accumulator]
+    accumulators: dict[AsRef | str, Accumulator | MongoExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         def maybe_compile(obj: Any) -> dict:
@@ -381,7 +415,7 @@ class GroupStep(Step):
 
 @dataclass
 class LookupStep(Step):
-    collection: str
+    collection: str | None
     into: str | Field
     pipeline: Pipeline | None = None
     local_field: str | Field | None = None
@@ -457,30 +491,41 @@ class GraphLookupStep(Step):
 
 @dataclass
 class BucketStep[T](Step):
-    by: Field | str
+    by: MongoExpression
     boundaries: list[T]
-    default: str
-    output: dict[str, Accumulator]
+    default: str | None
+    output: dict[AsRef | str, Accumulator | MongoExpression] | None
 
     def compile(self, context: Context) -> Iterator[Stage]:
+        if isinstance(self.output, dict):
+            output = {
+                compile_field(key, context=context): compile_accumulator(
+                    val, context=context
+                )
+                for key, val in self.output.items()
+            }
+        else:
+            output = None
+
         yield {
             "$bucket": {
                 "groupBy": compile_path(self.by, context=context),
                 "boundaries": self.boundaries,
-                "default": self.default,
-                "output": {
-                    key: compile_accumulator(val, context=context)
-                    for key, val in self.output.items()
-                },
             }
+            | nullfree_dict(
+                {
+                    "default": self.default,
+                    "output": output,
+                }
+            )
         }
 
 
 @dataclass
 class BucketAutoStep(Step):
-    by: Field | str
+    by: MongoExpression
     buckets: int
-    output: dict[str, Accumulator] | None = None
+    output: dict[AsRef | str, Accumulator | MongoExpression] | None = None
     granularity: str | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
@@ -497,7 +542,7 @@ class BucketAutoStep(Step):
         yield {
             "$bucketAuto": nullfree_dict(
                 {
-                    "groupBy": compile_path(self.by, context=context),
+                    "groupBy": compile_expression(self.by, context=context),
                     "buckets": self.buckets,
                     "output": output,
                     "granularity": self.granularity,
@@ -508,7 +553,7 @@ class BucketAutoStep(Step):
 
 @dataclass
 class ProjectStep(Step):
-    model: type[Schema | Model] | dict
+    model: type[Model] | dict[AsRef | str, MongoExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         match self.model:
@@ -585,7 +630,7 @@ class CountStep(Step):
 
 @dataclass
 class SortStep(Step):
-    spec: SortType
+    spec: SortPayload
 
     def compile(self, context: Context) -> Iterator[Stage]:
         spec = normalize_sort(self.spec, context=context)

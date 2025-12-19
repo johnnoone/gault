@@ -18,7 +18,7 @@ class WindowOperator(ABC):
     """Described here https://www.mongodb.com/docs/manual/reference/mql/expressions/."""
 
     @abstractmethod
-    def compile_expression(self, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         raise NotImplementedError
 
 
@@ -145,7 +145,7 @@ class LinearFill(WindowOperator):
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
-            "$linearFill": compile_expression(self.into, context=context),
+            "$linearFill": compile_expression(self.input, context=context),
         }
 
 

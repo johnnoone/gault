@@ -11,7 +11,7 @@ class MyModel(Schema, collection="my-coll"):
     id: Attribute[int]
     name: Attribute[str]
     tags: Attribute[list[str]]
-    number: Attribute[int] = 0
+    number: Attribute[int]
     reports_to: Attribute[str | None] = configure(default=None, db_alias="reportsTo")
 
 

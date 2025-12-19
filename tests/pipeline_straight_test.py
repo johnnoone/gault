@@ -191,7 +191,7 @@ def test_bucket():
         },
     )
     result = pipeline.build()
-    print(result)
+
     assert result == [
         {
             "$bucket": {
