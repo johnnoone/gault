@@ -28,82 +28,82 @@ from .types import (
 from .utils import nullfree_dict, unwrap_array
 
 
-class FieldMatcherInterface:
+class ConditionInterface:
     def all(self, *values: MongoValue | ElemMatch) -> Predicate:
         op = All(*values)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def elem_match(self, *predicates: Predicate | Operator) -> Predicate:
         op = ElemMatch(*predicates)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def size(self, count: Number, /) -> Predicate:
         op = Size(count)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def bits_all_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAllClear(bits)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def bits_any_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAnyClear(bits)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def bits_all_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAllSet(bits)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def bits_any_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAnySet(bits)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def eq(self, value: MongoValue, /) -> Predicate:
         op = Eq(value)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def gt(self, value: MongoValue, /) -> Predicate:
         op = Gt(value)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def gte(self, value: MongoValue, /) -> Predicate:
         op = Gte(value)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def in_(self, *values: MongoValue) -> Predicate:
         op = In(*values)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def lt(self, value: MongoValue, /) -> Predicate:
         op = Lt(value)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def lte(self, value: MongoValue, /) -> Predicate:
         op = Lte(value)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def ne(self, value: AsRef | MongoExpression, /) -> Predicate:
         op = Ne(value)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def nin(self, *values: MongoValue) -> Predicate:
         op = Nin(*values)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def exists(self, value: Boolean, /) -> Predicate:
         op = Exists(value)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def type(self, *types: String) -> Predicate:
         op = Type(*types)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def geo_intersects(self, value: GeoJSON, /) -> Predicate:
         op = GeoIntersects(value)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def geo_within(self, value: GeoJSON, /) -> Predicate:
         op = GeoWithin(value)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def near(
         self,
@@ -117,7 +117,7 @@ class FieldMatcherInterface:
             min_distance=min_distance,
             max_distance=max_distance,
         )
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def near_sphere(
         self,
@@ -131,21 +131,21 @@ class FieldMatcherInterface:
             min_distance=min_distance,
             max_distance=max_distance,
         )
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def mod(self, divisor: Number, remainder: Number) -> Predicate:
         op = Mod(divisor, remainder)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
     def regex(self, regex: String, *, options: String | None = None) -> Predicate:
         op = Regex(regex, options=options)
-        return FieldMatcher(cast("AsRef", self), op=op)
+        return Condition(cast("AsRef", self), op=op)
 
 
 @dataclass(frozen=True)
 class Field(
     AsRef,
-    FieldMatcherInterface,
+    ConditionInterface,
     FieldSortInterface,
     TempFieldInterface,
     SubfieldInterface,
@@ -176,16 +176,14 @@ class Predicate(QueryPredicate):
     def __or__(self, other: Predicate) -> Or:
         return Or([self, other])
 
-    def __invert__(self) -> Not:
+
+class Operator(QueryPredicate):
+    def __invert__(self) -> Operator:
         return Not(self)
 
 
-class Operator(QueryPredicate):
-    pass
-
-
 @dataclass
-class FieldMatcher(Predicate, expressions.ExpressionOperator):
+class Condition(Predicate, expressions.ExpressionOperator):
     field: str | AsRef
     op: Operator
 
@@ -244,13 +242,13 @@ class And(Predicate, expressions.ExpressionOperator):
 class Nor(Predicate):
     """Selects the documents that fail all the query predicates in the array."""
 
-    predicates: list[MongoQuery]
+    predicates: list[Predicate | MongoQuery]
 
     @overload
-    def __init__(self, predicate: list[MongoQuery], /) -> None: ...
+    def __init__(self, predicate: list[Predicate | MongoQuery], /) -> None: ...
 
     @overload
-    def __init__(self, *predicates: MongoQuery) -> None: ...
+    def __init__(self, *predicates: Predicate | MongoQuery) -> None: ...
 
     def __init__(self, *predicates: Any) -> None:
         self.predicates = unwrap_array(predicates)
@@ -278,33 +276,23 @@ class Nor(Predicate):
 
 
 @dataclass
-class Not(Predicate):
-    """Selects the documents that do not match the predicate."""
+class Not(Operator):
+    """Selects the documents that do not match the operator."""
 
-    predicate: Predicate | MongoQuery
+    operator: Operator
 
     def compile_query(self, context: Context) -> MongoQuery:
-        if isinstance(self.predicate, FieldMatcher):
-            field = self.predicate.field
-            op = self.predicate.op
-            return {
-                compile_field(field, context=context): {
-                    "$not": {compile_query(op, context=context)},
-                },
-            }
-        if isinstance(self.predicate, Operator):
-            return {
-                "$not": compile_query(self.predicate, context=context),
-            }
-        raise NotImplementedError
+        return {
+            "$not": compile_query(self.operator, context=context),
+        }
 
     def compile_expression(self, context: Context) -> MongoExpression:
         return Not(
-            compile_expression(self.predicate, context=context),
+            compile_expression(self.operator, context=context),
         ).compile_expression(context=context)
 
-    def __invert__(self) -> Predicate | MongoQuery:
-        return self.predicate
+    def __invert__(self) -> Operator:
+        return self.operator
 
 
 @dataclass
@@ -627,7 +615,9 @@ class Nin(Operator, AsExpression):
         field: AsRef | str,
         context: Context,
     ) -> expressions.ExpressionOperator:
-        return ~expressions.In(field, self.values)
+        return expressions.Not(
+            expressions.In(field, self.values),
+        )
 
 
 @dataclass

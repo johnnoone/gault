@@ -88,10 +88,10 @@ class Pipeline:
     def sort(self, *spec: Any) -> Self:
         """Reorder documents by the specified sort key."""
         if spec and isinstance(spec[0], dict):
-            spec = spec[0]
+            payload = spec[0]
         else:
-            spec = list(spec)
-        step = SortStep(spec)
+            payload = list(spec)
+        step = SortStep(payload)
         return self.raw(step)
 
     def project(

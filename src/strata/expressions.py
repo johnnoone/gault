@@ -2531,7 +2531,7 @@ class Zip(ExpressionOperator):
         }
 
 
-class FieldMatcherInterface:
+class ConditionInterface:
     def abs(self) -> Abs:
         return Abs(self)
 
@@ -3104,7 +3104,7 @@ class FieldMatcherInterface:
 class Var(
     AsRef,
     AsAlias,
-    FieldMatcherInterface,
+    ConditionInterface,
     FieldSortInterface,
     SubfieldInterface,
     TempFieldInterface,

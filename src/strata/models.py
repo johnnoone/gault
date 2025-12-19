@@ -4,7 +4,7 @@ from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, TypedDict, Unpack, dataclass_transform, overload
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
-from .predicates import FieldMatcherInterface
+from .predicates import ConditionInterface
 from .types import (
     AsRef,
     AttributeBase,
@@ -61,7 +61,7 @@ class Schema(Model, collection=None):
 class AttributeSpec[T: Any](
     AttributeBase,
     AsRef,
-    FieldMatcherInterface,
+    ConditionInterface,
     FieldSortInterface,
     SubfieldInterface,
 ):
@@ -77,12 +77,12 @@ class AttributeSpec[T: Any](
     def __hash__(self) -> int:
         return hash((self.owner, self.name, self.db_alias))
 
-    __eq__ = FieldMatcherInterface.eq  # ty:ignore[invalid-method-override]
-    __ne__ = FieldMatcherInterface.ne  # ty:ignore[invalid-method-override]
-    __lt__ = FieldMatcherInterface.lt
-    __le__ = FieldMatcherInterface.lte
-    __gt__ = FieldMatcherInterface.gt
-    __ge__ = FieldMatcherInterface.gte
+    __eq__ = ConditionInterface.eq  # ty:ignore[invalid-method-override]
+    __ne__ = ConditionInterface.ne  # ty:ignore[invalid-method-override]
+    __lt__ = ConditionInterface.lt
+    __le__ = ConditionInterface.lte
+    __gt__ = ConditionInterface.gt
+    __ge__ = ConditionInterface.gte
 
 
 class Attribute[T: Any]:
