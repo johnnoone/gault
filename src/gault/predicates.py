@@ -182,6 +182,17 @@ class Predicate(QueryPredicate):
         return Or([self, other])
 
 
+class Begin(QueryPredicate):
+    def __and__(self, other: Predicate) -> And:
+        return And([other])
+
+    def __or__(self, other: Predicate) -> Or:
+        return Or([other])
+
+    def compile_query(self, *, context: Context) -> MongoQuery:
+        return {}
+
+
 class Operator(QueryPredicate):
     def __invert__(self) -> Operator:
         return Not(self)
