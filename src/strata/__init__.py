@@ -7,6 +7,7 @@ from .exceptions import NotFound as NotFound
 from .exceptions import Unprocessable as Unprocessable
 from .expressions import Var as Var
 from .managers import AsyncManager as AsyncManager
+from .managers import Manager as Manager
 from .managers import Persistence as Persistence
 from .managers import StateTracker as StateTracker
 from .mappers import Mapper as Mapper

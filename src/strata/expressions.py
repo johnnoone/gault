@@ -13,7 +13,6 @@ from .types import (
     AsAlias,
     AsRef,
     FieldSortInterface,
-    MongoField,
     SubfieldInterface,
     TempFieldInterface,
 )
@@ -36,6 +35,7 @@ if TYPE_CHECKING:
         DateUnit,
         DayWeek,
         MongoExpression,
+        MongoField,
         MongoQuery,
         Null,
         Number,
