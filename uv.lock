@@ -146,7 +146,7 @@ wheels = [
 
 [[package]]
 name = "gault"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "annotated-types" },
@@ -165,7 +165,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "annotated-types", specifier = ">=0.7.0" },
+    { name = "annotated-types", specifier = ">=0.6.0" },
     { name = "pymongo", specifier = ">=4.15.4" },
 ]
 
