@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, overload
 
 from bson import ObjectId
 
@@ -32,6 +32,22 @@ class CompilationError(Exception):
 
     def __post_init__(self) -> None:
         super().__init__(self.message)
+
+
+@overload
+def compile_expression_multi(
+    obj: list, *, context: Context
+) -> list[MongoExpression]: ...
+
+
+@overload
+def compile_expression_multi(obj: Any, *, context: Context) -> MongoExpression: ...
+
+
+def compile_expression_multi(obj: list | Any, *, context: Context) -> MongoExpression:
+    if isinstance(obj, list):
+        return [compile_expression(element, context=context) for element in obj]
+    return compile_expression(obj, context=context)
 
 
 def compile_expression(obj: Any, *, context: Context) -> MongoExpression:

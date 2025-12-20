@@ -8,8 +8,9 @@ from typing import Literal as TypingLiteral
 from bson import ObjectId
 
 T = TypeVar("T")
-K = TypeVar("K")
-V = TypeVar("V")
+K_co = TypeVar("K_co", covariant=True)
+V_co = TypeVar("V_co", covariant=True)
+T_co = TypeVar("T_co", covariant=True)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -55,7 +56,7 @@ if TYPE_CHECKING:
     Array: TypeAlias = list[T]
     """An expression that resolves to an array"""
 
-    Object: TypeAlias = dict[K, V]
+    Object: TypeAlias = dict[K_co, V_co]
     """An expression that resolves to an object"""
 
     Date: TypeAlias = datetime
@@ -121,9 +122,9 @@ class ExpressionOperator(ABC):
 
 
 @dataclass
-class Aliased(Generic[T]):
+class Aliased(Generic[T_co]):
     ref: str
-    value: T
+    value: T_co
 
 
 class AsAlias:

@@ -4,51 +4,56 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypeAlias
 
-from .types import AsAlias, AsRef
+from .compilers import compile_expression, compile_expression_multi
+from .sorting import normalize_sort
+from .types import AsAlias
 
 if TYPE_CHECKING:
-    Expr: TypeAlias = Any
+    from collections.abc import Mapping
 
-    from .types import Context
+    from .sorting import SortPayload
+    from .types import Context, MongoExpression
+
+    AccumulatorExpression: TypeAlias = Mapping[str, Any]
 
 
 class Accumulator(ABC, AsAlias):
     @abstractmethod
-    def compile(self, *, context: Context) -> Any: ...
+    def compile_expression(self, *, context: Context) -> AccumulatorExpression: ...
 
 
 @dataclass
 class AddToSet(Accumulator):
     """Returns an array of unique expression values for each group."""
 
-    expr: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
-        return {"$addToSet": compile_accumulator(self.expr, context=context)}
+    def compile_expression(self, *, context: Context) -> MongoExpression:
+        return {"$addToSet": compile_expression(self.input, context=context)}
 
 
 @dataclass
 class Avg(Accumulator):
     """Returns the average of numeric values."""
 
-    expr: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
-        return {"$avg": compile_accumulator(self.expr, context=context)}
+    def compile_expression(self, *, context: Context) -> MongoExpression:
+        return {"$avg": compile_expression(self.input, context=context)}
 
 
 @dataclass
 class Bottom(Accumulator):
     """Returns the bottom element within a group according to the specified sort order."""
 
-    sort_by: Any
-    output: Expr
+    sort_by: SortPayload
+    output: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$bottom": {
-                "sortBy": compile_accumulator(self.sort_by, context=context),
-                "output": compile_accumulator(self.output, context=context),
+                "sortBy": normalize_sort(self.sort_by, context=context),
+                "output": compile_expression(self.output, context=context),
             },
         }
 
@@ -57,16 +62,16 @@ class Bottom(Accumulator):
 class BottomN(Accumulator):
     """Returns an aggregation of the bottom n elements within a group, according to the specified sort order."""
 
-    n: Expr
-    sort_by: Any
-    output: Expr
+    n: int | MongoExpression
+    sort_by: SortPayload
+    output: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$bottomN": {
-                "n": compile_accumulator(self.n, context=context),
-                "sortBy": compile_accumulator(self.sort_by, context=context),
-                "output": compile_accumulator(self.output, context=context),
+                "n": compile_expression(self.n, context=context),
+                "sortBy": normalize_sort(self.sort_by, context=context),
+                "output": compile_expression(self.output, context=context),
             },
         }
 
@@ -75,7 +80,7 @@ class BottomN(Accumulator):
 class Count(Accumulator):
     """Returns the number of documents in a group."""
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {"$count": {}}
 
 
@@ -83,11 +88,11 @@ class Count(Accumulator):
 class First(Accumulator):
     """Returns the value that results from applying an expression to the first document in a group."""
 
-    value: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
-            "$first": compile_accumulator(self.value, context=context),
+            "$first": compile_expression(self.input, context=context),
         }
 
 
@@ -95,14 +100,14 @@ class First(Accumulator):
 class FirstN(Accumulator):
     """Returns an aggregation of the first n elements within a group."""
 
-    value: Expr
-    n: Expr
+    input: MongoExpression
+    n: int | MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$firstN": {
-                "input": compile_accumulator(self.value, context=context),
-                "n": compile_accumulator(self.n, context=context),
+                "input": compile_expression(self.input, context=context),
+                "n": compile_expression(self.n, context=context),
             },
         }
 
@@ -111,11 +116,11 @@ class FirstN(Accumulator):
 class Last(Accumulator):
     """Returns the value that results from applying an expression to the last document in a group."""
 
-    value: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
-            "$last": compile_accumulator(self.value, context=context),
+            "$last": compile_expression(self.input, context=context),
         }
 
 
@@ -123,14 +128,14 @@ class Last(Accumulator):
 class LastN(Accumulator):
     """Returns an aggregation of the last n elements within a group."""
 
-    value: Expr
-    n: Expr
+    input: MongoExpression
+    n: int | MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$lastN": {
-                "input": compile_accumulator(self.value, context=context),
-                "n": compile_accumulator(self.n, context=context),
+                "input": compile_expression(self.input, context=context),
+                "n": compile_expression(self.n, context=context),
             },
         }
 
@@ -139,11 +144,11 @@ class LastN(Accumulator):
 class Max(Accumulator):
     """Returns the maximum value."""
 
-    value: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
-            "$max": compile_accumulator(self.value, context=context),
+            "$max": compile_expression(self.input, context=context),
         }
 
 
@@ -151,14 +156,14 @@ class Max(Accumulator):
 class MaxN(Accumulator):
     """Returns an aggregation of the n maximum valued elements within a group."""
 
-    value: Expr
-    n: Expr
+    input: MongoExpression
+    n: int | MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$maxN": {
-                "input": compile_accumulator(self.value, context=context),
-                "n": compile_accumulator(self.n, context=context),
+                "input": compile_expression(self.input, context=context),
+                "n": compile_expression(self.n, context=context),
             },
         }
 
@@ -167,12 +172,12 @@ class MaxN(Accumulator):
 class Median(Accumulator):
     """Returns an approximation of the median value."""
 
-    input: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$median": {
-                "input": compile_accumulator(self.input, context=context),
+                "input": compile_expression(self.input, context=context),
                 "method": "approximate",
             },
         }
@@ -182,11 +187,11 @@ class Median(Accumulator):
 class MergeObjects(Accumulator):
     """Combines multiple documents into a single document."""
 
-    objects: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
-            "$mergeObjects": compile_accumulator(self.objects, context=context),
+            "$mergeObjects": compile_expression(self.input, context=context),
         }
 
 
@@ -194,11 +199,11 @@ class MergeObjects(Accumulator):
 class Min(Accumulator):
     """Returns the minimum value."""
 
-    value: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
-            "$min": compile_accumulator(self.value, context=context),
+            "$min": compile_expression(self.input, context=context),
         }
 
 
@@ -206,14 +211,14 @@ class Min(Accumulator):
 class MinN(Accumulator):
     """Returns an aggregation of the n minimum valued elements within a group."""
 
-    value: Expr
-    n: Expr
+    input: MongoExpression
+    n: int | MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$minN": {
-                "input": compile_accumulator(self.value, context=context),
-                "n": compile_accumulator(self.n, context=context),
+                "input": compile_expression(self.input, context=context),
+                "n": compile_expression(self.n, context=context),
             },
         }
 
@@ -222,14 +227,16 @@ class MinN(Accumulator):
 class Percentile(Accumulator):
     """Returns an approximation of a percentile value."""
 
-    input: Expr
-    p: Expr
+    input: MongoExpression
+    p: list[float]
+    """The elements represent percentages and must evaluate to numeric values in the range 0.0 to 1.0, inclusive.
+    """
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$percentile": {
-                "input": compile_accumulator(self.input, context=context),
-                "p": compile_accumulator(self.p, context=context),
+                "input": compile_expression(self.input, context=context),
+                "p": compile_expression_multi(self.p, context=context),
                 "method": "approximate",
             },
         }
@@ -239,11 +246,11 @@ class Percentile(Accumulator):
 class Push(Accumulator):
     """Returns an array of expression values for documents in each group."""
 
-    value: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
-            "$push": compile_accumulator(self.value, context=context),
+            "$push": compile_expression(self.input, context=context),
         }
 
 
@@ -251,12 +258,11 @@ class Push(Accumulator):
 class StdDevPop(Accumulator):
     """Returns the population standard deviation of the input values."""
 
-    value: Expr
-    p: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
-            "$stdDevPop": compile_accumulator(self.value, context=context),
+            "$stdDevPop": compile_expression(self.input, context=context),
         }
 
 
@@ -264,12 +270,12 @@ class StdDevPop(Accumulator):
 class StdDevSamp(Accumulator):
     """Returns the sample standard deviation of the input values."""
 
-    value: Expr
-    p: Expr
+    input: MongoExpression
+    p: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
-            "$stdDevSamp": compile_accumulator(self.value, context=context),
+            "$stdDevSamp": compile_expression(self.input, context=context),
         }
 
 
@@ -277,24 +283,24 @@ class StdDevSamp(Accumulator):
 class Sum(Accumulator):
     """Returns the sum of numeric values."""
 
-    value: Expr
+    input: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
-        return {"$sum": compile_accumulator(self.value, context=context)}
+    def compile_expression(self, *, context: Context) -> MongoExpression:
+        return {"$sum": compile_expression(self.input, context=context)}
 
 
 @dataclass
 class Top(Accumulator):
     """Returns the top element within a group according to the specified sort order."""
 
-    sort_by: Any
-    output: Expr
+    sort_by: SortPayload
+    output: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$top": {
-                "sortBy": compile_accumulator(self.sort_by, context=context),
-                "output": compile_accumulator(self.output, context=context),
+                "sortBy": normalize_sort(self.sort_by, context=context),
+                "output": compile_expression(self.output, context=context),
             },
         }
 
@@ -303,23 +309,23 @@ class Top(Accumulator):
 class TopN(Accumulator):
     """Returns an aggregation of the top n elements within a group, according to the specified sort order."""
 
-    n: Expr
-    sort_by: Any
-    output: Expr
+    n: int | MongoExpression
+    sort_by: SortPayload
+    output: MongoExpression
 
-    def compile(self, *, context: Context) -> Any:
+    def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$topN": {
-                "n": compile_accumulator(self.n, context=context),
-                "sortBy": compile_accumulator(self.sort_by, context=context),
-                "output": compile_accumulator(self.output, context=context),
+                "n": compile_expression(self.n, context=context),
+                "sortBy": normalize_sort(self.sort_by, context=context),
+                "output": compile_expression(self.output, context=context),
             },
         }
 
 
-def compile_accumulator(obj: Any, *, context: Context) -> Any:
+def compile_accumulator(
+    obj: Accumulator | AccumulatorExpression, *, context: Context
+) -> AccumulatorExpression:
     if isinstance(obj, Accumulator):
-        return obj.compile(context=context)
-    if isinstance(obj, AsRef):
         return obj.compile_expression(context=context)
     return obj

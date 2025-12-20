@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, assert_never
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias, assert_never, cast
 
 from .types import AsRef
 
@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 
 def normalize_sort(obj: SortPayload | None, *, context: Context) -> Sort | None:
+    token: SortToken
     normalized: list[SortParam] = []
     match obj:
         case str(tokens) if obj:
@@ -32,10 +33,8 @@ def normalize_sort(obj: SortPayload | None, *, context: Context) -> Sort | None:
         case dict(tokens):
             for token in tokens.items():
                 normalized += normalize_token(token, context=context)
-        case None:
-            pass
         case _:
-            assert_never(obj)  # ty:ignore[type-assertion-failure]
+            normalized += normalize_token(cast("Any", obj), context=context)
     return dict(normalized) if normalized else None
 
 

@@ -1,7 +1,7 @@
 import pytest
+from gault import Attribute, Model, Schema, accumulators
 from gault.expressions import Var
 from gault.pipelines import CollectionPipeline, Pipeline
-from gault import Model, Schema, Attribute, accumulators
 from gault.predicates import Field
 
 
@@ -231,12 +231,67 @@ def test_bucket_auto():
     ]
 
 
-def test_group():
+def test_group_list() -> None:
     pipeline = Pipeline()
     pipeline = pipeline.group(
         [
             accumulators.Sum(1).alias("total"),
         ],
+        by="$_id",
+    )
+    result = pipeline.build()
+    assert result == [
+        {
+            "$group": {
+                "_id": "$_id",
+                "total": {"$sum": 1},
+            },
+        },
+    ]
+
+
+def test_group_mapping() -> None:
+    pipeline = Pipeline()
+    pipeline = pipeline.group(
+        {
+            "total": accumulators.Sum(1),
+        },
+        by="$_id",
+    )
+    result = pipeline.build()
+    assert result == [
+        {
+            "$group": {
+                "_id": "$_id",
+                "total": {"$sum": 1},
+            },
+        },
+    ]
+
+
+def test_group_expressions() -> None:
+    pipeline = Pipeline()
+    pipeline = pipeline.group(
+        {
+            "total": {"$sum": 1},
+        },
+        by="$_id",
+    )
+    result = pipeline.build()
+    assert result == [
+        {
+            "$group": {
+                "_id": "$_id",
+                "total": {"$sum": 1},
+            },
+        },
+    ]
+
+
+def test_group_spread() -> None:
+    pipeline = Pipeline()
+    pipeline = pipeline.group(
+        accumulators.Sum(1).alias("total"),
         by="$_id",
     )
     result = pipeline.build()

@@ -388,7 +388,7 @@ class ElemMatch(Operator):
         self.predicates = unwrap_array(predicates)
 
     def compile_query(self, context: Context) -> MongoQuery:
-        query = {}
+        query: Any = {}
         for predicate in self.predicates:
             query |= compile_query(predicate, context=context)
 
@@ -704,7 +704,7 @@ class Near(Operator):
     def compile_query(self, context: Context) -> MongoQuery:
         return {
             "$near": compile_geo(self.value, context=context),
-        } | nullfree_dict(
+        } | nullfree_dict(  # type: ignore[misc]
             {
                 "$minDistance": self.min_distance,
                 "$maxDistance": self.max_distance,
@@ -723,7 +723,7 @@ class NearSphere(Operator):
     def compile_query(self, context: Context) -> MongoQuery:
         return {
             "$nearSphere": compile_geo(self.value, context=context),
-        } | nullfree_dict(
+        } | nullfree_dict(  # type: ignore[misc]
             {
                 "$minDistance": self.min_distance,
                 "$maxDistance": self.max_distance,

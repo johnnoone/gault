@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import _MISSING_TYPE, MISSING
-from typing import TYPE_CHECKING, Any, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar, no_type_check, overload
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
@@ -38,4 +38,21 @@ def unwrap_array(elements: tuple[T, ...]) -> list[T]: ...
 def unwrap_array(elements: Any) -> list[T]:
     if len(elements) == 1 and isinstance(elements[0], list | tuple):
         return list(elements[0])
+    return list(elements)
+
+
+@overload
+def unwrap_single_element(elements: tuple[Sequence[T]]) -> T | list[T]: ...
+
+
+@overload
+def unwrap_single_element(elements: tuple[T, ...]) -> T | list[T]: ...
+
+
+@no_type_check
+def unwrap_single_element(elements: Any) -> T | list[T]:
+    if len(elements) == 1 and isinstance(elements[0], list | tuple):
+        return list(elements[0])
+    if len(elements) == 1:
+        return elements[0]
     return list(elements)

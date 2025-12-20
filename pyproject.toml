@@ -5,7 +5,10 @@ description = "A lightweight Object Document Mapper for MongoDB"
 readme = "README.md"
 authors = [{ name = "Xavier Barbosa", email = "clint.northwood@gmail.com" }]
 requires-python = ">=3.11"
-dependencies = ["annotated-types>=0.6.0", "pymongo>=4.15.4"]
+dependencies = [
+    "annotated-types>=0.6.0",
+    "pymongo>=4.15.4",
+]
 keywords = ["mongodb", "odm", "document-mapper", "orm", "database"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -66,3 +69,14 @@ extend-ignore = [
     "PLR2004",
     "SIM108",
 ]
+
+[tool.mypy]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+local_partial_types = true
+check_untyped_defs = true
+strict_equality = true 
+disallow_untyped_defs = true
+# strict = true

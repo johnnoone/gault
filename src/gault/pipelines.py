@@ -15,21 +15,21 @@ from typing import (
     overload,
 )
 
-from .accumulators import compile_accumulator
+from .accumulators import Accumulator, compile_accumulator
 from .compilers import compile_expression, compile_field, compile_path, compile_query
 from .mappers import get_mapper
 from .models import Model, get_collection
 from .sorting import normalize_sort
+from .types import Aliased, AsAlias
 from .utils import drop_missing, nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
-    from .accumulators import Accumulator
+    from .accumulators import AccumulatorExpression
     from .predicates import Field, Predicate
     from .sorting import SortField, SortPayload, SortToken, SortValue
     from .types import (
-        Aliased,
         AsRef,
         Context,
         Document,
@@ -37,19 +37,15 @@ if TYPE_CHECKING:
         PositiveInteger,
     )
 
+    Stage: TypeAlias = dict[str, Any]
+
 T = TypeVar("T")
 P = ParamSpec("P")
 
 
-Stage: TypeAlias = dict[str, Any]
-
-
 @dataclass
-class Pipeline:
+class Pipeline(AsAlias):
     steps: list[Step] = field(default_factory=list, kw_only=True)
-
-    def alias(self, ref: str) -> Aliased[Self]:
-        return Aliased(ref, self)
 
     def pipe(
         self,
@@ -70,7 +66,7 @@ class Pipeline:
             Keyword arguments to pass to the UDF.
 
         """
-        return _0(self, **kwargs)
+        return _0(self, *args, **kwargs)
 
     def match(self, query: dict | Predicate, /) -> Self:
         """Filter documents matching the specified condition(s)."""
@@ -101,8 +97,9 @@ class Pipeline:
     @overload
     def sort(self, spec: dict[SortField, SortValue], /) -> Self: ...
 
-    def sort(self, *spec: SortPayload) -> Self:
+    def sort(self, *spec: SortPayload) -> Self:  # type: ignore[misc]
         """Reorder documents by the specified sort key."""
+        payload: Any
         if spec and isinstance(spec[0], dict):
             payload = spec[0]
         else:
@@ -169,14 +166,15 @@ class Pipeline:
     @overload
     def group(
         self,
-        accumulators: dict[AsRef | str, Accumulator | MongoExpression],
+        accumulators: dict[AsRef | str, Accumulator | AccumulatorExpression],
+        /,
         *,
         by: MongoExpression,
     ) -> Self: ...
 
     @overload
     def group(
-        self, accumulators: list[Aliased[Accumulator]], *, by: MongoExpression
+        self, accumulators: list[Aliased[Accumulator]], /, *, by: MongoExpression
     ) -> Self: ...
 
     @overload
@@ -187,7 +185,9 @@ class Pipeline:
     def group(self, *accumulators: Any, by: MongoExpression = None) -> Self:
         """Group documents by a specified expression and apply accumulators."""
         if accumulators and isinstance(accumulators[0], dict):
-            mapping: dict[AsRef | str, Accumulator | MongoExpression] = accumulators[0]
+            mapping: dict[AsRef | str, Accumulator | AccumulatorExpression] = (
+                accumulators[0]
+            )
         else:
             mapping = {
                 aliased.ref: aliased.value for aliased in unwrap_array(accumulators)
@@ -292,6 +292,7 @@ class Pipeline:
         into: str | Field,
     ) -> Self:
         """Perform a left outer join to another collection."""
+        pipeline: Pipeline | None
         if isinstance(other, CollectionPipeline):
             collection = other.collection
             pipeline = other
@@ -354,7 +355,7 @@ class Pipeline:
         documents: list[Document],
     ) -> DocumentsPipeline: ...
 
-    @classmethod
+    @classmethod  # type: ignore[misc]
     def documents(cls, *documents: Any) -> DocumentsPipeline:
         data: list[Document] = unwrap_array(documents)
         return DocumentsPipeline(data)
@@ -367,7 +368,7 @@ class CollectionPipeline(Pipeline):
 
 @dataclass
 class DocumentsPipeline(Pipeline):
-    documents: list[Document]
+    documents: list[Document]  # type: ignore[assignment]
 
     def build(self, *, context: Context | None = None) -> list[Stage]:
         context = context or {}
@@ -410,20 +411,17 @@ class MatchStep(Step):
 @dataclass
 class GroupStep(Step):
     by: MongoExpression
-    accumulators: dict[AsRef | str, Accumulator | MongoExpression]
+    accumulators: dict[AsRef | str, Accumulator | AccumulatorExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
-        def maybe_compile(obj: Any) -> dict:
-            if isinstance(obj, dict):
-                return obj
-            return obj.compile(context=context)
-
         yield {
             "$group": {
                 "_id": compile_expression(self.by, context=context),
             }
             | {
-                compile_field(key, context=context): maybe_compile(val)
+                compile_field(key, context=context): compile_accumulator(
+                    val, context=context
+                )
                 for key, val in self.accumulators.items()
             },
         }
@@ -528,7 +526,7 @@ class BucketStep(Step, Generic[T]):
                 "groupBy": compile_path(self.by, context=context),
                 "boundaries": self.boundaries,
             }
-            | nullfree_dict(
+            | nullfree_dict(  # type: ignore[misc]
                 {
                     "default": self.default,
                     "output": output,
@@ -599,7 +597,7 @@ class UnwindStep(Step):
                 {
                     "path": compile_path(self.field, context=context),
                 }
-                | nullfree_dict(
+                | nullfree_dict(  # type: ignore[misc]
                     {
                         "includeArrayIndex": include_array_index,
                         "preserveNullAndEmptyArrays": self.preserve_null_and_empty_arrays,

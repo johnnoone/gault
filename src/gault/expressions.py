@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, overload
 from typing import Literal as TypingLiteral
 
-from .compilers import compile_expression, compile_field
+from .compilers import compile_expression, compile_expression_multi, compile_field
 from .sorting import normalize_sort
 from .types import (
     Aliased,
@@ -17,7 +17,7 @@ from .types import (
     TempFieldInterface,
 )
 from .types import ExpressionOperator as _ExpressionOperator
-from .utils import nullfree_dict, nullfree_list, unwrap_array
+from .utils import nullfree_dict, nullfree_list, unwrap_array, unwrap_single_element
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -268,6 +268,16 @@ class Atanh(ExpressionOperator):
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Number]:
         return {"$atanh": compile_expression(self.input, context=context)}
+
+
+@dataclass
+class Avg(ExpressionOperator):
+    """Returns the average of numeric values."""
+
+    input: MongoExpression | list[MongoExpression]
+
+    def compile_expression(self, *, context: Context) -> Any:
+        return {"$avg": compile_expression_multi(self.input, context=context)}
 
 
 @dataclass
@@ -872,7 +882,9 @@ class Filter(ExpressionOperator):
 
     input: MongoExpression[Array]
     var: str | AsRef | None = field(default=None, kw_only=True)
-    cond: MongoExpression[Boolean] | Callable[[Var, Context], MongoExpression[Boolean]]
+    cond: (
+        MongoExpression[Boolean] | Callable[[AsRef, Context], MongoExpression[Boolean]]
+    )
     limit: MongoExpression[Number] | None = field(default=None, kw_only=True)
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
@@ -1233,8 +1245,8 @@ class Let(ExpressionOperator):
     @overload
     def __init__(self, *variables: Aliased, into: MongoExpression) -> None: ...
 
-    def __init__(self, *variables: Any, into: MongoExpression) -> None:
-        spec = {}
+    def __init__(self, *variables: Any, into: MongoExpression) -> None:  # type: ignore[misc]
+        spec: Any = {}
         if len(variables) == 1 and isinstance(variables[0], dict):
             spec |= variables[0]
         else:
@@ -1411,6 +1423,19 @@ class Map(ExpressionOperator):
 
 
 @dataclass
+class Max(ExpressionOperator):
+    """Returns the maximum value."""
+
+    input: MongoExpression | list[MongoExpression]
+
+    def __init__(self, *inputs: MongoExpression) -> None:
+        self.input = unwrap_single_element(inputs)
+
+    def compile_expression(self, *, context: Context) -> Any:
+        return {"$max": compile_expression_multi(self.input, context=context)}
+
+
+@dataclass
 class MaxN(ExpressionOperator):
     """Returns the n largest values in an array."""
 
@@ -1430,6 +1455,42 @@ class MaxN(ExpressionOperator):
 
 
 @dataclass
+class Median(ExpressionOperator):
+    """Returns an approximation of the median value."""
+
+    input: MongoExpression | list[MongoExpression]
+
+    def compile(self, *, context: Context) -> Any:
+        input = compile_expression_multi(self.input, context=context)
+        return {
+            "$median": {
+                "input": input,
+                "method": "approximate",
+            },
+        }
+
+
+@dataclass
+class MergeObjects(ExpressionOperator):
+    """Combines multiple documents into a single document."""
+
+    documents: list[MongoExpression]
+
+    input: MongoExpression | list[MongoExpression]
+
+    def __init__(self, *documents: MongoExpression) -> None:
+        self.documents = unwrap_array(documents)
+
+    def compile_expression(self, *, context: Context) -> MongoExpression:
+        documents = [
+            compile_expression(document, context=context) for document in self.documents
+        ]
+        return {
+            "$mergeObjects": documents,
+        }
+
+
+@dataclass
 class Meta(ExpressionOperator):
     """Returns the metadata associated with a document, e.g. "textScore" when performing text search."""
 
@@ -1438,25 +1499,6 @@ class Meta(ExpressionOperator):
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {
             "$meta": self.keyword,
-        }
-
-
-@dataclass
-class MinN(ExpressionOperator):
-    """Returns the n smallest values in an array."""
-
-    input: MongoExpression[Array]
-    """An expression that resolves to the array"""
-
-    n: MongoExpression[Number]
-    """An expression that resolves to a positive integer"""
-
-    def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
-        return {
-            "$minN": {
-                "input": compile_expression(self.input, context=context),
-                "n": compile_expression(self.n, context=context),
-            },
         }
 
 
@@ -1476,6 +1518,38 @@ class Millisecond(ExpressionOperator):
                     "timezone": compile_expression(self.timezone, context=context),
                 },
             ),
+        }
+
+
+@dataclass
+class Min(ExpressionOperator):
+    """Returns the minimum value."""
+
+    input: MongoExpression | list[MongoExpression]
+
+    def __init__(self, *inputs: MongoExpression) -> None:
+        self.input = unwrap_single_element(inputs)
+
+    def compile_expression(self, *, context: Context) -> Any:
+        return {"$min": compile_expression_multi(self.input, context=context)}
+
+
+@dataclass
+class MinN(ExpressionOperator):
+    """Returns the n smallest values in an array."""
+
+    input: MongoExpression[Array]
+    """An expression that resolves to the array"""
+
+    n: MongoExpression[Number]
+    """An expression that resolves to a positive integer"""
+
+    def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
+        return {
+            "$minN": {
+                "input": compile_expression(self.input, context=context),
+                "n": compile_expression(self.n, context=context),
+            },
         }
 
 
@@ -1619,6 +1693,23 @@ class Or(ExpressionOperator):
 
 
 @dataclass
+class Percentile(ExpressionOperator):
+    """Returns the maximum value."""
+
+    input: MongoExpression | list[MongoExpression]
+    p: list[float]
+
+    def compile_expression(self, *, context: Context) -> Any:
+        return {
+            "$percentile": {
+                "input": compile_expression_multi(self.input, context=context),
+                "p": compile_expression_multi(self.p, context=context),
+                "method": "approximate",
+            }
+        }
+
+
+@dataclass
 class Pow(ExpressionOperator):
     """Raises a number to the specified exponent and returns the result."""
 
@@ -1738,7 +1829,6 @@ class RegexMatch(ExpressionOperator):
 
     input: MongoExpression[String]
     regex: MongoExpression[String]
-    options: MongoExpression
     options: MongoExpression[String] | None = None
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Boolean]:
@@ -2104,6 +2194,30 @@ class Sqrt(ExpressionOperator):
 
 
 @dataclass
+class StdDevPop(ExpressionOperator):
+    """Calculates the population standard deviation of the input values."""
+
+    input: MongoExpression | list[MongoExpression]
+
+    def compile_expression(self, *, context: Context) -> Any:
+        return {
+            "$stdDevPop": compile_expression_multi(self.input, context=context),
+        }
+
+
+@dataclass
+class StdDevSamp(ExpressionOperator):
+    """Calculates the sample standard deviation of the input values."""
+
+    input: MongoExpression | list[MongoExpression]
+
+    def compile_expression(self, *, context: Context) -> Any:
+        return {
+            "$stdDevSamp": compile_expression_multi(self.input, context=context),
+        }
+
+
+@dataclass
 class StrCaseCmp(ExpressionOperator):
     """Performs case-insensitive comparison of two strings."""
 
@@ -2192,6 +2306,18 @@ class Subtract(ExpressionOperator):
                 compile_expression(self.input1, context=context),
                 compile_expression(self.input2, context=context),
             ],
+        }
+
+
+@dataclass
+class Sum(ExpressionOperator):
+    """Calculates and returns the collective sum of numeric values."""
+
+    input: MongoExpression | list[MongoExpression]
+
+    def compile_expression(self, *, context: Context) -> MongoExpression[Number]:
+        return {
+            "$sum": compile_expression_multi(self.input, context=context),
         }
 
 
@@ -2565,6 +2691,13 @@ class ConditionInterface:
     def atanh(self) -> Atanh:
         return Atanh(self)
 
+    def avg(self, *others: MongoExpression) -> Avg:
+        if elements := unwrap_array(others):
+            input: Any = [self, *elements]
+        else:
+            input = self
+        return Avg(input=input)
+
     def binary_size(self) -> BinarySize:
         return BinarySize(self)
 
@@ -2852,8 +2985,22 @@ class ConditionInterface:
     ) -> Map:
         return Map(self, var=var, into=into)
 
+    def max(self, *others: MongoExpression) -> Max:
+        if elements := unwrap_array(others):
+            input: Any = [self, *elements]
+        else:
+            input = self
+        return Max(input)
+
     def max_n(self, n: MongoExpression[Number], /) -> MaxN:
         return MaxN(self, n=n)
+
+    def min(self, *others: MongoExpression) -> Min:
+        if elements := unwrap_array(others):
+            input: Any = [self, *elements]
+        else:
+            input = self
+        return Min(input)
 
     def min_n(self, n: MongoExpression[Number], /) -> MinN:
         return MinN(self, n=n)

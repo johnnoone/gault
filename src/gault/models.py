@@ -47,13 +47,13 @@ def get_schema(collection: str) -> type[Schema]:
 class Model:
     def __init_subclass__(cls, collection: str | None = None) -> None:
         dataclass(cls, init=True, repr=True, kw_only=True)  # ty:ignore[no-matching-overload]
-        for dataclass_field in fields(cls):
+        for dataclass_field in fields(cls):  # type: ignore[arg-type]
             field: Attribute = Attribute(
                 name=dataclass_field.name, **dataclass_field.metadata
             )
             setattr(cls, dataclass_field.name, field)
 
-        cls.__hash__ = object.__hash__
+        cls.__hash__ = object.__hash__  # type: ignore[method-assign]
 
         if collection:
             COLLECTIONS[cls] = collection
@@ -125,7 +125,7 @@ class Attribute(Generic[T]):
         assert self.name  # noqa: S101
         if instance is None:
             return AttributeSpec(owner, self.name, db_alias=self.db_alias)
-        return instance.__dict__[self.name]
+        return instance.__dict__[self.name]  # type: ignore[no-any-return]
 
     def __set__(self, instance: object, value: T) -> None:
         assert self.name  # noqa: S101
@@ -142,5 +142,5 @@ def configure(
     default: Any = MISSING,
     **metadata: Unpack[AttributeMetadata],
 ) -> Any:
-    metadata = drop_missing(metadata)
+    metadata = drop_missing(metadata)  # type: ignore[assignment, arg-type]
     return field(default=default, metadata=metadata)

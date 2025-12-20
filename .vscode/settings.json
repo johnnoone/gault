@@ -6,5 +6,10 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "editor.formatOnSave": true,
-    "ruff.fixAll": true
+    "ruff.fixAll": true,
+    "ty.completions.autoImport": false,
+    "ty.diagnosticMode": "workspace",
+    "ty.inlayHints.callArgumentNames": false,
+    "ty.inlayHints.variableTypes": false,
+    "python.analysis.inlayHints.pytestParameters": true
 }

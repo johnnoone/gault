@@ -1,3 +1,8 @@
+"""aggregators.
+
+TODO: ensure all example here are implemented here https://www.mongodb.com/docs/manual/reference/operator/aggregation/setWindowFields/#mongodb-pipeline-pipe.-setWindowFields
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -20,6 +25,26 @@ class WindowOperator(ABC):
     @abstractmethod
     def compile_expression(self, *, context: Context) -> MongoExpression:
         raise NotImplementedError
+
+
+@dataclass
+class AddToSet(WindowOperator):
+    """Returns an array of unique expression values for each group."""
+
+    expr: MongoExpression
+
+    def compile_expression(self, *, context: Context) -> MongoExpression:
+        return {"$addToSet": compile_expression(self.expr, context=context)}
+
+
+@dataclass
+class Avg(WindowOperator):
+    """Returns the average of numeric values."""
+
+    expr: MongoExpression
+
+    def compile_expression(self, *, context: Context) -> MongoExpression:
+        return {"$avg": compile_expression(self.expr, context=context)}
 
 
 @dataclass
@@ -158,6 +183,21 @@ class Locf(WindowOperator):
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         return {"$locf": compile_expression(self.input, context=context)}
+
+
+@dataclass
+class Median(WindowOperator):
+    """Returns an approximation of the median value."""
+
+    input: MongoExpression
+
+    def compile_expression(self, *, context: Context) -> MongoExpression:
+        return {
+            "$median": {
+                "input": compile_expression(self.input, context=context),
+                "method": "approximate",
+            },
+        }
 
 
 @dataclass
