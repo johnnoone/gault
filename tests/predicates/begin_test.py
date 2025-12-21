@@ -1,8 +1,9 @@
 from gault.predicates import Begin, Field
+from gault.types import QueryPredicate
 
 
 def test_begin(context):
-    query = Begin()
+    query: QueryPredicate = Begin()
     result = query.compile_query(context=context)
     assert result == {}
 

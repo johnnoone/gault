@@ -2,8 +2,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Annotated, Any, Generic, Self, TypeAlias, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    Generic,
+    Self,
+    TypeAlias,
+    TypeVar,
+    cast,
+)
 from typing import Literal as TypingLiteral
+from annotated_types import Predicate
 
 from bson import ObjectId
 
@@ -13,6 +23,7 @@ V_co = TypeVar("V_co", covariant=True)
 T_co = TypeVar("T_co", covariant=True)
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from datetime import datetime
     from decimal import Decimal
 
@@ -23,17 +34,18 @@ if TYPE_CHECKING:
 
     from .models import Model
 
-    Document: TypeAlias = dict[str, Any]
+    Document: TypeAlias = Mapping[str, "MongoValue"]
     """A mongo document"""
 
     PositiveInteger: TypeAlias = Annotated[int, Ge(0)]
 
     MongoField: TypeAlias = str
     MongoPath: TypeAlias = str
-    MongoExpression: TypeAlias = T | Any
+
+    MongoExpression: TypeAlias = T | "Expr" | "DollarString"
     """An expression that resolves to given type"""
 
-    MongoQuery: TypeAlias = dict[MongoField | str, MongoExpression]
+    MongoQuery: TypeAlias = Mapping[MongoField | str, MongoExpression]
     Context: TypeAlias = Any
 
     Regex: TypeAlias = str | BSONRegex
@@ -47,16 +59,16 @@ if TYPE_CHECKING:
     Boolean: TypeAlias = bool
     """An expression that resolves to a boolean value"""
 
-    Null: TypeAlias = None
+    Null: TypeAlias = None | "RefLike" | "Expr"
     """An expression that resolves to null"""
 
     Binary: TypeAlias = bytes | BSONBinary
     """An expression that resolves to a binary string"""
 
-    Array: TypeAlias = list[T]
+    Array: TypeAlias = list[T] | "RefLike" | "Expr"
     """An expression that resolves to an array"""
 
-    Object: TypeAlias = dict[K_co, V_co]
+    Object: TypeAlias = Mapping[K_co, V_co]
     """An expression that resolves to an object"""
 
     Date: TypeAlias = datetime
@@ -92,7 +104,14 @@ if TYPE_CHECKING:
     ]
 
     Timezone: TypeAlias = Any
-    Direction: TypeAlias = TypingLiteral[1, -1] | dict[str, Any]
+    Direction: TypeAlias = TypingLiteral[1, -1] | Mapping[str, Any]
+
+    RefLike: TypeAlias = "AsRef" | str
+
+    _StrType = TypeVar("_StrType", bound=str)
+
+    DollarString = Annotated[_StrType, Predicate(lambda x: str.startswith(x, "$"))]
+    Expr: TypeAlias = Mapping[DollarString, Any]
 
 
 class AttributeBase:
@@ -165,7 +184,7 @@ class TempFieldInterface:
     def tmp(cls) -> Self:
         # instantiate field with a random name
         name = f"__{ObjectId().__str__()}"
-        return cls(name)  # ty:ignore[too-many-positional-arguments]
+        return cls(name)  # type: ignore[call-arg]
 
 
 class SubfieldInterface:
@@ -174,4 +193,7 @@ class SubfieldInterface:
     def field(self, name: str) -> Self:
         # access a sub field
         prefixed = self.name + "." + name
-        return replace(self, name=prefixed)  # ty:ignore[invalid-argument-type]
+        return replace(  # type: ignore[no-any-return]
+            cast("Any", self),
+            name=prefixed,
+        )

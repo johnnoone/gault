@@ -94,8 +94,8 @@ class AttributeSpec(
     def __hash__(self) -> int:
         return hash((self.owner, self.name, self.db_alias))
 
-    __eq__ = ConditionInterface.eq  # ty:ignore[invalid-method-override]
-    __ne__ = ConditionInterface.ne  # ty:ignore[invalid-method-override]
+    __eq__ = ConditionInterface.eq  # type: ignore[assignment]
+    __ne__ = ConditionInterface.ne  # type: ignore[assignment]
     __lt__ = ConditionInterface.lt
     __le__ = ConditionInterface.lte
     __gt__ = ConditionInterface.gt
@@ -146,5 +146,5 @@ def configure(
     default: Any = MISSING,
     **metadata: Unpack[AttributeMetadata],
 ) -> Any:
-    metadata = drop_missing(metadata)  # type: ignore[assignment, arg-type]
+    metadata = drop_missing(metadata)  # type: ignore[assignment]
     return field(default=default, metadata=metadata)

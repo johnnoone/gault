@@ -47,7 +47,7 @@ class Mapper(Generic[M]):
     @cached_property
     def field_mapping(self) -> list[Corres]:
         result = []
-        for field in fields(self.model):
+        for field in fields(self.model):  # type: ignore[arg-type]
             model_field = field.name
             metadata = cast("AttributeMetadata", field.metadata)
             db_field = metadata.get("db_alias")

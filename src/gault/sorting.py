@@ -5,17 +5,17 @@ from typing import TYPE_CHECKING, Any, Literal, TypeAlias, assert_never, cast
 from .types import AsRef
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Mapping
 
     from .types import Context
 
-    Direction: TypeAlias = Literal[-1, 1] | dict[str, Any]
-    Sort: TypeAlias = dict[str, Direction]
+    Direction: TypeAlias = Literal[-1, 1] | Mapping[str, Any]
+    Sort: TypeAlias = Mapping[str, Direction]
     SortParam: TypeAlias = tuple[str, Direction]
     SortValue: TypeAlias = int | str | Direction | None
     SortField: TypeAlias = AsRef | str
     SortToken: TypeAlias = SortField | tuple[SortField, SortValue]
-    SortPayload: TypeAlias = SortToken | list[SortToken] | dict[SortField, SortValue]
+    SortPayload: TypeAlias = SortToken | list[SortToken] | Mapping[SortField, SortValue]
 
 
 def normalize_sort(obj: SortPayload | None, *, context: Context) -> Sort | None:

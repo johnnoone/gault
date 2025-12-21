@@ -29,6 +29,7 @@ if TYPE_CHECKING:
         MongoQuery,
         MongoValue,
         Number,
+        RefLike,
         String,
     )
 
@@ -181,7 +182,7 @@ class AsExpression(ABC):
     @abstractmethod
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         raise NotImplementedError
@@ -378,8 +379,19 @@ class All(Operator):
         self.values = unwrap_array(values)
 
     def compile_query(self, context: Context) -> MongoQuery:
+        values = []
+        value: Any
+        for val in self.values:
+            match val:
+                case Operator():
+                    value = compile_query(val, context=context)
+                case {"$elemMatch": _}:
+                    value = compile_query(val, context=context)
+                case _:
+                    value = val
+            values.append(value)
         return {
-            "$all": [compile_query(value, context=context) for value in self.values],
+            "$all": values,
         }
 
 
@@ -423,7 +435,7 @@ class Size(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Eq(expressions.Size(field), self.count)
@@ -490,7 +502,7 @@ class Eq(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Eq(field, self.value)
@@ -528,7 +540,7 @@ class Gte(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Gte(field, self.value)
@@ -556,7 +568,7 @@ class In(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.In(field, self.values)
@@ -575,7 +587,7 @@ class Lt(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Lt(field, self.value)
@@ -594,7 +606,7 @@ class Lte(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Lte(field, self.value)
@@ -613,7 +625,7 @@ class Ne(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Ne(field, self.value)
@@ -641,7 +653,7 @@ class Nin(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Not(
@@ -717,7 +729,7 @@ class Near(Operator):
     def compile_query(self, context: Context) -> MongoQuery:
         return {
             "$near": compile_geo(self.value, context=context),
-        } | nullfree_dict(  # type: ignore[misc]
+        } | nullfree_dict(
             {
                 "$minDistance": self.min_distance,
                 "$maxDistance": self.max_distance,
@@ -736,7 +748,7 @@ class NearSphere(Operator):
     def compile_query(self, context: Context) -> MongoQuery:
         return {
             "$nearSphere": compile_geo(self.value, context=context),
-        } | nullfree_dict(  # type: ignore[misc]
+        } | nullfree_dict(
             {
                 "$minDistance": self.min_distance,
                 "$maxDistance": self.max_distance,
@@ -802,7 +814,7 @@ class Regex(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: AsRef | str,
+        field: RefLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.RegexMatch(field, regex=self.regex, options=self.options)

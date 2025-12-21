@@ -7,7 +7,7 @@ def test_predicates(subtests, context):
     class Foo(Schema, collection="coll"):
         pass
 
-    attr = AttributeSpec(Foo, "attr1", "alias1")
+    attr: AttributeSpec = AttributeSpec(Foo, "attr1", "alias1")
     other = "value"
 
     with subtests.test(".__eq__(other)"):

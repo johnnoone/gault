@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from typing import (
     TYPE_CHECKING,
@@ -30,17 +31,18 @@ if TYPE_CHECKING:
     from .predicates import Field, Predicate
     from .sorting import SortField, SortPayload, SortToken, SortValue
     from .types import (
-        AsRef,
         Context,
         Document,
         MongoExpression,
         PositiveInteger,
+        RefLike,
     )
 
-    Stage: TypeAlias = dict[str, Any]
+    Stage: TypeAlias = Mapping[str, Any]
 
 T = TypeVar("T")
 P = ParamSpec("P")
+A_co = TypeVar("A_co", bound="Accumulator", covariant=True)
 
 
 @dataclass
@@ -95,7 +97,7 @@ class Pipeline(AsAlias):
     def sort(self, tokens: list[SortToken]) -> Self: ...
 
     @overload
-    def sort(self, spec: dict[SortField, SortValue], /) -> Self: ...
+    def sort(self, spec: Mapping[SortField, SortValue], /) -> Self: ...
 
     def sort(self, *spec: SortPayload) -> Self:  # type: ignore[misc]
         """Reorder documents by the specified sort key."""
@@ -108,7 +110,7 @@ class Pipeline(AsAlias):
         return self.raw(step)
 
     def project(
-        self, model: type[Model] | dict[AsRef | str, MongoExpression], /
+        self, model: type[Model] | Mapping[RefLike, MongoExpression], /
     ) -> Self:
         """Reshape documents by including, excluding, or adding fields."""
         step = ProjectStep(model)
@@ -120,7 +122,7 @@ class Pipeline(AsAlias):
         /,
         boundaries: list[T],
         default: str | None = None,
-        output: dict[AsRef | str, Accumulator | MongoExpression] | None = None,
+        output: Mapping[RefLike, Accumulator | MongoExpression] | None = None,
     ) -> Self:
         """Categorize documents into buckets based on specified boundaries."""
         step = BucketStep(
@@ -136,7 +138,7 @@ class Pipeline(AsAlias):
         by: MongoExpression,
         /,
         buckets: int,
-        output: dict[AsRef | str, Accumulator | MongoExpression] | None = None,
+        output: Mapping[RefLike, Accumulator | MongoExpression] | None = None,
         granularity: Literal[
             "R5",
             "R10",
@@ -166,7 +168,7 @@ class Pipeline(AsAlias):
     @overload
     def group(
         self,
-        accumulators: dict[AsRef | str, Accumulator | AccumulatorExpression],
+        accumulators: Mapping[RefLike, Accumulator | AccumulatorExpression],
         /,
         *,
         by: MongoExpression,
@@ -174,18 +176,16 @@ class Pipeline(AsAlias):
 
     @overload
     def group(
-        self, accumulators: list[Aliased[Accumulator]], /, *, by: MongoExpression
+        self, accumulators: list[Aliased[A_co]], /, *, by: MongoExpression
     ) -> Self: ...
 
     @overload
-    def group(
-        self, *accumulators: Aliased[Accumulator], by: MongoExpression
-    ) -> Self: ...
+    def group(self, *accumulators: Aliased[A_co], by: MongoExpression) -> Self: ...
 
     def group(self, *accumulators: Any, by: MongoExpression = None) -> Self:
         """Group documents by a specified expression and apply accumulators."""
-        if accumulators and isinstance(accumulators[0], dict):
-            mapping: dict[AsRef | str, Accumulator | AccumulatorExpression] = (
+        if accumulators and isinstance(accumulators[0], Mapping):
+            mapping: Mapping[RefLike, Accumulator | AccumulatorExpression] = (
                 accumulators[0]
             )
         else:
@@ -195,11 +195,11 @@ class Pipeline(AsAlias):
         step = GroupStep(by=by, accumulators=mapping)
         return self.raw(step)
 
-    def set_field(self, field: Field | str, value: Any, /) -> Self:
+    def set_field(self, field: RefLike, value: MongoExpression, /) -> Self:
         """Add a new field or replace existing field value."""
         return self.set({field: value})
 
-    def set(self, fields: dict[Field | str, MongoExpression], /) -> Self:
+    def set(self, fields: Mapping[RefLike, MongoExpression], /) -> Self:
         """Add new fields or replace existing field values."""
         step = SetStep(fields=fields)
         return self.raw(step)
@@ -315,14 +315,14 @@ class Pipeline(AsAlias):
         return self.raw(step)
 
     @overload
-    def facet(self, facets: dict[str, Pipeline], /) -> Self: ...
+    def facet(self, facets: Mapping[str, Pipeline], /) -> Self: ...
 
     @overload
     def facet(self, *facets: Aliased[Pipeline]) -> Self: ...
 
     def facet(self, *facets: Any) -> Self:
         """Process multiple pipelines within a single stage on the same input."""
-        if facets and isinstance(facets[0], dict):
+        if facets and isinstance(facets[0], Mapping):
             mapping = facets[0]
         else:
             mapping = {}
@@ -391,7 +391,7 @@ class RawStep(Step):
 
 @dataclass
 class FacetStep(Step):
-    facets: dict[str, Pipeline]
+    facets: Mapping[str, Pipeline]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         body = {key: val.build(context=context) for key, val in self.facets.items()}
@@ -411,7 +411,7 @@ class MatchStep(Step):
 @dataclass
 class GroupStep(Step):
     by: MongoExpression
-    accumulators: dict[AsRef | str, Accumulator | AccumulatorExpression]
+    accumulators: Mapping[RefLike, Accumulator | AccumulatorExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {
@@ -461,14 +461,14 @@ class LookupStep(Step):
         }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GraphLookupStep(Step):
     collection: str
     into: str | Field
     start_with: MongoExpression | list[MongoExpression]
-    connect_from_field: str | Field | None = None
-    connect_to_field: str | Field | None = None
     max_depth: int | None = None
+    connect_from_field: str | Field
+    connect_to_field: str | Field
     depth_field: str | Field | None = None
     restrict_search_with_match: MongoExpression | None = None
 
@@ -487,7 +487,7 @@ class GraphLookupStep(Step):
             "$graphLookup": nullfree_dict(
                 {
                     "from": self.collection,
-                    "startWith": compile_query(self.start_with, context=context),
+                    "startWith": compile_expression(self.start_with, context=context),
                     "connectFromField": compile_field(
                         self.connect_from_field, context=context
                     ),
@@ -508,7 +508,7 @@ class BucketStep(Step, Generic[T]):
     by: MongoExpression
     boundaries: list[T]
     default: str | None
-    output: dict[AsRef | str, Accumulator | MongoExpression] | None
+    output: Mapping[RefLike, Accumulator | MongoExpression] | None
 
     def compile(self, context: Context) -> Iterator[Stage]:
         if isinstance(self.output, dict):
@@ -526,7 +526,7 @@ class BucketStep(Step, Generic[T]):
                 "groupBy": compile_path(self.by, context=context),
                 "boundaries": self.boundaries,
             }
-            | nullfree_dict(  # type: ignore[misc]
+            | nullfree_dict(
                 {
                     "default": self.default,
                     "output": output,
@@ -539,7 +539,7 @@ class BucketStep(Step, Generic[T]):
 class BucketAutoStep(Step):
     by: MongoExpression
     buckets: int
-    output: dict[AsRef | str, Accumulator | MongoExpression] | None = None
+    output: Mapping[RefLike, Accumulator | MongoExpression] | None = None
     granularity: str | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
@@ -567,12 +567,12 @@ class BucketAutoStep(Step):
 
 @dataclass
 class ProjectStep(Step):
-    model: type[Model] | dict[AsRef | str, MongoExpression]
+    model: type[Model] | Mapping[RefLike, MongoExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         match self.model:
-            case dict():
-                projection = self.model
+            case Mapping():
+                projection = dict(self.model)
             case _:
                 projection = dict.fromkeys(get_mapper(self.model).db_fields, True)
         yield {"$project": {"_id": False} | projection}
@@ -597,7 +597,7 @@ class UnwindStep(Step):
                 {
                     "path": compile_path(self.field, context=context),
                 }
-                | nullfree_dict(  # type: ignore[misc]
+                | nullfree_dict(
                     {
                         "includeArrayIndex": include_array_index,
                         "preserveNullAndEmptyArrays": self.preserve_null_and_empty_arrays,
@@ -609,7 +609,7 @@ class UnwindStep(Step):
 
 @dataclass
 class SetStep(Step):
-    fields: dict[Field | str, MongoExpression]
+    fields: Mapping[RefLike, MongoExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {

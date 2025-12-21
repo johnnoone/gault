@@ -9,15 +9,20 @@ from bson import ObjectId
 from .types import AsRef, ExpressionOperator, QueryPredicate
 
 if TYPE_CHECKING:
-    from .types import Context, MongoExpression, MongoField, MongoPath, MongoQuery
+    from .types import (
+        Context,
+        MongoExpression,
+        MongoField,
+        MongoPath,
+        MongoQuery,
+        RefLike,
+    )
 
 
 def compile_query(value: Any, *, context: Context) -> MongoQuery:
     match value:
         case QueryPredicate():
             return value.compile_query(context=context)
-        case str() | int() | float():
-            return value
         case dict():
             return value
         case _:
@@ -85,7 +90,7 @@ def compile_path(obj: Any, *, context: Context) -> MongoPath:
             raise CompilationError(msg, target=obj)
 
 
-def compile_field(obj: Any, *, context: Context) -> MongoField:
+def compile_field(obj: RefLike, *, context: Context) -> MongoField:
     match obj:
         case AsRef():
             return obj.compile_field(context=context)

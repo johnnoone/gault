@@ -62,7 +62,7 @@ class Persistence(Generic[M]):
         self._instances.remove(instance)
 
 
-class AsyncManager(Generic[M, S]):
+class AsyncManager:
     def __init__(
         self,
         database: AsyncDatabase,

@@ -336,15 +336,15 @@ async def test_graph_lookup(manager: AsyncManager):
     persisted = await manager.get(Reporter, pipeline)
     assert persisted.name == "basic"
     assert persisted.report_to == "mathematics"
-    assert {
+    assert {  # type: ignore[operator]
         "name": "established",
         "reportsTo": "ghost",
     } in persisted.reporting_hierarchy
-    assert {
+    assert {  # type: ignore[operator]
         "name": "mathematics",
         "reportsTo": "established",
     } in persisted.reporting_hierarchy
-    assert {
+    assert {  # type: ignore[operator]
         "name": "ghost",
         "reportsTo": None,
     } in persisted.reporting_hierarchy

@@ -50,9 +50,9 @@ async def test_select(manager: AsyncManager):
 
 async def test_insert(manager: AsyncManager):
     with pytest.raises(Forbidden):
-        await manager.insert(ColorsCount(color="green", count=1))
+        await manager.insert(ColorsCount(color="green", count=1))  # type: ignore[type-var]
 
 
 async def test_save(manager: AsyncManager):
     with pytest.raises(Forbidden):
-        await manager.save(ColorsCount(color="green", count=1))
+        await manager.save(ColorsCount(color="green", count=1))  # type: ignore[type-var]

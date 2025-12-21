@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, overload
 from typing import Literal as TypingLiteral
@@ -35,11 +36,11 @@ if TYPE_CHECKING:
         DateUnit,
         DayWeek,
         MongoExpression,
-        MongoField,
         MongoQuery,
         Null,
         Number,
         Object,
+        RefLike,
         String,
         Timezone,
     )
@@ -881,19 +882,23 @@ class Filter(ExpressionOperator):
     """Selects a subset of an array to return based on the specified condition."""
 
     input: MongoExpression[Array]
-    var: str | AsRef | None = field(default=None, kw_only=True)
+    var: RefLike | None = field(default=None, kw_only=True)
     cond: (
-        MongoExpression[Boolean] | Callable[[AsRef, Context], MongoExpression[Boolean]]
+        MongoExpression[Boolean]
+        | Callable[[ExpressionsInterface, Context], MongoExpression[Boolean]]
     )
     limit: MongoExpression[Number] | None = field(default=None, kw_only=True)
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
-        var = self.var
-        if isinstance(var, str):
-            var = Var(var)
+        match self.var:
+            case str() as name:
+                var = Var(name)
+            case Var() as ref:
+                var = ref
+            case _:
+                var = Var("this")
 
         if self.cond and callable(self.cond):
-            var = var or Var("this")
             cond = self.cond(var, context)
         else:
             cond = self.cond
@@ -1231,7 +1236,7 @@ class IsoWeekYear(ExpressionOperator):
 class Let(ExpressionOperator):
     """Binds variables for use in the specified expression, and returns the result of the expression."""
 
-    variables: dict[MongoField, MongoExpression]
+    variables: Mapping[RefLike, MongoExpression]
     """Assignment block for the variables accessible in the in expression."""
 
     into: MongoExpression = field(kw_only=True)
@@ -1239,7 +1244,7 @@ class Let(ExpressionOperator):
 
     @overload
     def __init__(
-        self, variables: dict[AsRef | str, MongoExpression], /, into: MongoExpression
+        self, variables: Mapping[RefLike, MongoExpression], /, into: MongoExpression
     ) -> None: ...
 
     @overload
@@ -1247,7 +1252,7 @@ class Let(ExpressionOperator):
 
     def __init__(self, *variables: Any, into: MongoExpression) -> None:  # type: ignore[misc]
         spec: Any = {}
-        if len(variables) == 1 and isinstance(variables[0], dict):
+        if len(variables) == 1 and isinstance(variables[0], Mapping):
             spec |= variables[0]
         else:
             for aliased in variables:
@@ -1401,22 +1406,25 @@ class Map(ExpressionOperator):
     """An expression that is applied to each element of the input array"""
 
     def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
-        var = self.var
-        if isinstance(var, str):
-            var = Var(var)
+        match self.var:
+            case str() as name:
+                var = Var(name)
+            case Var() as ref:
+                var = ref
+            case _:
+                var = Var("this")
 
-        if callable(self.into):
-            var = var or Var("this")
-            expression = self.into(var, context)
+        if self.into and callable(self.into):
+            cond = self.into(var, context)
         else:
-            expression = self.into
+            cond = self.into
 
         return {
             "$map": nullfree_dict(
                 {
                     "input": compile_expression(self.input, context=context),
                     "as": compile_field(var, context=context) if self.var else None,
-                    "in": compile_expression(expression, context=context),
+                    "in": compile_expression(cond, context=context),
                 },
             )
         }
@@ -2657,7 +2665,7 @@ class Zip(ExpressionOperator):
         }
 
 
-class ConditionInterface:
+class ExpressionsInterface:
     def abs(self) -> Abs:
         return Abs(self)
 
@@ -2863,6 +2871,9 @@ class ConditionInterface:
 
     def degrees_to_radians(self) -> DegreesToRadians:
         return DegreesToRadians(self)
+
+    def eq(self, other: MongoExpression) -> Eq:
+        return Eq(self, other)
 
     def exp(self) -> Exp:
         return Exp(self)
@@ -3251,7 +3262,7 @@ class ConditionInterface:
 class Var(
     AsRef,
     AsAlias,
-    ConditionInterface,
+    ExpressionsInterface,
     FieldSortInterface,
     SubfieldInterface,
     TempFieldInterface,

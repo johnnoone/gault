@@ -4,14 +4,14 @@ from dataclasses import _MISSING_TYPE, MISSING
 from typing import TYPE_CHECKING, Any, TypeVar, no_type_check, overload
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator, Mapping, Sequence
 
 K = TypeVar("K")
 V = TypeVar("V")
 T = TypeVar("T")
 
 
-def drop_missing(mapping: dict[K, V | _MISSING_TYPE]) -> dict[K, V]:
+def drop_missing(mapping: Mapping[K, V | _MISSING_TYPE]) -> dict[K, V]:
     return {key: val for key, val in mapping.items() if val is not MISSING}
 
 
@@ -19,7 +19,7 @@ async def to_list(iterator: AsyncIterator[T]) -> list[T]:
     return [instance async for instance in iterator]
 
 
-def nullfree_dict(mapping: dict[K, V | None], /) -> dict[K, V]:
+def nullfree_dict(mapping: Mapping[K, V | None], /) -> dict[K, V]:
     return {key: val for key, val in mapping.items() if val is not None}
 
 

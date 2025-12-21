@@ -7,16 +7,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from .compilers import compile_field
-from .expressions import (
-    Array,
-    Context,
-    DateUnit,
-    MongoExpression,
-    Number,
-    compile_expression,
-)
+from .compilers import compile_expression
+
+if TYPE_CHECKING:
+    from .types import Array, Context, DateUnit, MongoExpression, Number
 
 
 class WindowOperator(ABC):
@@ -217,8 +213,8 @@ class MinMaxScaler(WindowOperator):
         return {
             "$minMaxScaler": {
                 "input": compile_expression(self.input, context=context),
-                "min": compile_field(self.min, context=context),
-                "max": compile_field(self.max, context=context),
+                "min": compile_expression(self.min, context=context),
+                "max": compile_expression(self.max, context=context),
             },
         }
 
