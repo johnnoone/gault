@@ -33,82 +33,85 @@ if TYPE_CHECKING:
     )
 
 
-class ConditionInterface:
+class ConditionInterface(ABC):
+    @abstractmethod
+    def build_condition(self, op: Operator, /) -> Predicate: ...
+
     def all(self, *values: MongoValue | ElemMatch) -> Predicate:
         op = All(*values)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def elem_match(self, *predicates: Predicate | Operator) -> Predicate:
         op = ElemMatch(*predicates)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def size(self, count: Number, /) -> Predicate:
         op = Size(count)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def bits_all_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAllClear(bits)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def bits_any_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAnyClear(bits)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def bits_all_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAllSet(bits)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def bits_any_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
         op = BitsAnySet(bits)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def eq(self, value: MongoValue, /) -> Predicate:
         op = Eq(value)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def gt(self, value: MongoValue, /) -> Predicate:
         op = Gt(value)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def gte(self, value: MongoValue, /) -> Predicate:
         op = Gte(value)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def in_(self, *values: MongoValue) -> Predicate:
         op = In(*values)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def lt(self, value: MongoValue, /) -> Predicate:
         op = Lt(value)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def lte(self, value: MongoValue, /) -> Predicate:
         op = Lte(value)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def ne(self, value: AsRef | MongoValue, /) -> Predicate:
         op = Ne(value)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def nin(self, *values: MongoValue) -> Predicate:
         op = Nin(*values)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def exists(self, value: Boolean, /) -> Predicate:
         op = Exists(value)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def type(self, *types: String | Number) -> Predicate:
         op = Type(*types)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def geo_intersects(self, value: GeoJSON, /) -> Predicate:
         op = GeoIntersects(value)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def geo_within(self, value: GeoJSON, /) -> Predicate:
         op = GeoWithin(value)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def near(
         self,
@@ -122,7 +125,7 @@ class ConditionInterface:
             min_distance=min_distance,
             max_distance=max_distance,
         )
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def near_sphere(
         self,
@@ -136,15 +139,21 @@ class ConditionInterface:
             min_distance=min_distance,
             max_distance=max_distance,
         )
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def mod(self, divisor: Number, remainder: Number) -> Predicate:
         op = Mod(divisor, remainder)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
 
     def regex(self, regex: String, *, options: String | None = None) -> Predicate:
         op = Regex(regex, options=options)
-        return Condition(cast("AsRef", self), op=op)
+        return self.build_condition(op)
+
+
+class NotInterface:
+    @property
+    def not_(self) -> NotProxy:
+        return NotProxy(cast("AsRef", self))
 
 
 @dataclass(frozen=True)
@@ -154,6 +163,7 @@ class Field(
     FieldSortInterface,
     TempFieldInterface,
     SubfieldInterface,
+    NotInterface,
 ):
     name: str
 
@@ -162,6 +172,9 @@ class Field(
 
     def compile_expression(self, *, context: Context) -> str:
         return "$" + self.name
+
+    def build_condition(self, op: Operator, /) -> Predicate:
+        return Condition(self, op=op)
 
 
 class AsExpression(ABC):
@@ -793,3 +806,14 @@ class Regex(Operator, AsExpression):
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.RegexMatch(field, regex=self.regex, options=self.options)
+
+
+@dataclass
+class NotProxy(ConditionInterface):
+    ref: AsRef
+
+    def build_condition(self, op: Operator, /) -> Predicate:
+        return Condition(self.ref, op=Not(op))
+
+    def __call__(self, op: Operator, /) -> Predicate:
+        return self.build_condition(op)

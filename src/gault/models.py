@@ -13,7 +13,7 @@ from typing import (
 )
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
-from .predicates import ConditionInterface
+from .predicates import Condition, ConditionInterface, NotInterface, Operator, Predicate
 from .types import AsRef, AttributeBase, FieldSortInterface, SubfieldInterface
 from .utils import drop_missing
 
@@ -76,6 +76,7 @@ class AttributeSpec(
     ConditionInterface,
     FieldSortInterface,
     SubfieldInterface,
+    NotInterface,
     Generic[T],
 ):
     def compile_field(self, *, context: Context) -> str:
@@ -86,6 +87,9 @@ class AttributeSpec(
 
     def get_db_alias(self) -> str:
         return self.db_alias
+
+    def build_condition(self, op: Operator, /) -> Predicate:
+        return Condition(self, op=op)
 
     def __hash__(self) -> int:
         return hash((self.owner, self.name, self.db_alias))

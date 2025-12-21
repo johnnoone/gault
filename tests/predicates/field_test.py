@@ -1,7 +1,7 @@
 import pytest
 
 from gault.compilers import compile_query
-from gault.predicates import Field
+from gault.predicates import Field, Gte
 from gault.predicates import Eq
 
 
@@ -265,3 +265,23 @@ def test_field(field, context):
     result = Field("foo").field("bar")
     assert result.compile_field(context=context) == "foo.bar"
     assert result.compile_expression(context=context) == "$foo.bar"
+
+
+def test_not_gte(field, context, subtests):
+    with subtests.test("fuild interface"):
+        predicate = field.not_.gte(1)
+        result = compile_query(predicate, context=context)
+        assert result == {
+            "my_field": {
+                "$not": {"$gte": 1},
+            }
+        }
+
+    with subtests.test("call interface"):
+        predicate = field.not_(Gte(1))
+        result = compile_query(predicate, context=context)
+        assert result == {
+            "my_field": {
+                "$not": {"$gte": 1},
+            }
+        }
