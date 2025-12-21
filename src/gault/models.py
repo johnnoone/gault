@@ -14,18 +14,17 @@ from typing import (
 )
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
-from .predicates import Condition, ConditionInterface, NotInterface, Operator, Predicate
-from .types import (
+from .interfaces import (
     AsRef,
     AttributeBase,
     FieldSortInterface,
     SubfieldInterface,
 )
+from .predicates import Condition, ConditionInterface, NotInterface, Operator, Predicate
 from .utils import drop_missing
 
 if TYPE_CHECKING:
-    from .inout import Value
-    from .types import Context
+    from .types import Context, Value
 
 M = TypeVar("M", bound="Model")
 T = TypeVar("T")

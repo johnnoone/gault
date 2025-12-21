@@ -1,5 +1,5 @@
 from gault.predicates import Begin, Field
-from gault.types import QueryPredicate
+from gault.interfaces import QueryPredicate
 
 
 def test_begin(context):

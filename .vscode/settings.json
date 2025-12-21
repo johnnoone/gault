@@ -11,5 +11,6 @@
     "ty.diagnosticMode": "workspace",
     "ty.inlayHints.callArgumentNames": false,
     "ty.inlayHints.variableTypes": false,
-    "python.analysis.inlayHints.pytestParameters": true
+    "python.analysis.inlayHints.pytestParameters": true,
+    "mypy-type-checker.reportingScope": "workspace"
 }

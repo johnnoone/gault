@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, assert_never, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, assert_never, cast
 
-from .types import AsRef
+from .interfaces import AsRef
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
 
-    from .types import Context
+    from .types import Context, Direction
 
-    Direction: TypeAlias = Literal[-1, 1] | Mapping[str, Any]
     Sort: TypeAlias = Mapping[str, Direction]
     SortParam: TypeAlias = tuple[str, Direction]
     SortValue: TypeAlias = int | str | Direction | None

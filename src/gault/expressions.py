@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING, Any, cast, overload
 from typing import Literal as TypingLiteral
 
 from .compilers import compile_expression, compile_expression_multi, compile_field
-from .sorting import normalize_sort
-from .types import (
+from .interfaces import (
     Aliased,
     AsAlias,
     AsRef,
@@ -17,18 +16,24 @@ from .types import (
     SubfieldInterface,
     TempFieldInterface,
 )
-from .types import ExpressionOperator as _ExpressionOperator
+from .interfaces import ExpressionOperator as _ExpressionOperator
+from .sorting import normalize_sort
 from .utils import nullfree_dict, nullfree_list, unwrap_array, unwrap_single_element
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from .inout import (
+    from .sorting import SortPayload
+    from .types import (
         AnyExpression,
         ArrayExpression,
         BinaryExpression,
         BooleanExpression,
+        Context,
         DateExpression,
+        DateUnit,
+        DayWeek,
+        FieldLike,
         MongoPurExpression,
         NumberExpression,
         ObjectExpression,
@@ -37,16 +42,9 @@ if TYPE_CHECKING:
         RegexExpression,
         StringExpression,
         TimestampExpression,
+        Timezone,
         TimezoneExpression,
         Value,
-    )
-    from .sorting import SortPayload
-    from .types import (
-        Context,
-        DateUnit,
-        DayWeek,
-        RefLike,
-        Timezone,
     )
 
 
@@ -887,7 +885,7 @@ class Filter(ExpressionOperator):
 
     input: ArrayExpression
     cond: BooleanExpression | Callable[[ExpressionsInterface, Context], Output]
-    var: RefLike | None = field(default=None, kw_only=True)
+    var: PathLike | None = field(default=None, kw_only=True)
     limit: int | None = field(default=None, kw_only=True)
 
     def compile_expression(self, *, context: Context) -> MongoPurExpression:
@@ -1237,7 +1235,7 @@ class IsoWeekYear(ExpressionOperator):
 class Let(ExpressionOperator):
     """Binds variables for use in the specified expression, and returns the result of the expression."""
 
-    variables: Mapping[RefLike, AnyExpression]
+    variables: Mapping[FieldLike, AnyExpression]
     """Assignment block for the variables accessible in the in expression."""
 
     into: AnyExpression = field(kw_only=True)
@@ -1246,7 +1244,7 @@ class Let(ExpressionOperator):
     @overload
     def __init__(
         self,
-        variables: Mapping[RefLike, AnyExpression],
+        variables: Mapping[FieldLike, AnyExpression],
         /,
         into: AnyExpression,
     ) -> None: ...
@@ -2816,7 +2814,7 @@ class ExpressionsInterface:
         *,
         unit: DateUnit,
         amount: NumberExpression,
-        timezone: TimezoneExpression | None = None,
+        timezone: Timezone | None = None,
     ) -> DateSubtract:
         return DateSubtract(
             cast("Any", self),
@@ -2828,7 +2826,7 @@ class ExpressionsInterface:
     def date_to_parts(
         self,
         *,
-        timezone: TimezoneExpression | None = None,
+        timezone: Timezone | None = None,
     ) -> DateToParts:
         return DateToParts(
             cast("Any", self),
@@ -2839,7 +2837,7 @@ class ExpressionsInterface:
         self,
         *,
         format: str | None = None,
-        timezone: TimezoneExpression | None = None,
+        timezone: Timezone | None = None,
         on_null: AnyExpression | None = None,
     ) -> DateToString:
         return DateToString(
@@ -2854,7 +2852,7 @@ class ExpressionsInterface:
         *,
         unit: DateUnit,
         bin_size: NumberExpression | None = None,
-        timezone: TimezoneExpression | None = None,
+        timezone: Timezone | None = None,
         start_of_week: DayWeek | None = None,
     ) -> DateTrunc:
         return DateTrunc(
@@ -2868,7 +2866,7 @@ class ExpressionsInterface:
     def day_of_month(
         self,
         *,
-        timezone: TimezoneExpression | None = None,
+        timezone: Timezone | None = None,
     ) -> DayOfMonth:
         return DayOfMonth(
             cast("Any", self),
@@ -2878,7 +2876,7 @@ class ExpressionsInterface:
     def day_of_week(
         self,
         *,
-        timezone: TimezoneExpression | None = None,
+        timezone: Timezone | None = None,
     ) -> DayOfWeek:
         return DayOfWeek(
             cast("Any", self),
@@ -2888,7 +2886,7 @@ class ExpressionsInterface:
     def day_of_year(
         self,
         *,
-        timezone: TimezoneExpression | None = None,
+        timezone: Timezone | None = None,
     ) -> DayOfYear:
         return DayOfYear(
             cast("Any", self),

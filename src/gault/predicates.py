@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, cast, overload
 from . import expressions
 from .compilers import compile_expression, compile_field, compile_query
 from .geo import compile_geo
-from .types import (
+from .interfaces import (
     AsRef,
     FieldSortInterface,
     QueryPredicate,
@@ -20,26 +20,19 @@ from .utils import nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
     from .geo import Geo, GeoJSON
-    from .inout import (
+    from .types import (
         AnyExpression,
         Array,
         Binary,
         Boolean,
+        Context,
+        MongoQuery,
         Number,
         Object,
         Output,
         PathLike,
         String,
         Value,
-    )
-    from .types import (
-        # Array,
-        # Binary,
-        # Boolean,
-        Context,
-        MongoQuery,
-        RefLike,
-        # String,
     )
 
 
@@ -191,7 +184,7 @@ class AsExpression(ABC):
     @abstractmethod
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         raise NotImplementedError
@@ -439,7 +432,7 @@ class Size(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Eq(expressions.Size(field), self.count)
@@ -506,7 +499,7 @@ class Eq(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Eq(field, self.value)
@@ -544,7 +537,7 @@ class Gte(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Gte(field, self.value)
@@ -572,7 +565,7 @@ class In(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.In(field, self.values)
@@ -591,7 +584,7 @@ class Lt(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Lt(field, self.value)
@@ -610,7 +603,7 @@ class Lte(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Lte(field, self.value)
@@ -629,7 +622,7 @@ class Ne(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Ne(field, self.value)
@@ -657,7 +650,7 @@ class Nin(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Not(
@@ -818,7 +811,7 @@ class Regex(Operator, AsExpression):
 
     def as_expression(
         self,
-        field: RefLike,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.RegexMatch(field, regex=self.regex, options=self.options)

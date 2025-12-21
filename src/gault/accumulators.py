@@ -5,18 +5,18 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from .compilers import compile_expression, compile_expression_multi
+from .interfaces import AsAlias
 from .sorting import normalize_sort
-from .types import AsAlias
 
 if TYPE_CHECKING:
-    from .inout import (
+    from .sorting import SortPayload
+    from .types import (
         AnyExpression,
+        Context,
         MongoExpression,
         NumberExpression,
         ObjectExpression,
     )
-    from .sorting import SortPayload
-    from .types import Context
 
 
 class Accumulator(ABC, AsAlias):

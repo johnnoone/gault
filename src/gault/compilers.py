@@ -7,12 +7,10 @@ from typing import TYPE_CHECKING, Any, overload
 
 from bson import ObjectId
 
-from .types import AsRef, ExpressionOperator, QueryPredicate
+from .interfaces import AsRef, ExpressionOperator, QueryPredicate
 
 if TYPE_CHECKING:
-    from gault.inout import MongoExpression
-
-    from .types import Context, MongoField, MongoPath, MongoQuery, RefLike
+    from .types import Context, FieldString, MongoExpression, MongoQuery, PathString
 
 
 def compile_query(value: Any, *, context: Context) -> MongoQuery:
@@ -74,7 +72,7 @@ def compile_expression(obj: Any, *, context: Context) -> MongoExpression:
             raise CompilationError(msg, target=obj)
 
 
-def compile_path(obj: Any, *, context: Context) -> MongoPath:
+def compile_path(obj: Any, *, context: Context) -> PathString:
     match obj:
         case AsRef():
             return obj.compile_expression(context=context)
@@ -88,7 +86,7 @@ def compile_path(obj: Any, *, context: Context) -> MongoPath:
             raise CompilationError(msg, target=obj)
 
 
-def compile_field(obj: RefLike, *, context: Context) -> MongoField:
+def compile_field(obj: Any, *, context: Context) -> FieldString:
     match obj:
         case AsRef():
             return obj.compile_field(context=context)

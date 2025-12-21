@@ -12,8 +12,7 @@ from typing import TYPE_CHECKING
 from .compilers import compile_expression
 
 if TYPE_CHECKING:
-    from .inout import Input, Output
-    from .types import Context, DateUnit
+    from .types import Context, DateUnit, Input, Output
 
 
 class WindowOperator(ABC):

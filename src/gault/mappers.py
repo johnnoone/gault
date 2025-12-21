@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import MISSING, fields
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Generic, NamedTuple, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, NamedTuple, TypeVar, cast, no_type_check
 from weakref import WeakKeyDictionary
 
 from .models import unwrap_model
@@ -19,6 +19,7 @@ M = TypeVar("M", bound="Model")
 MAPPERS: WeakKeyDictionary[type[Model], Mapper] = WeakKeyDictionary()
 
 
+@no_type_check
 def get_mapper(model: M | type[M]) -> Mapper[M]:
     model = unwrap_model(model)
     if mapper := MAPPERS.get(model):

@@ -18,19 +18,26 @@ from typing import (
 
 from .accumulators import Accumulator, compile_accumulator
 from .compilers import compile_expression, compile_field, compile_path, compile_query
+from .interfaces import Aliased, AsAlias
 from .mappers import get_mapper
 from .models import Model, get_collection
 from .sorting import normalize_sort
-from .types import Aliased, AsAlias
 from .utils import drop_missing, nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
-    from .inout import AccumulatorExpression, AnyExpression
     from .predicates import Field, Predicate
     from .sorting import SortField, SortPayload, SortToken, SortValue
-    from .types import Context, Document, MongoQuery, PositiveInteger, RefLike
+    from .types import (
+        AccumulatorExpression,
+        AnyExpression,
+        Context,
+        Document,
+        FieldLike,
+        MongoQuery,
+        PositiveInteger,
+    )
 
     Stage: TypeAlias = Mapping[str, Any]
 
@@ -103,7 +110,9 @@ class Pipeline(AsAlias):
         step = SortStep(payload)  # ty:ignore[invalid-argument-type]
         return self.raw(step)
 
-    def project(self, model: type[Model] | Mapping[RefLike, AnyExpression], /) -> Self:
+    def project(
+        self, model: type[Model] | Mapping[FieldLike, AnyExpression], /
+    ) -> Self:
         """Reshape documents by including, excluding, or adding fields."""
         step = ProjectStep(model)
         return self.raw(step)
@@ -114,7 +123,7 @@ class Pipeline(AsAlias):
         /,
         boundaries: list[T],
         default: str | None = None,
-        output: Mapping[RefLike, Accumulator | AccumulatorExpression] | None = None,
+        output: Mapping[FieldLike, Accumulator | AccumulatorExpression] | None = None,
     ) -> Self:
         """Categorize documents into buckets based on specified boundaries."""
         step = BucketStep(
@@ -130,7 +139,7 @@ class Pipeline(AsAlias):
         by: AnyExpression,
         /,
         buckets: int,
-        output: Mapping[RefLike, Accumulator | AccumulatorExpression] | None = None,
+        output: Mapping[FieldLike, Accumulator | AccumulatorExpression] | None = None,
         granularity: Literal[
             "R5",
             "R10",
@@ -160,7 +169,7 @@ class Pipeline(AsAlias):
     @overload
     def group(
         self,
-        accumulators: Mapping[RefLike, Accumulator | AccumulatorExpression],
+        accumulators: Mapping[FieldLike, Accumulator | AccumulatorExpression],
         /,
         *,
         by: AnyExpression,
@@ -177,7 +186,7 @@ class Pipeline(AsAlias):
     def group(self, *accumulators: Any, by: AnyExpression) -> Self:
         """Group documents by a specified expression and apply accumulators."""
         if accumulators and isinstance(accumulators[0], Mapping):
-            mapping: Mapping[RefLike, Accumulator | AccumulatorExpression] = (
+            mapping: Mapping[FieldLike, Accumulator | AccumulatorExpression] = (
                 accumulators[0]
             )
         else:
@@ -187,11 +196,11 @@ class Pipeline(AsAlias):
         step = GroupStep(by=by, accumulators=mapping)
         return self.raw(step)
 
-    def set_field(self, field: RefLike, value: AnyExpression, /) -> Self:
+    def set_field(self, field: FieldLike, value: AnyExpression, /) -> Self:
         """Add a new field or replace existing field value."""
         return self.set({field: value})
 
-    def set(self, fields: Mapping[RefLike, AnyExpression], /) -> Self:
+    def set(self, fields: Mapping[FieldLike, AnyExpression], /) -> Self:
         """Add new fields or replace existing field values."""
         step = SetStep(fields=fields)
         return self.raw(step)
@@ -403,7 +412,7 @@ class MatchStep(Step):
 @dataclass
 class GroupStep(Step):
     by: AnyExpression
-    accumulators: Mapping[RefLike, Accumulator | AccumulatorExpression]
+    accumulators: Mapping[FieldLike, Accumulator | AccumulatorExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {
@@ -500,7 +509,7 @@ class BucketStep(Step, Generic[T]):
     by: AnyExpression
     boundaries: list[T]
     default: str | None
-    output: Mapping[RefLike, Accumulator | AccumulatorExpression] | None
+    output: Mapping[FieldLike, Accumulator | AccumulatorExpression] | None
 
     def compile(self, context: Context) -> Iterator[Stage]:
         if isinstance(self.output, dict):
@@ -531,7 +540,7 @@ class BucketStep(Step, Generic[T]):
 class BucketAutoStep(Step):
     by: AnyExpression
     buckets: int
-    output: Mapping[RefLike, Accumulator | AccumulatorExpression] | None = None
+    output: Mapping[FieldLike, Accumulator | AccumulatorExpression] | None = None
     granularity: str | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
@@ -559,7 +568,7 @@ class BucketAutoStep(Step):
 
 @dataclass
 class ProjectStep(Step):
-    model: type[Model] | Mapping[RefLike, AnyExpression]
+    model: type[Model] | Mapping[FieldLike, AnyExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         match self.model:
@@ -601,7 +610,7 @@ class UnwindStep(Step):
 
 @dataclass
 class SetStep(Step):
-    fields: Mapping[RefLike, AnyExpression]
+    fields: Mapping[FieldLike, AnyExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {
