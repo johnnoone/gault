@@ -328,15 +328,15 @@ def test_std_dev_pop(subtests, context):
 
 def test_std_dev_samp(subtests, context):
     with subtests.test():
-        acc = StdDevSamp(input="$var", p=None)
+        acc = StdDevSamp(input="$var")
         assert acc.compile_expression(context=context) == {"$stdDevSamp": "$var"}
 
     with subtests.test():
-        acc = StdDevSamp(input=Field("foo.bar"), p=None)
+        acc = StdDevSamp(input=Field("foo.bar"))
         assert acc.compile_expression(context=context) == {"$stdDevSamp": "$foo.bar"}
 
     with subtests.test():
-        acc = StdDevSamp(input=MyModel.id, p=None)
+        acc = StdDevSamp(input=MyModel.id)
         assert acc.compile_expression(context=context) == {"$stdDevSamp": "$id"}
 
 

@@ -12,9 +12,9 @@ def test_expression(context, subtests: pytest.Subtests):
         assert result == {"$floor": math.nan}
 
     with subtests.test():
-        op = Floor(None)
+        op = Floor(21)
         result = op.compile_expression(context=context)
-        assert result == {"$floor": None}
+        assert result == {"$floor": 21}
 
     with subtests.test():
         op = Floor({"$divide": ["$side_b", "$hypotenuse"]})

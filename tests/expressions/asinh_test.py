@@ -12,9 +12,9 @@ def test_expression(context, subtests: pytest.Subtests):
         assert result == {"$asinh": math.nan}
 
     with subtests.test():
-        op = Asinh(None)
+        op = Asinh(21)
         result = op.compile_expression(context=context)
-        assert result == {"$asinh": None}
+        assert result == {"$asinh": 21}
 
     with subtests.test():
         op = Asinh({"$divide": ["$side_b", "$hypotenuse"]})

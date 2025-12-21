@@ -13,7 +13,6 @@ from typing import (
     cast,
 )
 from typing import Literal as TypingLiteral
-from annotated_types import Predicate
 
 from bson import ObjectId
 
@@ -27,11 +26,12 @@ if TYPE_CHECKING:
     from datetime import datetime
     from decimal import Decimal
 
-    from annotated_types import Ge
+    from annotated_types import Ge, Predicate
     from bson import Binary as BSONBinary
     from bson import Decimal128 as BSONDecimal
     from bson import Regex as BSONRegex
 
+    from .inout import MongoExpression
     from .models import Model
 
     Document: TypeAlias = Mapping[str, "MongoValue"]
@@ -42,10 +42,10 @@ if TYPE_CHECKING:
     MongoField: TypeAlias = str
     MongoPath: TypeAlias = str
 
-    MongoExpression: TypeAlias = T | "Expr" | "DollarString"
+    Input: TypeAlias = T | "Expr" | "DollarString"
     """An expression that resolves to given type"""
 
-    MongoQuery: TypeAlias = Mapping[MongoField | str, MongoExpression]
+    MongoQuery: TypeAlias = Mapping[MongoField | str, Input]
     Context: TypeAlias = Any
 
     Regex: TypeAlias = str | BSONRegex

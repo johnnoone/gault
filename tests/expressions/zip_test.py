@@ -8,12 +8,12 @@ def test_expression(context, subtests: pytest.Subtests):
         op = Zip(
             inputs=["$one", "$two"],
             use_longest_length=True,
-            defaults="$three",
+            defaults=["$three"],
         )
         result = op.compile_expression(context=context)
         assert result == {
             "$zip": {
-                "defaults": "$three",
+                "defaults": ["$three"],
                 "inputs": ["$one", "$two"],
                 "useLongestLength": True,
             }

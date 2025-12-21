@@ -12,9 +12,9 @@ def test_expression(context, subtests: pytest.Subtests):
         assert result == {"$degreesToRadians": math.nan}
 
     with subtests.test():
-        op = DegreesToRadians(None)
+        op = DegreesToRadians(21)
         result = op.compile_expression(context=context)
-        assert result == {"$degreesToRadians": None}
+        assert result == {"$degreesToRadians": 21}
 
     with subtests.test():
         op = DegreesToRadians({"$divide": ["$side_b", "$hypotenuse"]})

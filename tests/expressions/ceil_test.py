@@ -12,9 +12,9 @@ def test_expression(context, subtests: pytest.Subtests):
         assert result == {"$ceil": math.nan}
 
     with subtests.test():
-        op = Ceil(None)
+        op = Ceil(21)
         result = op.compile_expression(context=context)
-        assert result == {"$ceil": None}
+        assert result == {"$ceil": 21}
 
     with subtests.test():
         op = Ceil({"$divide": ["$side_b", "$hypotenuse"]})

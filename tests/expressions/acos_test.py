@@ -13,9 +13,9 @@ def test_expression(context, subtests: pytest.Subtests):
         assert result == {"$acos": math.nan}
 
     with subtests.test():
-        op = Acos(None)
+        op = Acos("$other")
         result = op.compile_expression(context=context)
-        assert result == {"$acos": None}
+        assert result == {"$acos": "$other"}
 
     with subtests.test():
         op = Acos({"$divide": ["$side_b", "$hypotenuse"]})

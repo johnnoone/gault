@@ -20,17 +20,26 @@ from .utils import nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
     from .geo import Geo, GeoJSON
-    from .types import (
+    from .inout import (
+        AnyExpression,
         Array,
         Binary,
         Boolean,
-        Context,
-        MongoExpression,
-        MongoQuery,
-        MongoValue,
         Number,
-        RefLike,
+        Object,
+        Output,
+        PathLike,
         String,
+        Value,
+    )
+    from .types import (
+        # Array,
+        # Binary,
+        # Boolean,
+        Context,
+        MongoQuery,
+        RefLike,
+        # String,
     )
 
 
@@ -38,7 +47,7 @@ class ConditionInterface(ABC):
     @abstractmethod
     def build_condition(self, op: Operator, /) -> Predicate: ...
 
-    def all(self, *values: MongoValue | ElemMatch) -> Predicate:
+    def all(self, *values: Value | ElemMatch) -> Predicate:
         op = All(*values)
         return self.build_condition(op)
 
@@ -66,35 +75,35 @@ class ConditionInterface(ABC):
         op = BitsAnySet(bits)
         return self.build_condition(op)
 
-    def eq(self, value: MongoValue, /) -> Predicate:
+    def eq(self, value: Value, /) -> Predicate:
         op = Eq(value)
         return self.build_condition(op)
 
-    def gt(self, value: MongoValue, /) -> Predicate:
+    def gt(self, value: PathLike | Number, /) -> Predicate:
         op = Gt(value)
         return self.build_condition(op)
 
-    def gte(self, value: MongoValue, /) -> Predicate:
+    def gte(self, value: PathLike | Number, /) -> Predicate:
         op = Gte(value)
         return self.build_condition(op)
 
-    def in_(self, *values: MongoValue) -> Predicate:
+    def in_(self, *values: Value) -> Predicate:
         op = In(*values)
         return self.build_condition(op)
 
-    def lt(self, value: MongoValue, /) -> Predicate:
+    def lt(self, value: PathLike | Number, /) -> Predicate:
         op = Lt(value)
         return self.build_condition(op)
 
-    def lte(self, value: MongoValue, /) -> Predicate:
+    def lte(self, value: PathLike | Number, /) -> Predicate:
         op = Lte(value)
         return self.build_condition(op)
 
-    def ne(self, value: AsRef | MongoValue, /) -> Predicate:
+    def ne(self, value: AsRef | Value, /) -> Predicate:
         op = Ne(value)
         return self.build_condition(op)
 
-    def nin(self, *values: MongoValue) -> Predicate:
+    def nin(self, *values: Value) -> Predicate:
         op = Nin(*values)
         return self.build_condition(op)
 
@@ -225,7 +234,7 @@ class Condition(Predicate, expressions.ExpressionOperator):
             ),
         }
 
-    def compile_expression(self, context: Context) -> MongoExpression:
+    def compile_expression(self, context: Context) -> Output:
         if isinstance(self.op, AsExpression):
             expression = self.op.as_expression(self.field, context=context)
         else:
@@ -256,7 +265,7 @@ class And(Predicate, expressions.ExpressionOperator):
             ],
         }
 
-    def compile_expression(self, context: Context) -> MongoExpression:
+    def compile_expression(self, context: Context) -> Output:
         return {
             "$and": [
                 compile_expression(predicate, context=context)
@@ -291,7 +300,7 @@ class Nor(Predicate):
             ],
         }
 
-    def compile_expression(self, context: Context) -> MongoExpression:
+    def compile_expression(self, context: Context) -> Output:
         return expressions.Not(
             {
                 "$or": [
@@ -309,20 +318,17 @@ class Nor(Predicate):
 class Not(Operator):
     """Selects the documents that do not match the operator."""
 
-    operator: Operator
+    operator: Operator | Value
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
             "$not": compile_query(self.operator, context=context),
         }
 
-    def compile_expression(self, context: Context) -> MongoExpression:
+    def compile_expression(self, context: Context) -> Output:
         return Not(
             compile_expression(self.operator, context=context),
         ).compile_expression(context=context)
-
-    def __invert__(self) -> Operator:
-        return self.operator
 
 
 @dataclass
@@ -348,7 +354,7 @@ class Or(Predicate):
             ],
         }
 
-    def compile_expression(self, context: Context) -> MongoExpression:
+    def compile_expression(self, context: Context) -> Output:
         return {
             "$or": [
                 compile_expression(predicate, context=context)
@@ -367,13 +373,13 @@ class Or(Predicate):
 class All(Operator):
     """Selects the documents where the value of a field matches all specified values."""
 
-    values: list[MongoValue | ElemMatch]
+    values: list[Value | ElemMatch]
 
     @overload
-    def __init__(self, value: list[MongoValue | ElemMatch], /) -> None: ...
+    def __init__(self, value: list[Value | ElemMatch], /) -> None: ...
 
     @overload
-    def __init__(self, *values: MongoValue | ElemMatch) -> None: ...
+    def __init__(self, *values: Value | ElemMatch) -> None: ...
 
     def __init__(self, *values: Any) -> None:
         self.values = unwrap_array(values)
@@ -399,15 +405,13 @@ class All(Operator):
 class ElemMatch(Operator):
     """Selects the documents where the value of a field matches all specified values."""
 
-    predicates: list[Predicate | Operator | MongoExpression]
+    predicates: list[Predicate | Operator | Object]
 
     @overload
-    def __init__(
-        self, predicate: list[Predicate | Operator | MongoExpression], /
-    ) -> None: ...
+    def __init__(self, predicate: list[Predicate | Operator | Object], /) -> None: ...
 
     @overload
-    def __init__(self, *predicates: Predicate | Operator | MongoExpression) -> None: ...
+    def __init__(self, *predicates: Predicate | Operator | Object) -> None: ...
 
     def __init__(self, *predicates: Any) -> None:
         self.predicates = unwrap_array(predicates)
@@ -493,7 +497,7 @@ class BitsAnySet(Operator):
 class Eq(Operator, AsExpression):
     """Matches documents where the value of a field equals the specified value."""
 
-    value: MongoValue
+    value: Value
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -512,7 +516,7 @@ class Eq(Operator, AsExpression):
 class Gt(Operator):
     """Matches documents where the value of the specified field is greater than the specified value."""
 
-    value: MongoValue
+    value: PathLike | Number
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -531,7 +535,7 @@ class Gt(Operator):
 class Gte(Operator, AsExpression):
     """Matches documents where the value of the specified field is greater than or equal to a specified value."""
 
-    value: MongoValue
+    value: PathLike | Number
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -550,13 +554,13 @@ class Gte(Operator, AsExpression):
 class In(Operator, AsExpression):
     """Selects the documents where the value of a field equals any value in the specified array."""
 
-    values: list[MongoValue]
+    values: list[Value]
 
     @overload
-    def __init__(self, value: list[MongoValue], /) -> None: ...
+    def __init__(self, value: list[Value], /) -> None: ...
 
     @overload
-    def __init__(self, *values: MongoValue) -> None: ...
+    def __init__(self, *values: Value) -> None: ...
 
     def __init__(self, *values: Any) -> None:
         self.values = unwrap_array(values)
@@ -578,7 +582,7 @@ class In(Operator, AsExpression):
 class Lt(Operator, AsExpression):
     """Matches documents where the value of the specified field is less than the specified value."""
 
-    value: MongoValue
+    value: PathLike | Number
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -597,7 +601,7 @@ class Lt(Operator, AsExpression):
 class Lte(Operator, AsExpression):
     """Matches documents where the value of the specified field is less than or equal to a specified value."""
 
-    value: MongoValue
+    value: PathLike | Number
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -616,7 +620,7 @@ class Lte(Operator, AsExpression):
 class Ne(Operator, AsExpression):
     """Matches documents where the value of a specified field is not equal to the specified value."""
 
-    value: AsRef | MongoExpression
+    value: AsRef | Value
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -635,13 +639,13 @@ class Ne(Operator, AsExpression):
 class Nin(Operator, AsExpression):
     """Selects the documents where the specified field value is not in the specified array or the specified field does not exist."""
 
-    values: list[MongoValue]
+    values: list[Value]
 
     @overload
-    def __init__(self, value: list[MongoValue], /) -> None: ...
+    def __init__(self, value: list[Value], /) -> None: ...
 
     @overload
-    def __init__(self, *values: MongoValue) -> None: ...
+    def __init__(self, *values: Value) -> None: ...
 
     def __init__(self, *values: Any) -> None:
         self.values = unwrap_array(values)
@@ -760,7 +764,7 @@ class NearSphere(Operator):
 class Expr(Operator):
     """Allows the use of expressions within a query predicate."""
 
-    expression: MongoExpression
+    expression: AnyExpression
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {

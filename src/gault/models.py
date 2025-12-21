@@ -9,15 +9,22 @@ from typing import (
     TypeVar,
     Unpack,
     dataclass_transform,
+    no_type_check,
     overload,
 )
 from weakref import WeakKeyDictionary, WeakValueDictionary
 
 from .predicates import Condition, ConditionInterface, NotInterface, Operator, Predicate
-from .types import AsRef, AttributeBase, FieldSortInterface, SubfieldInterface
+from .types import (
+    AsRef,
+    AttributeBase,
+    FieldSortInterface,
+    SubfieldInterface,
+)
 from .utils import drop_missing
 
 if TYPE_CHECKING:
+    from .inout import Value
     from .types import Context
 
 M = TypeVar("M", bound="Model")
@@ -28,12 +35,14 @@ SCHEMAS: WeakValueDictionary[str, type[Schema]] = WeakValueDictionary()
 COLLECTIONS: WeakKeyDictionary[type[Model], str] = WeakKeyDictionary()
 
 
-def unwrap_model(model: M | type[M]) -> type[M]:
+@no_type_check
+def unwrap_model(model: type[M] | M) -> type[M]:
     if isinstance(model, Model):
         model = type(model)
     return model
 
 
+@no_type_check
 def get_collection(model: type[Model] | Model) -> str:
     model = unwrap_model(model)
     return COLLECTIONS[model]
@@ -46,7 +55,7 @@ def get_schema(collection: str) -> type[Schema]:
 @dataclass_transform(kw_only_default=True)
 class Model:
     def __init_subclass__(cls, collection: str | None = None) -> None:
-        dataclass(cls, init=True, repr=True, kw_only=True)  # ty:ignore[no-matching-overload]
+        dataclass(cls, init=True, repr=True, kw_only=True)  # type: ignore[call-overload]
         for dataclass_field in fields(cls):  # type: ignore[arg-type]
             field: Attribute = Attribute(
                 name=dataclass_field.name, **dataclass_field.metadata
@@ -94,12 +103,23 @@ class AttributeSpec(
     def __hash__(self) -> int:
         return hash((self.owner, self.name, self.db_alias))
 
-    __eq__ = ConditionInterface.eq  # type: ignore[assignment]
-    __ne__ = ConditionInterface.ne  # type: ignore[assignment]
-    __lt__ = ConditionInterface.lt
-    __le__ = ConditionInterface.lte
-    __gt__ = ConditionInterface.gt
-    __ge__ = ConditionInterface.gte
+    def __eq__(self, other: Value) -> Predicate:  # type: ignore[override]
+        return ConditionInterface.eq(self, other)
+
+    def __ne__(self, other: Value) -> Predicate:  # type: ignore[override]
+        return ConditionInterface.ne(self, other)
+
+    def __lt__(self, other: Value) -> Predicate:
+        return ConditionInterface.lt(self, other)
+
+    def __le__(self, other: Value) -> Predicate:
+        return ConditionInterface.lte(self, other)
+
+    def __gt__(self, other: Value) -> Predicate:
+        return ConditionInterface.gt(self, other)
+
+    def __ge__(self, other: Value) -> Predicate:
+        return ConditionInterface.gte(self, other)
 
 
 class Attribute(Generic[T]):

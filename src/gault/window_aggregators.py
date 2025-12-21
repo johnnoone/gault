@@ -12,14 +12,15 @@ from typing import TYPE_CHECKING
 from .compilers import compile_expression
 
 if TYPE_CHECKING:
-    from .types import Array, Context, DateUnit, MongoExpression, Number
+    from .inout import Input, Output
+    from .types import Context, DateUnit
 
 
 class WindowOperator(ABC):
     """Described here https://www.mongodb.com/docs/manual/reference/mql/expressions/."""
 
     @abstractmethod
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         raise NotImplementedError
 
 
@@ -27,9 +28,9 @@ class WindowOperator(ABC):
 class AddToSet(WindowOperator):
     """Returns an array of unique expression values for each group."""
 
-    expr: MongoExpression
+    expr: Input
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {"$addToSet": compile_expression(self.expr, context=context)}
 
 
@@ -37,9 +38,9 @@ class AddToSet(WindowOperator):
 class Avg(WindowOperator):
     """Returns the average of numeric values."""
 
-    expr: MongoExpression
+    expr: Input
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {"$avg": compile_expression(self.expr, context=context)}
 
 
@@ -47,13 +48,13 @@ class Avg(WindowOperator):
 class CovariancePop(WindowOperator):
     """Returns the population covariance of two numeric expressions that are evaluated using documents in the `$setWindowFields` stage window."""
 
-    value1: MongoExpression[Number]
+    value1: Input
     """any valid expression that resolves to a number, measured in radians"""
 
-    value2: MongoExpression[Number]
+    value2: Input
     """any valid expression that resolves to a number, measured in radians"""
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$covariancePop": [
                 compile_expression(self.value1, context=context),
@@ -66,13 +67,13 @@ class CovariancePop(WindowOperator):
 class CovarianceSamp(WindowOperator):
     """Returns the sample covariance of two numeric expressions that are evaluated using documents in the `$setWindowFields` stage window."""
 
-    value1: MongoExpression[Number]
+    value1: Input
     """any valid expression that resolves to a number, measured in radians"""
 
-    value2: MongoExpression[Number]
+    value2: Input
     """any valid expression that resolves to a number, measured in radians"""
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$covarianceSamp": [
                 compile_expression(self.value1, context=context),
@@ -85,7 +86,7 @@ class CovarianceSamp(WindowOperator):
 class DenseRank(WindowOperator):
     """Returns the document position (known as the rank) relative to other documents in the $setWindowFields stage partition."""
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {"$denseRank": {}}
 
 
@@ -93,13 +94,13 @@ class DenseRank(WindowOperator):
 class Derivative(WindowOperator):
     """Returns the average rate of change within the specified window."""
 
-    input: MongoExpression[Number]
+    input: Input
     """any valid expression that resolves to a number.
     """
 
-    unit: MongoExpression[DateUnit]
+    unit: DateUnit
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$derivative": {
                 "input": compile_expression(self.input, context=context),
@@ -112,7 +113,7 @@ class Derivative(WindowOperator):
 class DocumentNumber(WindowOperator):
     """Returns the position of a document (known as the document number) in the $setWindowFields stage partition."""
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {"$documentNumber": {}}
 
 
@@ -120,16 +121,16 @@ class DocumentNumber(WindowOperator):
 class ExpMovingAvg(WindowOperator):
     """Returns the exponential moving average of numeric expressions applied to documents in a partition defined in the $setWindowFields stage."""
 
-    input: MongoExpression
+    input: Input
     """any valid expression as long as it resolves to a number"""
 
-    n: MongoExpression
+    n: Input
     """any valid expression as long as it resolves to a number"""
 
-    alpha: MongoExpression
+    alpha: Input
     """any valid expression as long as it resolves to a number"""
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$expMovingAvg": {
                 "input": compile_expression(self.input, context=context),
@@ -143,12 +144,12 @@ class ExpMovingAvg(WindowOperator):
 class Integral(WindowOperator):
     """Returns the approximation of the area under a curve."""
 
-    input: MongoExpression[Number]
+    input: Input
     """an expression that returns a number."""
 
-    unit: MongoExpression[DateUnit]
+    unit: DateUnit
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$integral": {
                 "input": compile_expression(self.input, context=context),
@@ -161,10 +162,10 @@ class Integral(WindowOperator):
 class LinearFill(WindowOperator):
     """Fills null and missing fields in a window using linear interpolation based on surrounding field values."""
 
-    input: MongoExpression
+    input: Input
     """The expression to evaluate."""
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$linearFill": compile_expression(self.input, context=context),
         }
@@ -174,10 +175,10 @@ class LinearFill(WindowOperator):
 class Locf(WindowOperator):
     """Last observation carried forward."""
 
-    input: MongoExpression
+    input: Input
     """Any valid expression"""
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {"$locf": compile_expression(self.input, context=context)}
 
 
@@ -185,9 +186,9 @@ class Locf(WindowOperator):
 class Median(WindowOperator):
     """Returns an approximation of the median value."""
 
-    input: MongoExpression
+    input: Input
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$median": {
                 "input": compile_expression(self.input, context=context),
@@ -200,16 +201,16 @@ class Median(WindowOperator):
 class MinMaxScaler(WindowOperator):
     """Normalizes a numeric expression within a window of values."""
 
-    input: MongoExpression[Number]
+    input: Input
     """An expression that resolves to the array"""
 
-    min: MongoExpression[Number] = 0
+    min: Input = 0
     """An expression that resolves to a positive integer"""
 
-    max: MongoExpression[Number] = 1
+    max: Input = 1
     """An expression that resolves to a positive integer"""
 
-    def compile_expression(self, *, context: Context) -> MongoExpression[Array]:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$minMaxScaler": {
                 "input": compile_expression(self.input, context=context),
@@ -223,7 +224,7 @@ class MinMaxScaler(WindowOperator):
 class Rank(WindowOperator):
     """Returns the document position (known as the rank) relative to other documents in the $setWindowFields stage partition."""
 
-    def compile_expression(self, *, context: Context) -> MongoExpression[Number]:
+    def compile_expression(self, *, context: Context) -> Input:
         return {
             "$rank": {},
         }
@@ -233,11 +234,11 @@ class Rank(WindowOperator):
 class Shift(WindowOperator):
     """Returns the value from an expression applied to a document in a specified position relative to the current document in the $setWindowFields stage partition."""
 
-    output: MongoExpression
-    by: MongoExpression[Number]
-    default: MongoExpression
+    output: Input
+    by: Input
+    default: Input
 
-    def compile_expression(self, *, context: Context) -> MongoExpression:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$shift": {
                 "output": compile_expression(self.output, context=context),

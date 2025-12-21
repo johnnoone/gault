@@ -27,16 +27,10 @@ from .utils import drop_missing, nullfree_dict, unwrap_array
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
-    from .accumulators import AccumulatorExpression
+    from .inout import AccumulatorExpression, AnyExpression
     from .predicates import Field, Predicate
     from .sorting import SortField, SortPayload, SortToken, SortValue
-    from .types import (
-        Context,
-        Document,
-        MongoExpression,
-        PositiveInteger,
-        RefLike,
-    )
+    from .types import Context, Document, MongoQuery, PositiveInteger, RefLike
 
     Stage: TypeAlias = Mapping[str, Any]
 
@@ -109,20 +103,18 @@ class Pipeline(AsAlias):
         step = SortStep(payload)  # ty:ignore[invalid-argument-type]
         return self.raw(step)
 
-    def project(
-        self, model: type[Model] | Mapping[RefLike, MongoExpression], /
-    ) -> Self:
+    def project(self, model: type[Model] | Mapping[RefLike, AnyExpression], /) -> Self:
         """Reshape documents by including, excluding, or adding fields."""
         step = ProjectStep(model)
         return self.raw(step)
 
     def bucket(
         self,
-        by: MongoExpression,
+        by: AnyExpression,
         /,
         boundaries: list[T],
         default: str | None = None,
-        output: Mapping[RefLike, Accumulator | MongoExpression] | None = None,
+        output: Mapping[RefLike, Accumulator | AccumulatorExpression] | None = None,
     ) -> Self:
         """Categorize documents into buckets based on specified boundaries."""
         step = BucketStep(
@@ -135,10 +127,10 @@ class Pipeline(AsAlias):
 
     def bucket_auto(
         self,
-        by: MongoExpression,
+        by: AnyExpression,
         /,
         buckets: int,
-        output: Mapping[RefLike, Accumulator | MongoExpression] | None = None,
+        output: Mapping[RefLike, Accumulator | AccumulatorExpression] | None = None,
         granularity: Literal[
             "R5",
             "R10",
@@ -171,18 +163,18 @@ class Pipeline(AsAlias):
         accumulators: Mapping[RefLike, Accumulator | AccumulatorExpression],
         /,
         *,
-        by: MongoExpression,
+        by: AnyExpression,
     ) -> Self: ...
 
     @overload
     def group(
-        self, accumulators: list[Aliased[A_co]], /, *, by: MongoExpression
+        self, accumulators: list[Aliased[A_co]], /, *, by: AnyExpression
     ) -> Self: ...
 
     @overload
-    def group(self, *accumulators: Aliased[A_co], by: MongoExpression) -> Self: ...
+    def group(self, *accumulators: Aliased[A_co], by: AnyExpression) -> Self: ...
 
-    def group(self, *accumulators: Any, by: MongoExpression = None) -> Self:
+    def group(self, *accumulators: Any, by: AnyExpression) -> Self:
         """Group documents by a specified expression and apply accumulators."""
         if accumulators and isinstance(accumulators[0], Mapping):
             mapping: Mapping[RefLike, Accumulator | AccumulatorExpression] = (
@@ -195,11 +187,11 @@ class Pipeline(AsAlias):
         step = GroupStep(by=by, accumulators=mapping)
         return self.raw(step)
 
-    def set_field(self, field: RefLike, value: MongoExpression, /) -> Self:
+    def set_field(self, field: RefLike, value: AnyExpression, /) -> Self:
         """Add a new field or replace existing field value."""
         return self.set({field: value})
 
-    def set(self, fields: Mapping[RefLike, MongoExpression], /) -> Self:
+    def set(self, fields: Mapping[RefLike, AnyExpression], /) -> Self:
         """Add new fields or replace existing field values."""
         step = SetStep(fields=fields)
         return self.raw(step)
@@ -267,7 +259,7 @@ class Pipeline(AsAlias):
         into: str | Field,
         max_depth: int | None = None,
         depth_field: str | Field | None = None,
-        restrict_search_with_match: MongoExpression | None = None,
+        restrict_search_with_match: MongoQuery | Predicate | None = None,
     ) -> Self:
         """Perform a recursive search on a collection."""
         step = GraphLookupStep(
@@ -410,7 +402,7 @@ class MatchStep(Step):
 
 @dataclass
 class GroupStep(Step):
-    by: MongoExpression
+    by: AnyExpression
     accumulators: Mapping[RefLike, Accumulator | AccumulatorExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
@@ -465,12 +457,12 @@ class LookupStep(Step):
 class GraphLookupStep(Step):
     collection: str
     into: str | Field
-    start_with: MongoExpression | list[MongoExpression]
+    start_with: AnyExpression | list[AnyExpression]
     max_depth: int | None = None
     connect_from_field: str | Field
     connect_to_field: str | Field
     depth_field: str | Field | None = None
-    restrict_search_with_match: MongoExpression | None = None
+    restrict_search_with_match: MongoQuery | Predicate | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
         if self.depth_field:
@@ -505,10 +497,10 @@ class GraphLookupStep(Step):
 
 @dataclass
 class BucketStep(Step, Generic[T]):
-    by: MongoExpression
+    by: AnyExpression
     boundaries: list[T]
     default: str | None
-    output: Mapping[RefLike, Accumulator | MongoExpression] | None
+    output: Mapping[RefLike, Accumulator | AccumulatorExpression] | None
 
     def compile(self, context: Context) -> Iterator[Stage]:
         if isinstance(self.output, dict):
@@ -537,9 +529,9 @@ class BucketStep(Step, Generic[T]):
 
 @dataclass
 class BucketAutoStep(Step):
-    by: MongoExpression
+    by: AnyExpression
     buckets: int
-    output: Mapping[RefLike, Accumulator | MongoExpression] | None = None
+    output: Mapping[RefLike, Accumulator | AccumulatorExpression] | None = None
     granularity: str | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
@@ -567,7 +559,7 @@ class BucketAutoStep(Step):
 
 @dataclass
 class ProjectStep(Step):
-    model: type[Model] | Mapping[RefLike, MongoExpression]
+    model: type[Model] | Mapping[RefLike, AnyExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         match self.model:
@@ -609,7 +601,7 @@ class UnwindStep(Step):
 
 @dataclass
 class SetStep(Step):
-    fields: Mapping[RefLike, MongoExpression]
+    fields: Mapping[RefLike, AnyExpression]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {

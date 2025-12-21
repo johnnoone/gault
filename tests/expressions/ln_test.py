@@ -12,9 +12,9 @@ def test_expression(context, subtests: pytest.Subtests):
         assert result == {"$ln": math.nan}
 
     with subtests.test():
-        op = Ln(None)
+        op = Ln(21)
         result = op.compile_expression(context=context)
-        assert result == {"$ln": None}
+        assert result == {"$ln": 21}
 
     with subtests.test():
         op = Ln({"$divide": ["$side_b", "$hypotenuse"]})

@@ -15,9 +15,9 @@ def test_expression(context, subtests: pytest.Subtests):
         assert result == {"$abs": -1}
 
     with subtests.test():
-        op = Abs(None)
+        op = Abs("$other")
         result = op.compile_expression(context=context)
-        assert result == {"$abs": None}
+        assert result == {"$abs": "$other"}
 
     with subtests.test():
         op = Abs(12)

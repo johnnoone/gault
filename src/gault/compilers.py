@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, overload
@@ -9,14 +10,9 @@ from bson import ObjectId
 from .types import AsRef, ExpressionOperator, QueryPredicate
 
 if TYPE_CHECKING:
-    from .types import (
-        Context,
-        MongoExpression,
-        MongoField,
-        MongoPath,
-        MongoQuery,
-        RefLike,
-    )
+    from gault.inout import MongoExpression
+
+    from .types import Context, MongoField, MongoPath, MongoQuery, RefLike
 
 
 def compile_query(value: Any, *, context: Context) -> MongoQuery:
@@ -41,7 +37,7 @@ class CompilationError(Exception):
 
 @overload
 def compile_expression_multi(
-    obj: list, *, context: Context
+    obj: list[Any], *, context: Context
 ) -> list[MongoExpression]: ...
 
 
@@ -49,7 +45,9 @@ def compile_expression_multi(
 def compile_expression_multi(obj: Any, *, context: Context) -> MongoExpression: ...
 
 
-def compile_expression_multi(obj: list | Any, *, context: Context) -> MongoExpression:
+def compile_expression_multi(
+    obj: list[Any] | Any, *, context: Context
+) -> list[MongoExpression] | MongoExpression:
     if isinstance(obj, list):
         return [compile_expression(element, context=context) for element in obj]
     return compile_expression(obj, context=context)
@@ -65,7 +63,7 @@ def compile_expression(obj: Any, *, context: Context) -> MongoExpression:
             | float()
             | bool()
             | None
-            | dict()
+            | Mapping()
             | list()
             | ObjectId()
             | datetime()

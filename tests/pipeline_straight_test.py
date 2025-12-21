@@ -1,4 +1,3 @@
-import pytest
 from gault import Attribute, Model, Schema, accumulators
 from gault.expressions import Var
 from gault.pipelines import CollectionPipeline, Pipeline
@@ -35,7 +34,6 @@ class TestMatch:
             },
         ]
 
-    @pytest.mark.xfail(reason="make attributes extend fields first")
     def test_operator(self, subtests):
         class MyModel(Model, collection="coll"):
             id: Attribute[str]

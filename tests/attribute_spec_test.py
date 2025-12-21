@@ -36,9 +36,9 @@ def test_predicates(subtests, context):
         assert op == {"alias1": {"$lt": "value"}}
 
     with subtests.test(".lt(other)"):
-        predicate = attr.lt(other)
+        predicate = attr.lt(21)
         op = predicate.compile_query(context=context)
-        assert op == {"alias1": {"$lt": "value"}}
+        assert op == {"alias1": {"$lt": 21}}
 
     with subtests.test(".__le__(other)"):
         predicate = attr <= other
