@@ -37,6 +37,8 @@ if TYPE_CHECKING:
         Value,
     )
 
+    P = TypeVar("P", bound="Predicate")
+
 
 class ConditionInterface(ABC):
     @abstractmethod
@@ -200,9 +202,6 @@ class Predicate(QueryPredicate):
 
     def __or__(self, other: Predicate) -> Or:
         return Or([self, other])
-
-
-P = TypeVar("P", bound="QueryPredicate")
 
 
 class NoOp(QueryPredicate, expressions.ExpressionOperator):
