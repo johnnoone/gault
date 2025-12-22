@@ -13,6 +13,7 @@ from typing import (
     Self,
     TypeAlias,
     TypeVar,
+    cast,
     overload,
 )
 
@@ -200,9 +201,11 @@ class Pipeline(AsAlias):
         """Add a new field or replace existing field value."""
         return self.set({field: value})
 
-    def set(self, fields: Mapping[FieldLike, AnyExpression], /) -> Self:
+    def set(
+        self, fields: Mapping[FieldLike, AnyExpression] | Mapping[str, AnyExpression], /
+    ) -> Self:
         """Add new fields or replace existing field values."""
-        step = SetStep(fields=fields)
+        step = SetStep(fields=cast("Any", fields))
         return self.add_step(step)
 
     def unset(self, *fields: Field | str) -> Self:

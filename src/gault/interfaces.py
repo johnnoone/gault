@@ -36,6 +36,13 @@ class AttributeBase:
         self.name = name
         self.db_alias = db_alias or name
 
+    def __repr__(self) -> str:
+        typ = type(self).__name__
+        args = [self.owner.__name__, repr(self.name)]
+        if self.name != self.db_alias:
+            args.append(f"db_alias={self.db_alias!r}")
+        return f"{typ}({', '.join(args)})"
+
 
 class QueryPredicate(ABC):
     @abstractmethod

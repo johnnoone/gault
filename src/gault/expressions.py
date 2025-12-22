@@ -23,6 +23,7 @@ from .utils import nullfree_dict, nullfree_list, unwrap_array, unwrap_single_ele
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from .predicates import Predicate
     from .sorting import SortPayload
     from .types import (
         AnyExpression,
@@ -454,7 +455,7 @@ class ConcatArrays(ExpressionOperator):
 class Cond(ExpressionOperator):
     """Evaluates a boolean expression to return one of the two specified return expressions."""
 
-    when: BooleanExpression
+    when: BooleanExpression | Predicate
 
     then: AnyExpression
 

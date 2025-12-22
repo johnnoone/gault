@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
-from .interfaces import AsRef
+from gault.compilers import compile_field
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
@@ -44,7 +44,6 @@ def normalize_token(obj: SortToken, *, context: Context) -> Iterator[SortParam]:
         field = obj
         direction = None
 
-    if isinstance(obj, AsRef):
-        field = obj.compile_field(context=context)
+    field = compile_field(field, context=context)
 
-    yield (cast("str", field), direction or 1)
+    yield (field, direction or 1)

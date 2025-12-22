@@ -820,12 +820,12 @@ def test_tanh(var, context):
 
 
 def test_sort_array(var, context):
-    expression = var.sort_array("-name")
+    expression = var.sort_array("name")
     result = compile_expression(expression, context=context)
     assert result == {
         "$sortArray": {
             "input": "$$my_var",
-            "sortBy": {"name": -1},
+            "sortBy": {"name": 1},
         }
     }
 

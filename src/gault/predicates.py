@@ -72,11 +72,11 @@ class ConditionInterface(ABC):
         op = Eq(value)
         return self.build_condition(op)
 
-    def gt(self, value: PathLike | Number, /) -> Predicate:
+    def gt(self, value: PathLike | Value, /) -> Predicate:
         op = Gt(value)
         return self.build_condition(op)
 
-    def gte(self, value: PathLike | Number, /) -> Predicate:
+    def gte(self, value: PathLike | Value, /) -> Predicate:
         op = Gte(value)
         return self.build_condition(op)
 
@@ -84,11 +84,11 @@ class ConditionInterface(ABC):
         op = In(*values)
         return self.build_condition(op)
 
-    def lt(self, value: PathLike | Number, /) -> Predicate:
+    def lt(self, value: PathLike | Value, /) -> Predicate:
         op = Lt(value)
         return self.build_condition(op)
 
-    def lte(self, value: PathLike | Number, /) -> Predicate:
+    def lte(self, value: PathLike | Value, /) -> Predicate:
         op = Lte(value)
         return self.build_condition(op)
 
@@ -509,7 +509,7 @@ class Eq(Operator, AsExpression):
 class Gt(Operator):
     """Matches documents where the value of the specified field is greater than the specified value."""
 
-    value: PathLike | Number
+    value: PathLike | Value
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -528,7 +528,7 @@ class Gt(Operator):
 class Gte(Operator, AsExpression):
     """Matches documents where the value of the specified field is greater than or equal to a specified value."""
 
-    value: PathLike | Number
+    value: PathLike | Value
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -575,7 +575,7 @@ class In(Operator, AsExpression):
 class Lt(Operator, AsExpression):
     """Matches documents where the value of the specified field is less than the specified value."""
 
-    value: PathLike | Number
+    value: PathLike | Value
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -594,7 +594,7 @@ class Lt(Operator, AsExpression):
 class Lte(Operator, AsExpression):
     """Matches documents where the value of the specified field is less than or equal to a specified value."""
 
-    value: PathLike | Number
+    value: PathLike | Value
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {

@@ -115,11 +115,11 @@ def test_sample():
 
 def test_sort():
     pipeline = Pipeline()
-    pipeline = pipeline.sort("-name")
+    pipeline = pipeline.sort("name")
     result = pipeline.build()
     assert result == [
         {
-            "$sort": {"name": -1},
+            "$sort": {"name": 1},
         },
     ]
 

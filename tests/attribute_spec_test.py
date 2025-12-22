@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import date
 
 from gault.models import AttributeSpec, Schema
 
@@ -30,6 +31,11 @@ def test_predicates(subtests, context):
         op = predicate.compile_query(context=context)
         assert op == {"alias1": {"$ne": "value"}}
 
+    with subtests.test(".ne(other)"):
+        predicate = attr.ne(None)
+        op = predicate.compile_query(context=context)
+        assert op == {"alias1": {"$ne": None}}
+
     with subtests.test(".__lt__(other)"):
         predicate = attr < other
         op = predicate.compile_query(context=context)
@@ -57,6 +63,11 @@ def test_predicates(subtests, context):
 
     with subtests.test(".gte(other)"):
         predicate = attr.gte(other)
+        op = predicate.compile_query(context=context)
+        assert op == {"alias1": {"$gte": "value"}}
+
+    with subtests.test(".gte(date)"):
+        predicate = attr.gte(date(2020, 12, 31))
         op = predicate.compile_query(context=context)
         assert op == {"alias1": {"$gte": "value"}}
 
