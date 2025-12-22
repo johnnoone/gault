@@ -69,7 +69,7 @@ def test_predicates(subtests, context):
     with subtests.test(".gte(date)"):
         predicate = attr.gte(date(2020, 12, 31))
         op = predicate.compile_query(context=context)
-        assert op == {"alias1": {"$gte": "value"}}
+        assert op == {"alias1": {"$gte": date(2020, 12, 31)}}
 
     with subtests.test(".in_(other)"):
         predicate = attr.in_(other)

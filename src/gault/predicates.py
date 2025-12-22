@@ -11,6 +11,7 @@ from .compilers import compile_expression, compile_field, compile_query
 from .geo import compile_geo
 from .interfaces import (
     AsRef,
+    Assignable,
     FieldSortInterface,
     InclusionInterface,
     QueryPredicate,
@@ -169,6 +170,7 @@ class Field(
     SubfieldInterface,
     NotInterface,
     InclusionInterface,
+    Assignable,
 ):
     name: str
 

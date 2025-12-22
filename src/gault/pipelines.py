@@ -111,15 +111,33 @@ class Pipeline(AsAlias):
         step = SortStep(payload)  # ty:ignore[invalid-argument-type]
         return self.add_step(step)
 
+    @overload
+    def project(self, *projections: Aliased[AnyExpression]) -> Self: ...
+
+    @overload
     def project(
         self,
         projection: type[Model]
         | Mapping[FieldLike, AnyExpression]
-        | list[tuple[FieldLike, AnyExpression]],
+        | list[Aliased[AnyExpression]],
         /,
-    ) -> Self:
+    ) -> Self: ...
+
+    def project(self, *projections: Any) -> Self:
         """Reshape documents by including, excluding, or adding fields."""
-        step = ProjectStep(projection)
+        if projections and (
+            isinstance(projections[0], Mapping)
+            or (
+                projections
+                and isinstance(projections[0], type)
+                and issubclass(projections[0], Model)
+            )
+        ):
+            spec: Any = projections[0]
+        else:
+            spec = unwrap_array(projections)
+
+        step = ProjectStep(spec)
         return self.add_step(step)
 
     def bucket(
@@ -586,19 +604,17 @@ class BucketAutoStep(Step):
 @dataclass
 class ProjectStep(Step):
     projection: (
-        type[Model]
-        | Mapping[FieldLike, AnyExpression]
-        | list[tuple[FieldLike, AnyExpression]]
+        type[Model] | Mapping[FieldLike, AnyExpression] | list[Aliased[AnyExpression]]
     )
 
     def compile(self, context: Context) -> Iterator[Stage]:
         match self.projection:
             case list():
                 projection = {
-                    compile_field(field, context=context): compile_expression(
-                        expr, context=context
+                    compile_field(alias.ref, context=context): compile_expression(
+                        alias.value, context=context
                     )
-                    for field, expr in self.projection
+                    for alias in self.projection
                 }
 
             case Mapping():

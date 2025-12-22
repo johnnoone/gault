@@ -1,8 +1,7 @@
 import pytest
-
 from gault.compilers import compile_query
-from gault.predicates import Field, Gte
-from gault.predicates import Eq
+from gault.interfaces import Aliased
+from gault.predicates import Eq, Field, Gte
 
 
 @pytest.fixture(name="field")
@@ -289,14 +288,14 @@ def test_not_gte(field, context, subtests):
 
 def test_keep(field: Field):
     struct = field.keep()
-    assert struct == (field, True)
+    assert struct == Aliased(field, True)
 
 
 def test_keep_alias(field: Field):
     struct = field.keep(alias="other")
-    assert struct == ("other", field)
+    assert struct == Aliased("other", field)
 
 
 def test_remove(field: Field):
     struct = field.remove()
-    assert struct == (field, "$$REMOVE")
+    assert struct == Aliased(field, "$$REMOVE")

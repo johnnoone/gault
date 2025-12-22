@@ -124,7 +124,7 @@ def test_sort():
     ]
 
 
-def test_project(subtests):
+def test_project_dict_projection(subtests):
     with subtests.test("dict projection"):
         pipeline = Pipeline()
         pipeline = pipeline.project(
@@ -146,11 +146,38 @@ def test_project(subtests):
             },
         ]
 
+
+def test_project_wrapped_projection(subtests):
     with subtests.test("list projection"):
         pipeline = Pipeline()
         pipeline = pipeline.project(
+            Field("attr1").keep(),
+            Field("attr2").keep(),
+            Field("attr3").keep(alias="my_alias"),
+            Field("attr4").remove(),
+            Field("attr5").assign(input="Some Value"),
+        )
+        result = pipeline.build()
+        assert result == [
+            {
+                "$project": {
+                    "_id": False,
+                    "attr1": True,
+                    "attr2": True,
+                    "my_alias": "$attr3",
+                    "attr4": "$$REMOVE",
+                    "attr5": "Some Value",
+                }
+            },
+        ]
+
+
+def test_project_list_projection(subtests):
+    with subtests.test("wrapped projection"):
+        pipeline = Pipeline()
+        pipeline = pipeline.project(
             [
-                (Field("attr1"), True),
+                Field("attr1").keep(),
                 Field("attr2").keep(),
                 Field("attr3").keep(alias="my_alias"),
                 Field("attr4").remove(),

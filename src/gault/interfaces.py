@@ -24,7 +24,6 @@ T_co = TypeVar("T_co", covariant=True)
 if TYPE_CHECKING:
     from .models import Model
     from .types import (
-        AnyExpression,
         Context,
         Direction,
         FieldLike,
@@ -77,6 +76,11 @@ class AsAlias:
         return Aliased(ref, self)
 
 
+class Assignable:
+    def assign(self, input: T) -> Aliased[T]:
+        return Aliased(cast("Any", self), input)
+
+
 @ExpressionOperator.register
 @QueryPredicate.register
 class AsRef(ABC):
@@ -110,10 +114,10 @@ ProjectSelector: TypeAlias = tuple[Any, Any]
 
 class InclusionInterface:
     @overload
-    def keep(self, *, alias: None = None) -> tuple[Self, Literal[True]]: ...
+    def keep(self, *, alias: None = None) -> Aliased[Literal[True]]: ...
 
     @overload
-    def keep(self, *, alias: FieldLike) -> tuple[FieldLike, Self]: ...
+    def keep(self, *, alias: FieldLike) -> Aliased[Self]: ...
 
     def keep(self, *, alias: FieldLike | None = None) -> Any:
         if alias is not None:
@@ -122,13 +126,10 @@ class InclusionInterface:
         else:
             ref = self
             val = True
-        return (ref, val)
+        return Aliased(cast("Any", ref), val)
 
-    def remove(self) -> tuple[Self, Literal["$$REMOVE"]]:
-        return (self, "$$REMOVE")
-
-    def assign(self, input: AnyExpression) -> tuple[Self, AnyExpression]:
-        return (self, input)
+    def remove(self) -> Aliased[Literal["$$REMOVE"]]:
+        return Aliased(cast("Any", self), "$$REMOVE")
 
 
 class TempFieldInterface:
