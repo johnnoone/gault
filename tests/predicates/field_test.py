@@ -285,3 +285,18 @@ def test_not_gte(field, context, subtests):
                 "$not": {"$gte": 1},
             }
         }
+
+
+def test_keep(field: Field):
+    struct = field.keep()
+    assert struct == (field, True)
+
+
+def test_keep_alias(field: Field):
+    struct = field.keep(alias="other")
+    assert struct == ("other", field)
+
+
+def test_remove(field: Field):
+    struct = field.remove()
+    assert struct == (field, "$$REMOVE")

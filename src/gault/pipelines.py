@@ -112,10 +112,14 @@ class Pipeline(AsAlias):
         return self.add_step(step)
 
     def project(
-        self, model: type[Model] | Mapping[FieldLike, AnyExpression], /
+        self,
+        projection: type[Model]
+        | Mapping[FieldLike, AnyExpression]
+        | list[tuple[FieldLike, AnyExpression]],
+        /,
     ) -> Self:
         """Reshape documents by including, excluding, or adding fields."""
-        step = ProjectStep(model)
+        step = ProjectStep(projection)
         return self.add_step(step)
 
     def bucket(
@@ -581,14 +585,31 @@ class BucketAutoStep(Step):
 
 @dataclass
 class ProjectStep(Step):
-    model: type[Model] | Mapping[FieldLike, AnyExpression]
+    projection: (
+        type[Model]
+        | Mapping[FieldLike, AnyExpression]
+        | list[tuple[FieldLike, AnyExpression]]
+    )
 
     def compile(self, context: Context) -> Iterator[Stage]:
-        match self.model:
+        match self.projection:
+            case list():
+                projection = {
+                    compile_field(field, context=context): compile_expression(
+                        expr, context=context
+                    )
+                    for field, expr in self.projection
+                }
+
             case Mapping():
-                projection = dict(self.model)
+                projection = {
+                    compile_field(field, context=context): compile_expression(
+                        expr, context=context
+                    )
+                    for field, expr in self.projection.items()
+                }
             case _:
-                projection = dict.fromkeys(get_mapper(self.model).db_fields, True)
+                projection = dict.fromkeys(get_mapper(self.projection).db_fields, True)
         yield {"$project": {"_id": False} | projection}
 
 

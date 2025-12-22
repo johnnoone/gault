@@ -12,6 +12,7 @@ from .geo import compile_geo
 from .interfaces import (
     AsRef,
     FieldSortInterface,
+    InclusionInterface,
     QueryPredicate,
     SubfieldInterface,
     TempFieldInterface,
@@ -167,6 +168,7 @@ class Field(
     TempFieldInterface,
     SubfieldInterface,
     NotInterface,
+    InclusionInterface,
 ):
     name: str
 

@@ -13,6 +13,7 @@ from .interfaces import (
     AsAlias,
     AsRef,
     FieldSortInterface,
+    InclusionInterface,
     SubfieldInterface,
     TempFieldInterface,
 )
@@ -3287,6 +3288,7 @@ class Var(
     FieldSortInterface,
     SubfieldInterface,
     TempFieldInterface,
+    InclusionInterface,
 ):
     name: str
 

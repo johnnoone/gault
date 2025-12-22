@@ -149,16 +149,12 @@ async def test_sample(manager: AsyncManager, instances):
 async def test_sort(manager: AsyncManager, instances, subtests):
     with subtests.test("Attribute.asc()"):
         pipeline = Pipeline().sort(MyModel.name.asc())
-        print("pipeline", pipeline)
-        print(pipeline.build())
         iterator = manager.select(MyModel, pipeline)
         persisted = [instance async for instance in iterator]
         assert persisted == sorted(instances, key=lambda x: x.name)
 
     with subtests.test("Attribute.desc()"):
         pipeline = Pipeline().sort(MyModel.name.desc())
-        print("pipeline", pipeline)
-        print(pipeline.build())
         iterator = manager.select(MyModel, pipeline)
         persisted = [instance async for instance in iterator]
         assert persisted == sorted(instances, key=lambda x: x.name, reverse=True)

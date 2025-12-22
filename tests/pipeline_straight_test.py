@@ -125,9 +125,15 @@ def test_sort():
 
 
 def test_project(subtests):
-    with subtests.test("project dict"):
+    with subtests.test("dict projection"):
         pipeline = Pipeline()
-        pipeline = pipeline.project({"attr1": True, "attr2": False})
+        pipeline = pipeline.project(
+            {
+                "attr1": True,
+                "attr2": False,
+                Field("attr3"): True,
+            }
+        )
         result = pipeline.build()
         assert result == [
             {
@@ -135,6 +141,32 @@ def test_project(subtests):
                     "_id": False,
                     "attr1": True,
                     "attr2": False,
+                    "attr3": True,
+                }
+            },
+        ]
+
+    with subtests.test("list projection"):
+        pipeline = Pipeline()
+        pipeline = pipeline.project(
+            [
+                (Field("attr1"), True),
+                Field("attr2").keep(),
+                Field("attr3").keep(alias="my_alias"),
+                Field("attr4").remove(),
+                Field("attr5").assign(input="Some Value"),
+            ]
+        )
+        result = pipeline.build()
+        assert result == [
+            {
+                "$project": {
+                    "_id": False,
+                    "attr1": True,
+                    "attr2": True,
+                    "my_alias": "$attr3",
+                    "attr4": "$$REMOVE",
+                    "attr5": "Some Value",
                 }
             },
         ]

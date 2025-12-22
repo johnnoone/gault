@@ -6,9 +6,12 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
+    Literal,
     Self,
+    TypeAlias,
     TypeVar,
     cast,
+    overload,
 )
 
 from bson import ObjectId
@@ -20,7 +23,14 @@ T_co = TypeVar("T_co", covariant=True)
 
 if TYPE_CHECKING:
     from .models import Model
-    from .types import Context, Direction, MongoExpression, MongoQuery
+    from .types import (
+        AnyExpression,
+        Context,
+        Direction,
+        FieldLike,
+        MongoExpression,
+        MongoQuery,
+    )
 
 
 class AttributeBase:
@@ -58,7 +68,7 @@ class ExpressionOperator(ABC):
 
 @dataclass
 class Aliased(Generic[T_co]):
-    ref: str
+    ref: FieldLike
     value: T_co
 
 
@@ -93,6 +103,32 @@ class FieldSortInterface:
     def by_score(self, name: str) -> tuple[Self, Direction]:
         # generate sort token
         return (self, {"$meta": name})
+
+
+ProjectSelector: TypeAlias = tuple[Any, Any]
+
+
+class InclusionInterface:
+    @overload
+    def keep(self, *, alias: None = None) -> tuple[Self, Literal[True]]: ...
+
+    @overload
+    def keep(self, *, alias: FieldLike) -> tuple[FieldLike, Self]: ...
+
+    def keep(self, *, alias: FieldLike | None = None) -> Any:
+        if alias is not None:
+            ref: Any = alias
+            val: Any = self
+        else:
+            ref = self
+            val = True
+        return (ref, val)
+
+    def remove(self) -> tuple[Self, Literal["$$REMOVE"]]:
+        return (self, "$$REMOVE")
+
+    def assign(self, input: AnyExpression) -> tuple[Self, AnyExpression]:
+        return (self, input)
 
 
 class TempFieldInterface:
