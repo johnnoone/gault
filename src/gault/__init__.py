@@ -20,5 +20,5 @@ from .models import get_collection as get_collection
 from .models import get_schema as get_schema
 from .pipelines import CollectionPipeline as CollectionPipeline
 from .pipelines import Pipeline as Pipeline
-from .predicates import Begin as Begin
 from .predicates import Field as Field
+from .predicates import Query as Query

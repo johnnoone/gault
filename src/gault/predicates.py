@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, Any, TypeVar, cast, overload
 
 from . import expressions
 from .compilers import compile_expression, compile_field, compile_query
@@ -202,20 +202,38 @@ class Predicate(QueryPredicate):
         return Or([self, other])
 
 
-class Begin(QueryPredicate):
-    def __and__(self, other: Predicate) -> And:
-        return And([other])
+P = TypeVar("P", bound="QueryPredicate")
 
-    def __or__(self, other: Predicate) -> Or:
-        return Or([other])
+
+class NoOp(QueryPredicate, expressions.ExpressionOperator):
+    def __and__(self, other: P) -> P:
+        return other
+
+    def __or__(self, other: P) -> P:
+        return other
 
     def compile_query(self, *, context: Context) -> MongoQuery:
         return {}
+
+    def compile_expression(self, context: Context) -> Output:
+        return {}
+
+
+def Query() -> Predicate:  # noqa: N802
+    return NoOp()  # type: ignore[return-value]
 
 
 class Operator(QueryPredicate):
     def __invert__(self) -> Operator:
         return Not(self)
+
+
+@dataclass
+class Raw(Predicate):
+    query: MongoQuery
+
+    def compile_query(self, context: Context) -> MongoQuery:
+        return self.query
 
 
 @dataclass
