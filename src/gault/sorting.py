@@ -1,31 +1,28 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeAlias, assert_never, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 from .interfaces import AsRef
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
 
-    from .types import Context, Direction
+    from .types import Context, Direction, FieldLike, FieldString
 
-    Sort: TypeAlias = Mapping[str, Direction]
-    SortParam: TypeAlias = tuple[str, Direction]
-    SortValue: TypeAlias = int | str | Direction | None
-    SortField: TypeAlias = AsRef | str
-    SortToken: TypeAlias = SortField | tuple[SortField, SortValue]
-    SortPayload: TypeAlias = SortToken | list[SortToken] | Mapping[SortField, SortValue]
+    Sort: TypeAlias = Mapping[FieldString, Direction]
+    SortParam: TypeAlias = tuple[FieldString, Direction]
+
+    SortToken: TypeAlias = FieldLike | tuple[FieldLike, Direction | None]
+    SortPayload: TypeAlias = (
+        SortToken | list[SortToken] | Mapping[FieldLike, Direction | None]
+    )
 
 
 def normalize_sort(obj: SortPayload | None, *, context: Context) -> Sort | None:
     token: SortToken
     normalized: list[SortParam] = []
+
     match obj:
-        case str(tokens) if obj:
-            for token in tokens.split(","):
-                normalized += normalize_token(token, context=context)
-        case tuple(token):
-            normalized += normalize_token(token, context=context)
         case list(tokens):
             for token in tokens:
                 normalized += normalize_token(token, context=context)
@@ -38,19 +35,16 @@ def normalize_sort(obj: SortPayload | None, *, context: Context) -> Sort | None:
 
 
 def normalize_token(obj: SortToken, *, context: Context) -> Iterator[SortParam]:
-    if False:
-        yield
+    if not obj:
+        return
 
-    match obj:
-        case str(obj) if obj.startswith("-"):
-            yield (obj[1:], -1)
-        case str(obj) if obj:
-            yield (obj, 1)
-        case AsRef() as ref:
-            yield (ref.compile_field(context=context), 1)
-        case tuple([AsRef() as ref, _ as direction]):
-            yield (ref.compile_field(context=context), direction or 1)
-        case tuple([str() as key, _ as direction]):
-            yield (key, direction or 1)
-        case _:
-            assert_never(obj)  # ty:ignore[type-assertion-failure]
+    if isinstance(obj, tuple):
+        field, direction = obj
+    else:
+        field = obj
+        direction = None
+
+    if isinstance(obj, AsRef):
+        field = obj.compile_field(context=context)
+
+    yield (cast("str", field), direction or 1)

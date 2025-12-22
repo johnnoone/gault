@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
     from .predicates import Field, Predicate
-    from .sorting import SortField, SortPayload, SortToken, SortValue
+    from .sorting import SortPayload, SortToken
     from .types import (
         AccumulatorExpression,
         AnyExpression,
@@ -74,7 +74,7 @@ class Pipeline(AsAlias):
     def match(self, query: dict | Predicate, /) -> Self:
         """Filter documents matching the specified condition(s)."""
         step = MatchStep(query=query)
-        return self.raw(step)
+        return self.add_step(step)
 
     def skip(self, size: PositiveInteger, /) -> Self:
         """Skip the first n documents."""
@@ -98,7 +98,7 @@ class Pipeline(AsAlias):
     def sort(self, tokens: list[SortToken]) -> Self: ...
 
     @overload
-    def sort(self, spec: Mapping[SortField, SortValue], /) -> Self: ...
+    def sort(self, tokens: SortPayload) -> Self: ...
 
     def sort(self, *spec: SortPayload) -> Self:  # type: ignore[misc]
         """Reorder documents by the specified sort key."""
@@ -108,14 +108,14 @@ class Pipeline(AsAlias):
         else:
             payload = list(spec)
         step = SortStep(payload)  # ty:ignore[invalid-argument-type]
-        return self.raw(step)
+        return self.add_step(step)
 
     def project(
         self, model: type[Model] | Mapping[FieldLike, AnyExpression], /
     ) -> Self:
         """Reshape documents by including, excluding, or adding fields."""
         step = ProjectStep(model)
-        return self.raw(step)
+        return self.add_step(step)
 
     def bucket(
         self,
@@ -132,7 +132,7 @@ class Pipeline(AsAlias):
             default=default,
             output=output,
         )
-        return self.raw(step)
+        return self.add_step(step)
 
     def bucket_auto(
         self,
@@ -164,7 +164,7 @@ class Pipeline(AsAlias):
             output=output,
             granularity=granularity,
         )
-        return self.raw(step)
+        return self.add_step(step)
 
     @overload
     def group(
@@ -194,7 +194,7 @@ class Pipeline(AsAlias):
                 aliased.ref: aliased.value for aliased in unwrap_array(accumulators)
             }
         step = GroupStep(by=by, accumulators=mapping)
-        return self.raw(step)
+        return self.add_step(step)
 
     def set_field(self, field: FieldLike, value: AnyExpression, /) -> Self:
         """Add a new field or replace existing field value."""
@@ -203,12 +203,12 @@ class Pipeline(AsAlias):
     def set(self, fields: Mapping[FieldLike, AnyExpression], /) -> Self:
         """Add new fields or replace existing field values."""
         step = SetStep(fields=fields)
-        return self.raw(step)
+        return self.add_step(step)
 
     def unset(self, *fields: Field | str) -> Self:
         """Remove specified fields from documents."""
         step = UnsetStep(fields=list(fields))
-        return self.raw(step)
+        return self.add_step(step)
 
     def unwind(
         self,
@@ -224,12 +224,12 @@ class Pipeline(AsAlias):
             include_array_index=include_array_index,
             preserve_null_and_empty_arrays=preserve_null_and_empty_arrays,
         )
-        return self.raw(step)
+        return self.add_step(step)
 
     def count(self, output: Field | str, /) -> Self:
         """Return a count of the number of documents at this stage."""
         step = CountStep(output)
-        return self.raw(step)
+        return self.add_step(step)
 
     def replace_with(self, expr: Any, /) -> Self:
         """Replace the input document with the specified document."""
@@ -281,7 +281,7 @@ class Pipeline(AsAlias):
             depth_field=depth_field,
             restrict_search_with_match=restrict_search_with_match,
         )
-        return self.raw(step)
+        return self.add_step(step)
 
     def lookup(
         self,
@@ -313,7 +313,7 @@ class Pipeline(AsAlias):
             into=into,
         )
 
-        return self.raw(step)
+        return self.add_step(step)
 
     @overload
     def facet(self, facets: Mapping[str, Pipeline], /) -> Self: ...
@@ -331,12 +331,22 @@ class Pipeline(AsAlias):
                 mapping[aliased.ref] = aliased.value
 
         step = FacetStep(facets=mapping)
-        return self.raw(step)
+        return self.add_step(step)
 
-    def raw(self, stage: Step | Stage, /) -> Self:
-        if not isinstance(stage, Step):
-            stage = RawStep(stage)
-        return replace(self, steps=[*self.steps, stage])
+    def raw(self, *stages: Stage | Step) -> Self:
+        def to_step(obj: Stage | Step) -> Step:
+            if not isinstance(obj, Step):
+                return RawStep(obj)
+            return obj
+
+        steps = []
+        for stage in stages:
+            step = to_step(stage)
+            steps.append(step)
+        return replace(self, steps=[*self.steps, *steps])
+
+    def add_step(self, step: Step, /) -> Self:
+        return replace(self, steps=[*self.steps, step])
 
     def build(self, *, context: Context | None = None) -> list[Stage]:
         context = context or {}

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any, Literal, TypeAlias
+from typing import TYPE_CHECKING, Annotated, Any, Literal, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -45,11 +45,12 @@ if TYPE_CHECKING:
 
     Value: TypeAlias = Any
 
-    HasDollar = Predicate(lambda x: str.startswith(x, "$"))
-    HasNotDollar = Predicate(lambda x: not str.startswith(x, "$"))
-    DollarString = Annotated[str, HasDollar]
-    PathString: TypeAlias = Annotated[str, HasDollar]
-    FieldString: TypeAlias = Annotated[str, HasNotDollar]
+    Prefixed = Predicate(lambda x: str.startswith(x, "$"))
+    NotPrefixed = Predicate(lambda x: not str.startswith(x, "$"))
+
+    PrefixedString = Annotated[str, Prefixed]
+    PathString: TypeAlias = Annotated[str, Prefixed]
+    FieldString: TypeAlias = Annotated[str, NotPrefixed]
 
     PathLike: TypeAlias = PathString | AsRef
     FieldLike: TypeAlias = "FieldString" | AsRef
@@ -89,7 +90,7 @@ if TYPE_CHECKING:
         Regex | PathLike | MongoPurExpression | ExpressionOperator
     )
 
-    AccumulatorExpression: TypeAlias = Mapping[DollarString, Any]
+    AccumulatorExpression: TypeAlias = Mapping[PrefixedString, Any]
 
     Context: TypeAlias = Any
 
@@ -118,5 +119,10 @@ if TYPE_CHECKING:
         "sunday",
     ]
     MongoQuery: TypeAlias = Mapping[str, Any]
-    Direction: TypeAlias = Literal[1, -1] | Mapping[str, Any]
+
+    SortMeta = TypedDict("SortMeta", {"$meta": str})
+    SortAsc: TypeAlias = Literal[1]
+    SortDesc: TypeAlias = Literal[-1]
+    Direction: TypeAlias = SortAsc | SortDesc | SortMeta
+
     PositiveInteger: TypeAlias = Annotated[int, Ge(0)]
