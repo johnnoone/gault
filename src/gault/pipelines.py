@@ -223,11 +223,23 @@ class Pipeline(AsAlias):
         """Add a new field or replace existing field value."""
         return self.set({field: value})
 
-    def set(
-        self, fields: Mapping[FieldLike, AnyExpression] | Mapping[str, AnyExpression], /
-    ) -> Self:
+    @overload
+    def set(self, field: Mapping[FieldLike, AnyExpression], /) -> Self: ...
+
+    @overload
+    def set(self, field: list[Aliased[AnyExpression]], /) -> Self: ...
+
+    @overload
+    def set(self, *fields: Aliased[AnyExpression]) -> Self: ...
+
+    def set(self, *fields: Any) -> Self:
         """Add new fields or replace existing field values."""
-        step = SetStep(fields=cast("Any", fields))
+        if fields and isinstance(fields[0], Mapping):
+            mapping: Mapping[FieldLike, Accumulator | AccumulatorExpression] = fields[0]
+        else:
+            mapping = {aliased.ref: aliased.value for aliased in unwrap_array(fields)}
+
+        step = SetStep(fields=mapping)
         return self.add_step(step)
 
     def unset(self, *fields: Field | str) -> Self:

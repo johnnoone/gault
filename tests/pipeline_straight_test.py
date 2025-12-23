@@ -375,9 +375,45 @@ def test_set_field():
     ]
 
 
-def test_set():
+def test_set_mapping():
     pipeline = Pipeline()
-    pipeline = pipeline.set({"attr1": "value"})
+    pipeline = pipeline.set(
+        {
+            "attr1": "value",
+        }
+    )
+    result = pipeline.build()
+    assert result == [
+        {
+            "$set": {
+                "attr1": "value",
+            }
+        },
+    ]
+
+
+def test_set_list():
+    pipeline = Pipeline()
+    pipeline = pipeline.set(
+        [
+            Field("attr1").assign("value"),
+        ]
+    )
+    result = pipeline.build()
+    assert result == [
+        {
+            "$set": {
+                "attr1": "value",
+            }
+        },
+    ]
+
+
+def test_set_unwrapped():
+    pipeline = Pipeline()
+    pipeline = pipeline.set(
+        Field("attr1").assign("value"),
+    )
     result = pipeline.build()
     assert result == [
         {
