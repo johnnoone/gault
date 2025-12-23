@@ -52,7 +52,14 @@ if TYPE_CHECKING:
 
 
 class ExpressionOperator(_ExpressionOperator, AsAlias):
-    pass
+    def __and__(self, other: ExpressionOperator) -> ExpressionOperator:
+        return And(self, other)
+
+    def __or__(self, other: ExpressionOperator) -> ExpressionOperator:
+        return Or(self, other)
+
+    def __invert__(self) -> ExpressionOperator:
+        return Not(self)
 
 
 @dataclass()
@@ -156,6 +163,9 @@ class And(ExpressionOperator):
             msg = "Multiple inputs is required."
             raise ValueError(msg)
         self.inputs = others
+
+    def __and__(self, other: ExpressionOperator) -> ExpressionOperator:
+        return And(*self.inputs, other)
 
     def compile_expression(self, *, context: Context) -> MongoPurExpression:
         return {
@@ -1687,12 +1697,29 @@ class Not(ExpressionOperator):
 
     input: AnyExpression
 
+    def __invert__(self) -> ExpressionOperator:
+        match self.input:
+            case Raw():
+                return self.input
+            case _:
+                return Raw(self.input)
+
     def compile_expression(self, *, context: Context) -> MongoPurExpression:
         return {
             "$not": [
                 compile_expression(self.input, context=context),
             ],
         }
+
+
+@dataclass
+class Raw(ExpressionOperator):
+    """Evaluates a boolean and returns the opposite boolean value."""
+
+    input: AnyExpression
+
+    def compile_expression(self, *, context: Context) -> MongoPurExpression:
+        return compile_expression(self.input, context=context)  # type: ignore[return-value]
 
 
 @dataclass
@@ -1718,6 +1745,9 @@ class Or(ExpressionOperator):
             msg = "Values is required."
             raise ValueError(msg)
         self.inputs = others
+
+    def __or__(self, other: ExpressionOperator) -> ExpressionOperator:
+        return Or(*self.inputs, other)
 
     def compile_expression(self, *, context: Context) -> MongoPurExpression:
         return {

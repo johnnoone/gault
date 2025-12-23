@@ -12,6 +12,7 @@ from .geo import compile_geo
 from .interfaces import (
     AsRef,
     Assignable,
+    ExpressionOperator,
     FieldSortInterface,
     InclusionInterface,
     QueryPredicate,
@@ -204,7 +205,7 @@ class Predicate(QueryPredicate):
         return Or([self, other])
 
 
-class NoOp(QueryPredicate, expressions.ExpressionOperator):
+class NoOp(QueryPredicate, ExpressionOperator):
     def __and__(self, other: P) -> P:
         return other
 
@@ -236,7 +237,7 @@ class Raw(Predicate):
 
 
 @dataclass
-class Condition(Predicate, expressions.ExpressionOperator):
+class Condition(Predicate, ExpressionOperator):
     field: str | AsRef
     op: Operator
 
@@ -257,7 +258,7 @@ class Condition(Predicate, expressions.ExpressionOperator):
 
 
 @dataclass
-class And(Predicate, expressions.ExpressionOperator):
+class And(Predicate, ExpressionOperator):
     """Selects the documents that satisfy all the expressions."""
 
     predicates: list[Predicate | MongoQuery]
@@ -346,7 +347,7 @@ class Not(Operator):
 
 
 @dataclass
-class Or(Predicate):
+class Or(Predicate, ExpressionOperator):
     """Selects the documents that satisfy at least one of the predicates."""
 
     predicates: list[Predicate | MongoQuery]
