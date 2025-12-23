@@ -958,8 +958,8 @@ class Gt(ExpressionOperator):
     - `false` when the first value is less than or equal to the second value
     """
 
-    lhs: NumberExpression
-    rhs: NumberExpression
+    lhs: AnyExpression
+    rhs: AnyExpression
 
     def compile_expression(self, *, context: Context) -> MongoPurExpression:
         return {
@@ -979,8 +979,8 @@ class Gte(ExpressionOperator):
     - `false` when the first value is less than or equal to the second value
     """
 
-    lhs: NumberExpression
-    rhs: NumberExpression
+    lhs: AnyExpression
+    rhs: AnyExpression
 
     def compile_expression(self, *, context: Context) -> MongoPurExpression:
         return {
@@ -1345,8 +1345,8 @@ class Lt(ExpressionOperator):
     - `false` when the first value is greater than or equivalent to the second value
     """
 
-    lhs: NumberExpression
-    rhs: NumberExpression
+    lhs: AnyExpression
+    rhs: AnyExpression
 
     def compile_expression(self, *, context: Context) -> MongoPurExpression:
         return {
@@ -2921,10 +2921,10 @@ class ExpressionsInterface:
     def get_field(self, field: str) -> GetField:
         return GetField(cast("Any", self), field=field)
 
-    def gt(self, other: NumberExpression) -> Gt:
+    def gt(self, other: AnyExpression) -> Gt:
         return Gt(cast("Any", self), other)
 
-    def gte(self, other: NumberExpression) -> Gte:
+    def gte(self, other: AnyExpression) -> Gte:
         return Gte(cast("Any", self), other)
 
     def hour(self) -> Hour:
@@ -3005,10 +3005,10 @@ class ExpressionsInterface:
     def rtrim(self, chars: StringExpression) -> Rtrim:
         return Rtrim(cast("Any", self), chars=chars)
 
-    def lt(self, other: NumberExpression) -> Lt:
+    def lt(self, other: AnyExpression) -> Lt:
         return Lt(cast("Any", self), other)
 
-    def lte(self, other: NumberExpression) -> Lte:
+    def lte(self, other: AnyExpression) -> Lte:
         return Lte(cast("Any", self), other)
 
     def map(
