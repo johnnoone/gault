@@ -13,7 +13,6 @@ from typing import (
     Self,
     TypeAlias,
     TypeVar,
-    cast,
     overload,
 )
 
@@ -299,12 +298,12 @@ class Pipeline(AsAlias):
         self,
         other: type[Model],
         /,
-        start_with: str | Field,
-        local_field: str | Field,
-        foreign_field: str | Field,
-        into: str | Field,
+        start_with: FieldLike,
+        local_field: FieldLike,
+        foreign_field: FieldLike,
+        into: FieldLike,
         max_depth: int | None = None,
-        depth_field: str | Field | None = None,
+        depth_field: FieldLike | None = None,
         restrict_search_with_match: MongoQuery | Predicate | None = None,
     ) -> Self:
         """Perform a recursive search on a collection."""
@@ -325,9 +324,9 @@ class Pipeline(AsAlias):
         other: CollectionPipeline | DocumentsPipeline | type[Model],
         /,
         *,
-        local_field: str | Field | None = None,
-        foreign_field: str | Field | None = None,
-        into: str | Field,
+        local_field: FieldLike | None = None,
+        foreign_field: FieldLike | None = None,
+        into: FieldLike,
     ) -> Self:
         """Perform a left outer join to another collection."""
         pipeline: Pipeline | None
@@ -478,10 +477,10 @@ class GroupStep(Step):
 @dataclass
 class LookupStep(Step):
     collection: str | None
-    into: str | Field
+    into: FieldLike
     pipeline: Pipeline | None = None
-    local_field: str | Field | None = None
-    foreign_field: str | Field | None = None
+    local_field: FieldLike | None = None
+    foreign_field: FieldLike | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
         pipeline = self.pipeline.build(context=context) if self.pipeline else None
@@ -503,7 +502,7 @@ class LookupStep(Step):
                     "localField": local_field,
                     "foreignField": foreign_field,
                     "pipeline": pipeline,
-                    "as": self.into,
+                    "as": compile_field(self.into, context=context),
                 }
             )
         }
@@ -512,12 +511,12 @@ class LookupStep(Step):
 @dataclass(kw_only=True)
 class GraphLookupStep(Step):
     collection: str
-    into: str | Field
+    into: FieldLike
     start_with: AnyExpression | list[AnyExpression]
     max_depth: int | None = None
-    connect_from_field: str | Field
-    connect_to_field: str | Field
-    depth_field: str | Field | None = None
+    connect_from_field: FieldLike
+    connect_to_field: FieldLike
+    depth_field: FieldLike | None = None
     restrict_search_with_match: MongoQuery | Predicate | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:

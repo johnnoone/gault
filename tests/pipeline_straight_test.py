@@ -537,7 +537,7 @@ def test_lookup_pipeline_based():
     sub = CollectionPipeline("sub-collection").match({"number": 42})
 
     pipeline = Pipeline()
-    pipeline = pipeline.lookup(sub, into="joined")
+    pipeline = pipeline.lookup(sub, into=Field("joined"))
     result = pipeline.build()
     assert result == [
         {

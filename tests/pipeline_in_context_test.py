@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Mapping
 
 import pytest
 
@@ -239,7 +239,7 @@ async def test_group(manager: AsyncManager):
 
 
 async def test_set(manager: AsyncManager):
-    spec = {"name": {"$toUpper": "$name"}}
+    spec: Mapping = {"name": {"$toUpper": "$name"}}
     pipeline = Pipeline().set(spec).take(2)
     iterator = manager.select(MyProjection, pipeline)
     persisted = [instance async for instance in iterator]
