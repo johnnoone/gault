@@ -782,6 +782,7 @@ class Pipeline(AsAlias):
         ... )
 
         """
+
         def to_step(obj: Stage | Step) -> Step:
             if not isinstance(obj, Step):
                 return RawStep(obj)
@@ -901,10 +902,13 @@ class RawStep(Step):
 
 @dataclass
 class FacetStep(Step):
-    facets: Mapping[str, Pipeline]
+    facets: Mapping[FieldLike, Pipeline]
 
     def compile(self, context: Context) -> Iterator[Stage]:
-        body = {key: val.build(context=context) for key, val in self.facets.items()}
+        body = {
+            compile_field(key, context=context): val.build(context=context)
+            for key, val in self.facets.items()
+        }
         stage = {"$facet": body}
         yield stage
 
