@@ -267,6 +267,311 @@ When using `atomic=True`, the `save()` method generates optimal MongoDB updates:
 
 This minimizes race conditions and reduces unnecessary updates.
 
+## Low Level API: Pipeline Composition
+
+While the high-level Schema and Model API provides a convenient way to work with MongoDB, Gault also offers a powerful low-level API for building complex aggregation pipelines independently. This API allows you to compose pipelines using a fluent interface without defining Schema or Model classes.
+
+### Basic Pipeline Construction
+
+The `Pipeline` class provides methods for building MongoDB aggregation pipelines programmatically:
+
+```python
+from gault import Pipeline
+from gault.predicates import Field
+from gault.accumulators import Sum
+
+# Build a pipeline
+pipeline = (
+    Pipeline()
+    .match({"status": "active"})
+    .sort({"created_at": -1})
+    .take(10)
+)
+
+# Convert to MongoDB stages
+stages = pipeline.build()
+# [
+#     {"$match": {"status": "active"}},
+#     {"$sort": {"created_at": -1}},
+#     {"$limit": 10}
+# ]
+```
+
+### Available Pipeline Stages
+
+#### Filtering and Matching
+
+```python
+# Match with raw dict
+Pipeline().match({"age": {"$gte": 18}})
+
+# Match with Field predicates
+Pipeline().match(Field("age").gte(18) & Field("status").eq("active"))
+```
+
+#### Sorting and Pagination
+
+```python
+# Sort by field
+Pipeline().sort({"name": 1, "age": -1})
+Pipeline().sort("name")  # Ascending by default
+
+# Pagination
+Pipeline().skip(20).take(10)
+
+# Random sampling
+Pipeline().sample(5)
+```
+
+#### Projection
+
+```python
+# Dict-based projection
+Pipeline().project({"name": True, "age": True})
+
+# Field-based projection
+Pipeline().project(
+    Field("name").keep(),
+    Field("age").keep(alias="person_age"),
+    Field("internal_field").remove()
+)
+
+# Expression-based projection
+Pipeline().project({"fullName": {"$concat": ["$firstName", " ", "$lastName"]}})
+```
+
+#### Grouping and Aggregation
+
+```python
+# Group with accumulators
+from gault.accumulators import Sum, Avg, Count
+
+Pipeline().group(
+    {"total": Sum("$amount"), "average": Avg("$score")},
+    by="$category"
+)
+
+# Group all documents (no grouping key)
+Pipeline().group(
+    {"count": Count()},
+    by=None
+)
+```
+
+#### Field Manipulation
+
+```python
+# Add or update fields
+Pipeline().set({"computedField": {"$multiply": ["$price", "$quantity"]}})
+Pipeline().set_field("status", "processed")
+
+# Remove fields
+Pipeline().unset("_id", "internal_field")
+```
+
+#### Array Operations
+
+```python
+# Unwind array field
+Pipeline().unwind("$tags")
+
+# With options
+Pipeline().unwind(
+    "$items",
+    include_array_index="item_index",
+    preserve_null_and_empty_arrays=True
+)
+```
+
+#### Bucketing
+
+```python
+# Manual buckets
+Pipeline().bucket(
+    by="$age",
+    boundaries=[0, 18, 65, 100],
+    default="other",
+    output={"count": Sum(1)}
+)
+
+# Automatic buckets
+Pipeline().bucket_auto(
+    by="$price",
+    buckets=5,
+    output={"count": Sum(1), "avgPrice": Avg("$price")}
+)
+```
+
+#### Joins and Lookups
+
+```python
+# Simple lookup
+Pipeline().lookup(
+    OtherModel,
+    local_field="user_id",
+    foreign_field="_id",
+    into="user_data"
+)
+
+# Lookup with sub-pipeline
+from gault.pipelines import CollectionPipeline
+
+sub_pipeline = CollectionPipeline("orders").match({"status": "completed"})
+Pipeline().lookup(sub_pipeline, into="orders")
+
+# Graph lookup for hierarchical data
+Pipeline().graph_lookup(
+    OtherModel,
+    start_with="$reports_to",
+    local_field="reports_to",
+    foreign_field="employee_id",
+    into="reporting_chain",
+    max_depth=5
+)
+```
+
+#### Faceted Search
+
+```python
+# Multiple aggregations in parallel
+Pipeline().facet({
+    "count": Pipeline().count("total"),
+    "avgPrice": Pipeline().group({"value": Avg("$price")}, by=None),
+    "categories": Pipeline().group({"count": Sum(1)}, by="$category")
+})
+```
+
+#### Other Stages
+
+```python
+# Count documents
+Pipeline().count("total")
+
+# Union with another collection
+Pipeline().union_with(OtherModel)
+
+# Replace document
+Pipeline().replace_with({"newField": "$existingField"})
+
+# Raw stage (for unsupported operations)
+Pipeline().raw({"$customStage": {"option": "value"}})
+```
+
+### Pipeline Composition
+
+Pipelines are immutable and chainable, making composition elegant:
+
+```python
+# Build pipelines incrementally
+base = Pipeline().match({"type": "user"})
+active_users = base.match({"status": "active"})
+premium_users = active_users.match({"plan": "premium"})
+
+# Use pipe() for custom transformations
+def add_pagination(p: Pipeline, page: int, size: int) -> Pipeline:
+    return p.skip(page * size).take(size)
+
+pipeline = Pipeline().match({"status": "active"}).pipe(add_pagination, 2, 20)
+```
+
+### Working with Field References
+
+The low-level API provides `Field` for building queries without Schema classes:
+
+```python
+from gault.predicates import Field
+
+# Field predicates
+query = Field("age").gte(18) & Field("country").in_(["US", "CA"])
+Pipeline().match(query)
+
+# Field references in expressions
+Pipeline().project({
+    "fullName": {"$concat": [Field("firstName"), " ", Field("lastName")]}
+})
+```
+
+### Using with AsyncManager
+
+You can use low-level pipelines with `AsyncManager` by passing them directly:
+
+```python
+from gault import AsyncManager
+
+manager = AsyncManager(database)
+
+# Pass pipeline to manager methods
+pipeline = Pipeline().match({"status": "active"}).sort({"created_at": -1})
+results = await manager.select(MyModel, filter=pipeline)
+
+# Or build stages manually
+stages = pipeline.build()
+cursor = database["collection"].aggregate(stages)
+```
+
+### In-Memory Pipeline Testing
+
+Use `Pipeline.documents()` to work with in-memory data:
+
+```python
+# Create pipeline with test data
+pipeline = Pipeline.documents(
+    {"id": 1, "name": "Alice", "age": 30},
+    {"id": 2, "name": "Bob", "age": 25},
+    {"id": 3, "name": "Charlie", "age": 35}
+).match(Field("age").gte(30))
+
+stages = pipeline.build()
+# [
+#     {"$documents": [{"id": 1, ...}, {"id": 2, ...}, {"id": 3, ...}]},
+#     {"$match": {"age": {"$gte": 30}}}
+# ]
+```
+
+### Accumulators
+
+Gault provides accumulator classes for use in `group()` and `bucket()` stages:
+
+```python
+from gault.accumulators import (
+    AddToSet, Avg, Bottom, BottomN, Count, First, Last,
+    Max, Min, Push, Sum, Top, TopN
+)
+
+Pipeline().group(
+    {
+        "total": Sum("$amount"),
+        "average": Avg("$score"),
+        "unique_tags": AddToSet("$tag"),
+        "all_items": Push("$item"),
+        "highest": Max("$value"),
+        "lowest": Min("$value"),
+        "first_seen": First("$timestamp"),
+        "last_seen": Last("$timestamp")
+    },
+    by="$category"
+)
+```
+
+### Expression Operators
+
+For complex expressions, Gault provides numerous expression operators:
+
+```python
+from gault.expressions import Concat, Multiply, Cond, IfNull
+
+Pipeline().project({
+    "fullName": Concat(Field("firstName"), " ", Field("lastName")),
+    "totalPrice": Multiply(Field("price"), Field("quantity")),
+    "displayName": IfNull(Field("nickname"), Field("firstName")),
+    "status": Cond(
+        Field("active").eq(True),
+        "Active",
+        "Inactive"
+    )
+})
+```
+
 ## Requirements
 
 - Python >= 3.12

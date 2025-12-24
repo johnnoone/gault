@@ -72,22 +72,82 @@ class Pipeline(AsAlias):
         return _0(self, *args, **kwargs)
 
     def match(self, query: dict | Predicate, /) -> Self:
-        """Filter documents matching the specified condition(s)."""
+        """Filter documents matching the specified condition(s).
+
+        Parameters
+        ----------
+        query
+            Dict query or Predicate expression to filter documents.
+
+        Examples
+        --------
+        >>> # Using raw dict
+        >>> Pipeline().match({"status": "active", "age": {"$gte": 18}})
+
+        >>> # Using Field predicates
+        >>> Pipeline().match(Field("status").eq("active") & Field("age").gte(18))
+
+        """
         step = MatchStep(query=query)
         return self.add_step(step)
 
     def skip(self, size: PositiveInteger, /) -> Self:
-        """Skip the first n documents."""
+        """Skip the first n documents.
+
+        Parameters
+        ----------
+        size
+            Number of documents to skip.
+
+        Examples
+        --------
+        >>> # Skip first 20 documents
+        >>> Pipeline().skip(20)
+
+        >>> # Pagination: skip to page 3 with 10 items per page
+        >>> Pipeline().skip(20).take(10)
+
+        """
         stage = {"$skip": size}
         return self.raw(stage)
 
     def take(self, size: PositiveInteger, /) -> Self:
-        """Limit the number of documents passed to the next stage."""
+        """Limit the number of documents passed to the next stage.
+
+        Parameters
+        ----------
+        size
+            Maximum number of documents to return.
+
+        Examples
+        --------
+        >>> # Get only first 10 documents
+        >>> Pipeline().take(10)
+
+        >>> # Combined with skip for pagination
+        >>> Pipeline().skip(20).take(10)
+
+        """
         stage = {"$limit": size}
         return self.raw(stage)
 
     def sample(self, size: PositiveInteger, /) -> Self:
-        """Randomly select the specified number of documents."""
+        """Randomly select the specified number of documents.
+
+        Parameters
+        ----------
+        size
+            Number of documents to randomly select.
+
+        Examples
+        --------
+        >>> # Get 5 random documents
+        >>> Pipeline().sample(5)
+
+        >>> # Sample after filtering
+        >>> Pipeline().match({"status": "active"}).sample(10)
+
+        """
         stage = {"$sample": {"size": size}}
         return self.raw(stage)
 
@@ -101,7 +161,28 @@ class Pipeline(AsAlias):
     def sort(self, tokens: SortPayload) -> Self: ...
 
     def sort(self, *spec: SortPayload) -> Self:  # type: ignore[misc]
-        """Reorder documents by the specified sort key."""
+        """Reorder documents by the specified sort key.
+
+        Parameters
+        ----------
+        *spec
+            Sort specification as SortToken(s), list of SortToken, or dict.
+
+        Examples
+        --------
+        >>> # Sort by single field (string)
+        >>> Pipeline().sort("name")
+
+        >>> # Sort with SortToken
+        >>> Pipeline().sort(MyModel.age.desc(), MyModel.name.asc())
+
+        >>> # Sort with dict
+        >>> Pipeline().sort({"age": -1, "name": 1})
+
+        >>> # Sort with list of tokens
+        >>> Pipeline().sort([MyModel.age.desc(), MyModel.name.asc()])
+
+        """
         payload: Any
         if spec and isinstance(spec[0], dict):
             payload = spec[0]
@@ -123,7 +204,35 @@ class Pipeline(AsAlias):
     ) -> Self: ...
 
     def project(self, *projections: Any) -> Self:
-        """Reshape documents by including, excluding, or adding fields."""
+        """Reshape documents by including, excluding, or adding fields.
+
+        Parameters
+        ----------
+        *projections
+            Projection spec as Model class, dict, list of Aliased expressions, or spread Aliased expressions.
+
+        Examples
+        --------
+        >>> # Project using Model class
+        >>> Pipeline().project(MyModel)
+
+        >>> # Project with dict
+        >>> Pipeline().project({"name": True, "age": True})
+
+        >>> # Project with Field methods (spread)
+        >>> Pipeline().project(
+        ...     Field("name").keep(),
+        ...     Field("age").keep(alias="person_age"),
+        ...     Field("internal").remove()
+        ... )
+
+        >>> # Project with list
+        >>> Pipeline().project([Field("name").keep(), Field("age").keep()])
+
+        >>> # Project with expressions
+        >>> Pipeline().project({"fullName": {"$concat": ["$firstName", " ", "$lastName"]}})
+
+        """
         if projections and (
             isinstance(projections[0], Mapping)
             or (
@@ -147,7 +256,30 @@ class Pipeline(AsAlias):
         default: str | None = None,
         output: Mapping[FieldLike, Accumulator | AccumulatorExpression] | None = None,
     ) -> Self:
-        """Categorize documents into buckets based on specified boundaries."""
+        """Categorize documents into buckets based on specified boundaries.
+
+        Parameters
+        ----------
+        by
+            Expression to group by.
+        boundaries
+            Array of values that specify boundaries for each bucket.
+        default
+            Bucket name for documents that don't fall within boundaries.
+        output
+            Mapping of output field names to accumulator expressions.
+
+        Examples
+        --------
+        >>> # Age buckets with count
+        >>> Pipeline().bucket(
+        ...     by="$age",
+        ...     boundaries=[0, 18, 65, 100],
+        ...     default="other",
+        ...     output={"count": Sum(1), "avgScore": Avg("$score")}
+        ... )
+
+        """
         step = BucketStep(
             by=by,
             boundaries=boundaries,
@@ -179,7 +311,29 @@ class Pipeline(AsAlias):
         ]
         | None = None,
     ) -> Self:
-        """Automatically categorize documents into a specified number of buckets."""
+        """Automatically categorize documents into a specified number of buckets.
+
+        Parameters
+        ----------
+        by
+            Expression to group by.
+        buckets
+            Number of buckets to create.
+        output
+            Mapping of output field names to accumulator expressions.
+        granularity
+            Preferred number series for bucket boundaries.
+
+        Examples
+        --------
+        >>> # Auto bucket prices into 5 buckets
+        >>> Pipeline().bucket_auto(
+        ...     by="$price",
+        ...     buckets=5,
+        ...     output={"count": Sum(1), "avgPrice": Avg("$price")}
+        ... )
+
+        """
         step = BucketAutoStep(
             by=by,
             buckets=buckets,
@@ -206,7 +360,40 @@ class Pipeline(AsAlias):
     def group(self, *accumulators: Aliased[A_co], by: AnyExpression) -> Self: ...
 
     def group(self, *accumulators: Any, by: AnyExpression) -> Self:
-        """Group documents by a specified expression and apply accumulators."""
+        """Group documents by a specified expression and apply accumulators.
+
+        Parameters
+        ----------
+        *accumulators
+            Accumulators as dict, list of Aliased, or spread Aliased.
+        by
+            Expression to group by. Use None to group all documents.
+
+        Examples
+        --------
+        >>> # Group with dict
+        >>> Pipeline().group(
+        ...     {"total": Sum("$amount"), "avg": Avg("$score")},
+        ...     by="$category"
+        ... )
+
+        >>> # Group with spread Aliased
+        >>> Pipeline().group(
+        ...     Sum("$amount").alias("total"),
+        ...     Avg("$score").alias("avg"),
+        ...     by="$category"
+        ... )
+
+        >>> # Group with list
+        >>> Pipeline().group(
+        ...     [Sum("$amount").alias("total")],
+        ...     by="$category"
+        ... )
+
+        >>> # Group all documents
+        >>> Pipeline().group({"count": Count()}, by=None)
+
+        """
         if accumulators and isinstance(accumulators[0], Mapping):
             mapping: Mapping[FieldLike, Accumulator | AccumulatorExpression] = (
                 accumulators[0]
@@ -219,7 +406,24 @@ class Pipeline(AsAlias):
         return self.add_step(step)
 
     def set_field(self, field: FieldLike, value: AnyExpression, /) -> Self:
-        """Add a new field or replace existing field value."""
+        """Add a new field or replace existing field value.
+
+        Parameters
+        ----------
+        field
+            Field name or Field object.
+        value
+            Value or expression to set.
+
+        Examples
+        --------
+        >>> # Set a constant value
+        >>> Pipeline().set_field("status", "processed")
+
+        >>> # Set with expression
+        >>> Pipeline().set_field("total", {"$multiply": ["$price", "$quantity"]})
+
+        """
         return self.set({field: value})
 
     @overload
@@ -232,7 +436,28 @@ class Pipeline(AsAlias):
     def set(self, *fields: Aliased[AnyExpression]) -> Self: ...
 
     def set(self, *fields: Any) -> Self:
-        """Add new fields or replace existing field values."""
+        """Add new fields or replace existing field values.
+
+        Parameters
+        ----------
+        *fields
+            Fields as dict, list of Aliased, or spread Aliased.
+
+        Examples
+        --------
+        >>> # Set with dict
+        >>> Pipeline().set({"total": {"$multiply": ["$price", "$qty"]}, "status": "done"})
+
+        >>> # Set with spread Aliased
+        >>> Pipeline().set(
+        ...     Field("total").assign({"$multiply": ["$price", "$qty"]}),
+        ...     Field("status").assign("done")
+        ... )
+
+        >>> # Set with list
+        >>> Pipeline().set([Field("status").assign("done")])
+
+        """
         if fields and isinstance(fields[0], Mapping):
             mapping: Mapping[FieldLike, Accumulator | AccumulatorExpression] = fields[0]
         else:
@@ -242,7 +467,22 @@ class Pipeline(AsAlias):
         return self.add_step(step)
 
     def unset(self, *fields: Field | str) -> Self:
-        """Remove specified fields from documents."""
+        """Remove specified fields from documents.
+
+        Parameters
+        ----------
+        *fields
+            Field names or Field objects to remove.
+
+        Examples
+        --------
+        >>> # Remove single field
+        >>> Pipeline().unset("_id")
+
+        >>> # Remove multiple fields
+        >>> Pipeline().unset("_id", "internal", "temp")
+
+        """
         step = UnsetStep(fields=list(fields))
         return self.add_step(step)
 
@@ -254,7 +494,29 @@ class Pipeline(AsAlias):
         include_array_index: str | None = None,
         preserve_null_and_empty_arrays: bool | None = None,
     ) -> Self:
-        """Deconstruct an array field to output a document for each element."""
+        """Deconstruct an array field to output a document for each element.
+
+        Parameters
+        ----------
+        field
+            Array field to unwind.
+        include_array_index
+            Name of field to hold array index.
+        preserve_null_and_empty_arrays
+            Whether to output documents for null or empty arrays.
+
+        Examples
+        --------
+        >>> # Simple unwind
+        >>> Pipeline().unwind("$tags")
+
+        >>> # Unwind with array index
+        >>> Pipeline().unwind("$items", include_array_index="item_index")
+
+        >>> # Preserve empty arrays
+        >>> Pipeline().unwind("$items", preserve_null_and_empty_arrays=True)
+
+        """
         step = UnwindStep(
             field=field,
             include_array_index=include_array_index,
@@ -263,12 +525,42 @@ class Pipeline(AsAlias):
         return self.add_step(step)
 
     def count(self, output: Field | str, /) -> Self:
-        """Return a count of the number of documents at this stage."""
+        """Return a count of the number of documents at this stage.
+
+        Parameters
+        ----------
+        output
+            Name of output field for the count.
+
+        Examples
+        --------
+        >>> # Count all documents
+        >>> Pipeline().count("total")
+
+        >>> # Count after filtering
+        >>> Pipeline().match({"status": "active"}).count("active_count")
+
+        """
         step = CountStep(output)
         return self.add_step(step)
 
     def replace_with(self, expr: Any, /) -> Self:
-        """Replace the input document with the specified document."""
+        """Replace the input document with the specified document.
+
+        Parameters
+        ----------
+        expr
+            Expression or document to replace with.
+
+        Examples
+        --------
+        >>> # Replace with new document structure
+        >>> Pipeline().replace_with({"name": "$fullName", "age": "$person_age"})
+
+        >>> # Replace with nested field
+        >>> Pipeline().replace_with("$user")
+
+        """
         stage = {"$replaceWith": expr}
         return self.raw(stage)
 
@@ -277,7 +569,23 @@ class Pipeline(AsAlias):
         other: CollectionPipeline | type[Model],
         /,
     ) -> Self:
-        """Perform a union of two collections."""
+        """Perform a union of two collections.
+
+        Parameters
+        ----------
+        other
+            CollectionPipeline or Model class to union with.
+
+        Examples
+        --------
+        >>> # Union with Model class
+        >>> Pipeline().union_with(OtherModel)
+
+        >>> # Union with CollectionPipeline
+        >>> sub = CollectionPipeline("archive").match({"archived": True})
+        >>> Pipeline().union_with(sub)
+
+        """
         if isinstance(other, CollectionPipeline):
             body = {
                 "coll": other.collection,
@@ -306,7 +614,40 @@ class Pipeline(AsAlias):
         depth_field: FieldLike | None = None,
         restrict_search_with_match: MongoQuery | Predicate | None = None,
     ) -> Self:
-        """Perform a recursive search on a collection."""
+        """Perform a recursive search on a collection.
+
+        Parameters
+        ----------
+        other
+            Model class to lookup in.
+        start_with
+            Expression for starting value.
+        local_field
+            Field from local documents for connection.
+        foreign_field
+            Field from foreign documents for connection.
+        into
+            Name of output array field.
+        max_depth
+            Maximum recursion depth.
+        depth_field
+            Field name to store recursion depth.
+        restrict_search_with_match
+            Query to filter foreign documents.
+
+        Examples
+        --------
+        >>> # Find reporting hierarchy
+        >>> Pipeline().graph_lookup(
+        ...     Employee,
+        ...     start_with="$reports_to",
+        ...     local_field="reports_to",
+        ...     foreign_field="employee_id",
+        ...     into="reporting_chain",
+        ...     max_depth=5
+        ... )
+
+        """
         step = GraphLookupStep(
             collection=get_collection(other),
             into=into,
@@ -328,7 +669,38 @@ class Pipeline(AsAlias):
         foreign_field: FieldLike | None = None,
         into: FieldLike,
     ) -> Self:
-        """Perform a left outer join to another collection."""
+        """Perform a left outer join to another collection.
+
+        Parameters
+        ----------
+        other
+            CollectionPipeline, DocumentsPipeline, or Model class to join with.
+        local_field
+            Field from local documents for equality match.
+        foreign_field
+            Field from foreign documents for equality match.
+        into
+            Name of output array field.
+
+        Examples
+        --------
+        >>> # Simple lookup with Model
+        >>> Pipeline().lookup(
+        ...     OtherModel,
+        ...     local_field="user_id",
+        ...     foreign_field="_id",
+        ...     into="user_data"
+        ... )
+
+        >>> # Lookup with sub-pipeline
+        >>> sub = CollectionPipeline("orders").match({"status": "completed"})
+        >>> Pipeline().lookup(sub, into="orders")
+
+        >>> # Lookup with in-memory documents
+        >>> docs = Pipeline.documents([{"id": 1, "value": "test"}])
+        >>> Pipeline().lookup(docs, local_field="ref_id", foreign_field="id", into="refs")
+
+        """
         pipeline: Pipeline | None
         if isinstance(other, CollectionPipeline):
             collection = other.collection
@@ -358,7 +730,28 @@ class Pipeline(AsAlias):
     def facet(self, *facets: Aliased[Pipeline]) -> Self: ...
 
     def facet(self, *facets: Any) -> Self:
-        """Process multiple pipelines within a single stage on the same input."""
+        """Process multiple pipelines within a single stage on the same input.
+
+        Parameters
+        ----------
+        *facets
+            Facets as dict mapping names to Pipelines, or spread Aliased Pipelines.
+
+        Examples
+        --------
+        >>> # Facet with dict
+        >>> Pipeline().facet({
+        ...     "count": Pipeline().count("total"),
+        ...     "avgPrice": Pipeline().group({"value": Avg("$price")}, by=None)
+        ... })
+
+        >>> # Facet with spread Aliased
+        >>> Pipeline().facet(
+        ...     Pipeline().count("total").alias("count"),
+        ...     Pipeline().group({"value": Avg("$price")}, by=None).alias("avgPrice")
+        ... )
+
+        """
         if facets and isinstance(facets[0], Mapping):
             mapping = facets[0]
         else:
@@ -370,6 +763,25 @@ class Pipeline(AsAlias):
         return self.add_step(step)
 
     def raw(self, *stages: Stage | Step) -> Self:
+        """Add raw MongoDB stage(s) to the pipeline.
+
+        Parameters
+        ----------
+        *stages
+            MongoDB stage dicts or Step objects.
+
+        Examples
+        --------
+        >>> # Add custom stage
+        >>> Pipeline().raw({"$customStage": {"option": "value"}})
+
+        >>> # Add multiple stages
+        >>> Pipeline().raw(
+        ...     {"$stage1": {}},
+        ...     {"$stage2": {}}
+        ... )
+
+        """
         def to_step(obj: Stage | Step) -> Step:
             if not isinstance(obj, Step):
                 return RawStep(obj)
@@ -382,9 +794,38 @@ class Pipeline(AsAlias):
         return replace(self, steps=[*self.steps, *steps])
 
     def add_step(self, step: Step, /) -> Self:
+        """Add a Step object to the pipeline.
+
+        Parameters
+        ----------
+        step
+            Step object to add.
+
+        Examples
+        --------
+        >>> # Usually called internally, but can be used directly
+        >>> step = MatchStep(query={"status": "active"})
+        >>> Pipeline().add_step(step)
+
+        """
         return replace(self, steps=[*self.steps, step])
 
     def build(self, *, context: Context | None = None) -> list[Stage]:
+        """Compile pipeline into list of MongoDB aggregation stages.
+
+        Parameters
+        ----------
+        context
+            Optional context dict for compilation.
+
+        Examples
+        --------
+        >>> # Build pipeline to MongoDB stages
+        >>> pipeline = Pipeline().match({"status": "active"}).sort({"age": -1})
+        >>> stages = pipeline.build()
+        >>> # [{"$match": {"status": "active"}}, {"$sort": {"age": -1}}]
+
+        """
         context = context or {}
         stages: list[Stage] = []
         for step in self.steps:
@@ -404,6 +845,28 @@ class Pipeline(AsAlias):
 
     @classmethod  # type: ignore[misc]
     def documents(cls, *documents: Any) -> DocumentsPipeline:
+        """Create a pipeline with in-memory documents.
+
+        Parameters
+        ----------
+        *documents
+            Documents as spread dicts or list of dicts.
+
+        Examples
+        --------
+        >>> # Create with spread documents
+        >>> Pipeline.documents(
+        ...     {"id": 1, "name": "Alice"},
+        ...     {"id": 2, "name": "Bob"}
+        ... )
+
+        >>> # Create with list
+        >>> Pipeline.documents([
+        ...     {"id": 1, "name": "Alice"},
+        ...     {"id": 2, "name": "Bob"}
+        ... ])
+
+        """
         data: list[Document] = unwrap_array(documents)
         return DocumentsPipeline(data)
 
