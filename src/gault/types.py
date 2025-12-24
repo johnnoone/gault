@@ -1,11 +1,10 @@
 from __future__ import annotations
-from datetime import date
 
 from typing import TYPE_CHECKING, Annotated, Any, Literal, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from datetime import datetime, timezone
+    from datetime import date, datetime, timezone
     from decimal import Decimal
     from re import Pattern
 

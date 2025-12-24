@@ -528,7 +528,7 @@ class Eq(Operator, AsExpression):
 
 
 @dataclass
-class Gt(Operator):
+class Gt(Operator, AsExpression):
     """Matches documents where the value of the specified field is greater than the specified value."""
 
     value: PathLike | Value
@@ -540,7 +540,7 @@ class Gt(Operator):
 
     def as_expression(
         self,
-        field: Field,
+        field: PathLike,
         context: Context,
     ) -> expressions.ExpressionOperator:
         return expressions.Gt(field, self.value)
