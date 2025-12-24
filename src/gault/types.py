@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import date
 
 from typing import TYPE_CHECKING, Annotated, Any, Literal, TypeAlias, TypedDict
 
@@ -34,11 +35,14 @@ if TYPE_CHECKING:
         | list
         | str
         | bytes
+        | Binary
         | int
         | float
         | bool
         | ObjectId
         | datetime
+        | date
+        | Timestamp
         | None
     )
     """Opaque object that resolves to something"""

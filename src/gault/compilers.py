@@ -2,15 +2,22 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, overload
 
-from bson import ObjectId
+from bson import ObjectId, Binary, Timestamp
 
 from .interfaces import AsRef, ExpressionOperator, QueryPredicate
 
 if TYPE_CHECKING:
-    from .types import Context, FieldString, MongoExpression, MongoQuery, PathString
+    from .types import (
+        AnyExpression,
+        Context,
+        FieldString,
+        MongoExpression,
+        MongoQuery,
+        PathString,
+    )
 
 
 def compile_query(value: Any, *, context: Context) -> MongoQuery:
@@ -51,7 +58,7 @@ def compile_expression_multi(
     return compile_expression(obj, context=context)
 
 
-def compile_expression(obj: Any, *, context: Context) -> MongoExpression:
+def compile_expression(obj: AnyExpression, *, context: Context) -> MongoExpression:
     match obj:
         case ExpressionOperator():
             return obj.compile_expression(context=context)
@@ -64,7 +71,10 @@ def compile_expression(obj: Any, *, context: Context) -> MongoExpression:
             | Mapping()
             | list()
             | ObjectId()
+            | Binary()
+            | Timestamp()
             | datetime()
+            | date()
         ):
             return obj
         case _:
