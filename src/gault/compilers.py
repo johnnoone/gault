@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, overload
 
-from bson import ObjectId, Binary, Timestamp
+from bson import Binary, ObjectId, Timestamp
 
 from .interfaces import AsRef, ExpressionOperator, QueryPredicate
 
@@ -58,7 +58,9 @@ def compile_expression_multi(
     return compile_expression(obj, context=context)
 
 
-def compile_expression(obj: AnyExpression, *, context: Context) -> MongoExpression:
+def compile_expression(
+    obj: AnyExpression, *, context: Context
+) -> MongoExpression | Any:
     match obj:
         case ExpressionOperator():
             return obj.compile_expression(context=context)
