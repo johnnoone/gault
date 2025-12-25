@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import (
     TYPE_CHECKING,
@@ -15,6 +15,8 @@ from typing import (
     TypeVar,
     overload,
 )
+
+from gault.predicates import And
 
 from .accumulators import Accumulator, compile_accumulator
 from .compilers import compile_expression, compile_field, compile_path, compile_query
@@ -71,13 +73,19 @@ class Pipeline(AsAlias):
         """
         return _0(self, *args, **kwargs)
 
-    def match(self, query: dict | Predicate, /) -> Self:
+    @overload
+    def match(self, predicate: list[MongoQuery | Predicate], /) -> Self: ...
+
+    @overload
+    def match(self, *predicates: MongoQuery | Predicate) -> Self: ...
+
+    def match(self, *predicates: Any) -> Self:
         """Filter documents matching the specified condition(s).
 
         Parameters
         ----------
-        query
-            Dict query or Predicate expression to filter documents.
+        *predicates
+            Mongo query or Predicate expressions to filter documents.
 
         Examples
         --------
@@ -88,6 +96,14 @@ class Pipeline(AsAlias):
         >>> Pipeline().match(Field("status").eq("active") & Field("age").gte(18))
 
         """
+        args: Sequence[MongoQuery | Predicate] = unwrap_array(predicates)
+        match len(args):
+            case 0:
+                query: MongoQuery | Predicate = {}
+            case 1:
+                query = args[0]
+            case _:
+                query = And(*args)
         step = MatchStep(query=query)
         return self.add_step(step)
 
@@ -915,7 +931,7 @@ class FacetStep(Step):
 
 @dataclass
 class MatchStep(Step):
-    query: dict | Predicate
+    query: MongoQuery | Predicate
 
     def compile(self, context: Context) -> Iterator[Stage]:
         stage = {"$match": compile_query(self.query, context=context)}

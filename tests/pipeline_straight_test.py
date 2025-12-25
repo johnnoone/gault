@@ -83,6 +83,44 @@ class TestMatch:
             },
         ]
 
+    def test_wrapped(self, subtests):
+        query1 = {"attr1": True, "attr2": False}
+        query2 = {"attr3": True, "attr4": False}
+
+        pipeline = Pipeline()
+        pipeline = pipeline.match(query1, query2)
+        result = pipeline.build()
+
+        assert result == [
+            {
+                "$match": {
+                    "$and": [
+                        {"attr1": True, "attr2": False},
+                        {"attr3": True, "attr4": False},
+                    ]
+                }
+            }
+        ]
+
+    def test_list(self, subtests):
+        query1 = {"attr1": True, "attr2": False}
+        query2 = {"attr3": True, "attr4": False}
+
+        pipeline = Pipeline()
+        pipeline = pipeline.match([query1, query2])
+        result = pipeline.build()
+
+        assert result == [
+            {
+                "$match": {
+                    "$and": [
+                        {"attr1": True, "attr2": False},
+                        {"attr3": True, "attr4": False},
+                    ]
+                }
+            }
+        ]
+
 
 def test_skip():
     pipeline = Pipeline()

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from copy import deepcopy
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar, cast
 from weakref import WeakKeyDictionary, WeakSet
 
 from pymongo import ReturnDocument
@@ -11,7 +12,7 @@ from .exceptions import Forbidden, NotFound, Unprocessable
 from .mappers import get_mapper
 from .models import Model, Schema, get_collection, unwrap_model
 from .pipelines import Pipeline, RawStep
-from .predicates import Predicate
+from .predicates import Predicate, Raw
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
@@ -111,8 +112,10 @@ class AsyncManager:
                 filter = Pipeline()
             case list():
                 filter = Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
-            case dict() | Predicate():
+            case Predicate():
                 filter = Pipeline().match(filter)
+            case Mapping():
+                filter = Pipeline().match(Raw(cast("MongoQuery", filter)))
             case Pipeline():
                 pass
             case _:
@@ -278,8 +281,10 @@ class Manager(Generic[M, S]):
                 filter = Pipeline()
             case list():
                 filter = Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
-            case dict() | Predicate():
+            case Predicate():
                 filter = Pipeline().match(filter)
+            case Mapping():
+                filter = Pipeline().match(Raw(cast("MongoQuery", filter)))
             case Pipeline():
                 pass
             case _:
