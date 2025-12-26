@@ -56,7 +56,7 @@ class Model:
     def __init_subclass__(cls, collection: str | None = None) -> None:
         dataclass(cls, init=True, repr=True, kw_only=True)  # type: ignore[call-overload]
         for dataclass_field in fields(cls):  # type: ignore[arg-type]
-            field: Attribute = Attribute(
+            field: Attribute[Any] = Attribute(
                 name=dataclass_field.name, **dataclass_field.metadata
             )
             setattr(cls, dataclass_field.name, field)

@@ -1263,7 +1263,9 @@ class Let(ExpressionOperator):
     ) -> None: ...
 
     @overload
-    def __init__(self, *variables: Aliased, into: AnyExpression) -> None: ...
+    def __init__(
+        self, *variables: Aliased[AnyExpression], into: AnyExpression
+    ) -> None: ...
 
     def __init__(self, *variables: Any, into: AnyExpression) -> None:  # type: ignore[misc]
         spec: Any = {}

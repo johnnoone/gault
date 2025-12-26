@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 M = TypeVar("M", bound="Model")
 
-MAPPERS: WeakKeyDictionary[type[Model], Mapper] = WeakKeyDictionary()
+MAPPERS: WeakKeyDictionary[type[Model], Mapper[Model]] = WeakKeyDictionary()
 
 
 @no_type_check

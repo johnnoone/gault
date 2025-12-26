@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Any, Literal, TypeAlias, TypedDict
 
+from typing_extensions import TypeVar
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
     from datetime import date, datetime, timezone
@@ -15,6 +17,8 @@ if TYPE_CHECKING:
 
     from .interfaces import AsRef, ExpressionOperator
 
+    V = TypeVar("V", default=Any)
+
     Input: TypeAlias = Any
     Output: TypeAlias = Any
 
@@ -24,14 +28,16 @@ if TYPE_CHECKING:
     Date: TypeAlias = datetime
     Boolean: TypeAlias = bool
     Timezone: TypeAlias = str | timezone
-    Array: TypeAlias = list
-    Object: TypeAlias = Mapping
-    Regex: TypeAlias = str | BSONRegex | Pattern
+    Array: TypeAlias = list[V]
+    Object: TypeAlias = Mapping[str, V]
+    Regex: TypeAlias = (
+        str | BSONRegex[str] | Pattern[str] | BSONRegex[bytes] | Pattern[bytes]
+    )
     MongoPurExpression: TypeAlias = Mapping[str, Any]
     MongoExpression: TypeAlias = (
         MongoPurExpression
         | Mapping[str, Any]
-        | list
+        | list[Any]
         | str
         | bytes
         | Binary

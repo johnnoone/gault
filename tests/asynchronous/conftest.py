@@ -1,20 +1,27 @@
+from __future__ import annotations
+
 from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING
 
 import pytest
+from gault.managers import AsyncManager, Persistence, StateTracker
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
 
-from gault.managers import AsyncManager, Persistence, StateTracker
+if TYPE_CHECKING:
+    from gault.types import Document
 
 
 @pytest.fixture(name="client")
-def get_client() -> AsyncMongoClient:
+def get_client() -> AsyncMongoClient[Document]:
     dsn = "mongodb://user:pass@127.0.0.1:27017"
     return AsyncMongoClient(dsn)
 
 
 @pytest.fixture(name="database")
-async def get_database(client) -> AsyncIterator[AsyncDatabase]:
+async def get_database(
+    client: AsyncMongoClient[Document],
+) -> AsyncIterator[AsyncDatabase[Document]]:
     database = client.get_database("my_database")
     yield database
     filter = {"name": {"$regex": r"^(?!system\.)"}}
@@ -25,7 +32,7 @@ async def get_database(client) -> AsyncIterator[AsyncDatabase]:
 
 @pytest.fixture(name="manager")
 def get_manager(
-    database: AsyncDatabase,
+    database: AsyncDatabase[Document],
     persistence: Persistence,
     state_tracker: StateTracker,
 ) -> AsyncManager:

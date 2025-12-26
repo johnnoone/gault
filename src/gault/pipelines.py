@@ -40,6 +40,7 @@ if TYPE_CHECKING:
         MongoQuery,
         PositiveInteger,
     )
+    from .window_aggregators import WindowOperator
 
     Stage: TypeAlias = Mapping[str, Any]
 
@@ -887,6 +888,88 @@ class Pipeline(AsAlias):
         data: list[Document] = unwrap_array(documents)
         return DocumentsPipeline(data)
 
+    @overload
+    def set_window_fields(
+        self,
+        output: list[Aliased[WindowOperator]],
+        /,
+        *,
+        sort_by: SortPayload | None = None,
+        partition_by: AnyExpression | None = None,
+    ) -> Self: ...
+
+    @overload
+    def set_window_fields(
+        self,
+        output: dict[FieldLike, WindowOperator],
+        /,
+        *,
+        sort_by: SortPayload | None = None,
+        partition_by: AnyExpression | None = None,
+    ) -> Self: ...
+
+    @overload
+    def set_window_fields(
+        self,
+        *output: Aliased[WindowOperator],
+        sort_by: SortPayload | None = None,
+        partition_by: AnyExpression | None = None,
+    ) -> Self: ...
+
+    def set_window_fields(
+        self,
+        *output: Any,
+        sort_by: SortPayload | None = None,
+        partition_by: AnyExpression | None = None,
+    ) -> Self:
+        """Perform window operations over a specified range of documents.
+
+        Parameters
+        ----------
+        *output
+            Window operators as dict, list of Aliased, or spread Aliased.
+        sort_by
+            Sort specification for ordering documents within partitions.
+        partition_by
+            Expression to partition documents into groups.
+
+        Examples
+        --------
+        >>> # Window with dict
+        >>> Pipeline().set_window_fields(
+        ...     {"cumulative": CumulativeSum("$amount")},
+        ...     sort_by={"date": 1},
+        ...     partition_by="$category"
+        ... )
+
+        >>> # Window with spread Aliased
+        >>> Pipeline().set_window_fields(
+        ...     CumulativeSum("$amount").alias("cumulative"),
+        ...     RowNumber().alias("rank"),
+        ...     sort_by={"date": 1},
+        ...     partition_by="$category"
+        ... )
+
+        >>> # Window with list
+        >>> Pipeline().set_window_fields(
+        ...     [CumulativeSum("$amount").alias("cumulative")],
+        ...     sort_by={"date": 1}
+        ... )
+
+        """
+        outputs: list[Aliased[WindowOperator]]
+        if output and isinstance(output[0], dict):
+            outputs = [Aliased(k, v) for k, v in output[0].items()]
+        else:
+            outputs = unwrap_array(output)
+
+        step = SetWindowFields(
+            output=outputs,
+            sort_by=sort_by,
+            partition_by=partition_by,
+        )
+        return self.add_step(step)
+
 
 @dataclass
 class CollectionPipeline(Pipeline):
@@ -1195,4 +1278,29 @@ class SortStep(Step):
         spec = normalize_sort(self.spec, context=context)
         yield {
             "$sort": spec,
+        }
+
+
+@dataclass
+class SetWindowFields(Step):
+    output: list[Aliased[WindowOperator]]
+    sort_by: SortPayload | None = None
+    partition_by: AnyExpression | None = None
+
+    def compile(self, context: Context) -> Iterator[Stage]:
+        yield {
+            "$setWindowFields": nullfree_dict(
+                {
+                    "partitionBy": compile_expression(
+                        self.partition_by, context=context
+                    ),
+                    "sortBy": normalize_sort(self.sort_by, context=context),
+                    "output": {
+                        compile_field(alias.ref, context=context): compile_expression(
+                            alias.value, context=context
+                        )
+                        for alias in self.output
+                    },
+                }
+            )
         }

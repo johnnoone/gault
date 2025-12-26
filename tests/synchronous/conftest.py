@@ -1,20 +1,25 @@
+from __future__ import annotations
+
 from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 import pytest
+from gault.managers import Manager, Persistence, StateTracker
 from pymongo.synchronous.database import Database
 from pymongo.synchronous.mongo_client import MongoClient
 
-from gault.managers import Manager, Persistence, StateTracker
+if TYPE_CHECKING:
+    from gault.types import Document
 
 
 @pytest.fixture(name="client")
-def get_client() -> MongoClient:
+def get_client() -> MongoClient[Document]:
     dsn = "mongodb://user:pass@127.0.0.1:27017"
     return MongoClient(dsn)
 
 
 @pytest.fixture(name="database")
-def get_database(client) -> Iterator[Database]:
+def get_database(client: MongoClient[Document]) -> Iterator[Database]:
     database = client.get_database("my_database")
     yield database
     filter = {"name": {"$regex": r"^(?!system\.)"}}

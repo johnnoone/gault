@@ -3,10 +3,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from copy import deepcopy
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Generic, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, TypeAlias, cast
 from weakref import WeakKeyDictionary, WeakSet
 
 from pymongo import ReturnDocument
+from typing_extensions import TypeVar
 
 from .exceptions import Forbidden, NotFound, Unprocessable
 from .mappers import get_mapper
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
     from pymongo.asynchronous.database import AsyncDatabase
     from pymongo.synchronous.database import Database
 
+    from gault.types import Document
+
     from .pipelines import Stage
     from .types import MongoQuery
 
@@ -29,17 +32,17 @@ M = TypeVar("M", bound="Model")
 S = TypeVar("S", bound="Schema")
 
 
-class StateTracker(Generic[M]):
+class StateTracker:
     def __init__(self) -> None:
-        self._states: WeakKeyDictionary[M, Any] = WeakKeyDictionary()
+        self._states: WeakKeyDictionary[Model, Any] = WeakKeyDictionary()
 
-    def snapshot(self, instance: M) -> None:
+    def snapshot(self, instance: Model) -> None:
         self._states[instance] = deepcopy(instance.__dict__)
 
-    def reset(self, instance: M) -> None:
+    def reset(self, instance: Model) -> None:
         instance.__dict__ = deepcopy(self._states[instance])
 
-    def get_dirty_fields(self, instance: M) -> set[str]:
+    def get_dirty_fields(self, instance: Model) -> set[str]:
         dirty_fields = set()
         if snapshoted := self._states.get(instance):
             state = instance.__dict__
@@ -49,24 +52,24 @@ class StateTracker(Generic[M]):
         return dirty_fields
 
 
-class Persistence(Generic[M]):
+class Persistence:
     def __init__(self) -> None:
-        self._instances: WeakSet[M] = WeakSet()
+        self._instances: WeakSet[Model] = WeakSet()
 
-    def is_persisted(self, instance: M) -> bool:
+    def is_persisted(self, instance: Model) -> bool:
         return instance in self._instances
 
-    def mark_persisted(self, instance: M) -> None:
+    def mark_persisted(self, instance: Model) -> None:
         self._instances.add(instance)
 
-    def forget(self, instance: M) -> None:
+    def forget(self, instance: Model) -> None:
         self._instances.remove(instance)
 
 
 class AsyncManager:
     def __init__(
         self,
-        database: AsyncDatabase,
+        database: AsyncDatabase[Document],
         *,
         persistence: Persistence | None = None,
         state_tracker: StateTracker | None = None,
@@ -235,7 +238,7 @@ class AsyncManager:
 class Manager(Generic[M, S]):
     def __init__(
         self,
-        database: Database,
+        database: Database[Document],
         *,
         persistence: Persistence | None = None,
         state_tracker: StateTracker | None = None,

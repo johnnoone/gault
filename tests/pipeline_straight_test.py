@@ -1,7 +1,9 @@
 from gault import Attribute, Model, Schema, accumulators
 from gault.expressions import Var
+from gault.interfaces import Aliased
 from gault.pipelines import CollectionPipeline, Pipeline
 from gault.predicates import Field
+from gault.window_aggregators import Rank, Sum as WindowSum
 
 
 def test_pipe():
@@ -670,3 +672,66 @@ def test_documents(subtests):
                 ]
             },
         ]
+
+
+def test_set_window_fields_dict():
+    pipeline = Pipeline()
+    pipeline = pipeline.set_window_fields(
+        {"cumulativeSum": WindowSum("$amount")},
+        sort_by={"date": 1},
+        partition_by="$category",
+    )
+    result = pipeline.build()
+    assert result == [
+        {
+            "$setWindowFields": {
+                "partitionBy": "$category",
+                "sortBy": {"date": 1},
+                "output": {
+                    "cumulativeSum": {"$sum": "$amount"},
+                },
+            }
+        }
+    ]
+
+
+def test_set_window_fields_list():
+    pipeline = Pipeline()
+    pipeline = pipeline.set_window_fields(
+        [WindowSum("$amount").alias("cumulativeSum")],
+        sort_by={"date": 1},
+    )
+    result = pipeline.build()
+    assert result == [
+        {
+            "$setWindowFields": {
+                "sortBy": {"date": 1},
+                "output": {
+                    "cumulativeSum": {"$sum": "$amount"},
+                },
+            }
+        }
+    ]
+
+
+def test_set_window_fields_spread():
+    pipeline = Pipeline()
+    pipeline = pipeline.set_window_fields(
+        WindowSum("$amount").alias("cumulativeSum"),
+        Rank().alias("rank"),
+        sort_by={"date": 1},
+        partition_by="$category",
+    )
+    result = pipeline.build()
+    assert result == [
+        {
+            "$setWindowFields": {
+                "partitionBy": "$category",
+                "sortBy": {"date": 1},
+                "output": {
+                    "cumulativeSum": {"$sum": "$amount"},
+                    "rank": {"$rank": {}},
+                },
+            }
+        }
+    ]
