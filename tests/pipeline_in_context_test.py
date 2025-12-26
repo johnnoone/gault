@@ -184,10 +184,10 @@ async def test_bucket(manager: AsyncManager):
     pipeline = (
         Pipeline()
         .bucket(
-            "$number",
+            {"count": Sum(1)},
+            by="$number",
             boundaries=[0, 15, 50, 250],
             default="infinite",
-            output={"count": Sum(1)},
         )
         .set({"bucket": "$_id"})
     )
@@ -205,9 +205,9 @@ async def test_bucket_auto(manager: AsyncManager):
     pipeline = (
         Pipeline()
         .bucket_auto(
-            "$number",
+            {"count": Sum(1)},
+            by="$number",
             buckets=3,
-            output={"count": Sum(1)},
         )
         .set({"bucket": "$_id"})
     )

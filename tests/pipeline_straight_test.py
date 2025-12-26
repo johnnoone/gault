@@ -1,9 +1,9 @@
 from gault import Attribute, Model, Schema, accumulators
 from gault.expressions import Var
-from gault.interfaces import Aliased
 from gault.pipelines import CollectionPipeline, Pipeline
 from gault.predicates import Field
-from gault.window_aggregators import Rank, Sum as WindowSum
+from gault.window_aggregators import Rank
+from gault.window_aggregators import Sum as WindowSum
 
 
 def test_pipe():
@@ -280,12 +280,12 @@ def test_project_list_projection(subtests):
 def test_bucket():
     pipeline = Pipeline()
     pipeline = pipeline.bucket(
-        Field("year_born"),
-        boundaries=[1840, 1850, 1860, 1870, 1880],
-        default="other",
-        output={
+        {
             "count": {"$sum": 1},
         },
+        by=Field("year_born"),
+        boundaries=[1840, 1850, 1860, 1870, 1880],
+        default="other",
     )
     result = pipeline.build()
 
@@ -304,12 +304,12 @@ def test_bucket():
 def test_bucket_auto():
     pipeline = Pipeline()
     pipeline = pipeline.bucket_auto(
-        "$_id",
-        buckets=3,
-        output={
+        {
             "count": {"$sum": 1},
             "years": {"$push": "$year"},
         },
+        by="$_id",
+        buckets=3,
         granularity="1-2-5",
     )
     result = pipeline.build()

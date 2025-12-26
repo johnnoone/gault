@@ -43,6 +43,21 @@ if TYPE_CHECKING:
     from .window_aggregators import WindowOperator
 
     Stage: TypeAlias = Mapping[str, Any]
+    Granularity: TypeAlias = Literal[
+        "R5",
+        "R10",
+        "R20",
+        "R40",
+        "R80",
+        "1-2-5",
+        "E6",
+        "E12",
+        "E24",
+        "E48",
+        "E96",
+        "E192",
+        "POWERSOF2",
+    ]
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -209,23 +224,23 @@ class Pipeline(AsAlias):
         return self.add_step(step)
 
     @overload
-    def project(self, *projections: Aliased[AnyExpression]) -> Self: ...
+    def project(self, projection: type[Model], /) -> Self: ...
 
     @overload
-    def project(
-        self,
-        projection: type[Model]
-        | Mapping[FieldLike, AnyExpression]
-        | list[Aliased[AnyExpression]],
-        /,
-    ) -> Self: ...
+    def project(self, projection: list[Aliased[AnyExpression]], /) -> Self: ...
 
-    def project(self, *projections: Any) -> Self:
+    @overload
+    def project(self, projection: Mapping[FieldLike, AnyExpression], /) -> Self: ...
+
+    @overload
+    def project(self, *projection: Aliased[AnyExpression]) -> Self: ...
+
+    def project(self, *projection: Any) -> Self:
         """Reshape documents by including, excluding, or adding fields.
 
         Parameters
         ----------
-        *projections
+        *projection
             Projection spec as Model class, dict, list of Aliased expressions, or spread Aliased expressions.
 
         Examples
@@ -250,83 +265,176 @@ class Pipeline(AsAlias):
         >>> Pipeline().project({"fullName": {"$concat": ["$firstName", " ", "$lastName"]}})
 
         """
-        if projections and (
-            isinstance(projections[0], Mapping)
-            or (
-                projections
-                and isinstance(projections[0], type)
-                and issubclass(projections[0], Model)
-            )
+        spec: Any
+
+        if (
+            len(projection) == 1
+            and isinstance(projection[0], type)
+            and issubclass(projection[0], Model)
         ):
-            spec: Any = projections[0]
+            spec = projection[0]
+
+        elif (
+            len(projection) == 1
+            and not isinstance(projection[0], type)
+            and isinstance(projection[0], Model)
+        ):
+            spec = type(projection[0])
+
+        elif len(projection) == 1 and isinstance(projection[0], dict):
+            spec = [Aliased(key, val) for key, val in projection[0].items()]
+
+        elif len(projection) == 1 and isinstance(projection[0], list):
+            spec = projection[0]
+
         else:
-            spec = unwrap_array(projections)
+            spec = list(projection)
 
         step = ProjectStep(spec)
         return self.add_step(step)
 
+    @overload
     def bucket(
         self,
-        by: AnyExpression,
+        output: None,
         /,
+        *,
+        by: AnyExpression,
         boundaries: list[T],
         default: str | None = None,
-        output: Mapping[FieldLike, Accumulator | AccumulatorExpression] | None = None,
+    ) -> Self: ...
+
+    @overload
+    def bucket(
+        self,
+        output: list[Aliased[Accumulator | AccumulatorExpression]],
+        /,
+        *,
+        by: AnyExpression,
+        boundaries: list[T],
+        default: str | None = None,
+    ) -> Self: ...
+
+    @overload
+    def bucket(
+        self,
+        output: Mapping[FieldLike, Accumulator | AccumulatorExpression],
+        /,
+        *,
+        by: AnyExpression,
+        boundaries: list[T],
+        default: str | None = None,
+    ) -> Self: ...
+
+    @overload
+    def bucket(
+        self,
+        *output: Aliased[Accumulator | AccumulatorExpression],
+        by: AnyExpression,
+        boundaries: list[T],
+        default: str | None = None,
+    ) -> Self: ...
+
+    def bucket(
+        self,
+        *output: Any,
+        by: AnyExpression,
+        boundaries: list[T],
+        default: str | None = None,
     ) -> Self:
         """Categorize documents into buckets based on specified boundaries.
 
         Parameters
         ----------
+        *output
+            Mapping of output field names to accumulator expressions.
         by
             Expression to group by.
         boundaries
             Array of values that specify boundaries for each bucket.
         default
             Bucket name for documents that don't fall within boundaries.
-        output
-            Mapping of output field names to accumulator expressions.
 
         Examples
         --------
         >>> # Age buckets with count
         >>> Pipeline().bucket(
+        ...     {"count": Sum(1), "avgScore": Avg("$score")}
         ...     by="$age",
         ...     boundaries=[0, 18, 65, 100],
         ...     default="other",
-        ...     output={"count": Sum(1), "avgScore": Avg("$score")}
         ... )
 
         """
+        spec: list[Aliased[Accumulator | AccumulatorExpression]] | None
+
+        if len(output) == 1 and output[0] is None:
+            spec = None
+        if len(output) == 1 and isinstance(output[0], dict):
+            spec = [Aliased(key, val) for key, val in output[0].items()]
+        elif len(output) == 1 and isinstance(output[0], list):
+            spec = output[0]
+        elif output:
+            spec = list(output)
+        else:
+            spec = None
+
         step = BucketStep(
             by=by,
             boundaries=boundaries,
             default=default,
-            output=output,
+            output=spec,
         )
         return self.add_step(step)
 
+    @overload
     def bucket_auto(
         self,
-        by: AnyExpression,
+        output: None,
         /,
+        *,
+        by: AnyExpression,
         buckets: int,
-        output: Mapping[FieldLike, Accumulator | AccumulatorExpression] | None = None,
-        granularity: Literal[
-            "R5",
-            "R10",
-            "R20",
-            "R40",
-            "R80",
-            "1-2-5",
-            "E6",
-            "E12",
-            "E24",
-            "E48",
-            "E96",
-            "E192",
-            "POWERSOF2",
-        ]
-        | None = None,
+        granularity: Granularity | None = None,
+    ) -> Self: ...
+
+    @overload
+    def bucket_auto(
+        self,
+        output: Mapping[FieldLike, Accumulator | AccumulatorExpression],
+        /,
+        *,
+        by: AnyExpression,
+        buckets: int,
+        granularity: Granularity | None = None,
+    ) -> Self: ...
+
+    @overload
+    def bucket_auto(
+        self,
+        output: list[Aliased[Accumulator | AccumulatorExpression]],
+        /,
+        *,
+        by: AnyExpression,
+        buckets: int,
+        granularity: Granularity | None = None,
+    ) -> Self: ...
+
+    @overload
+    def bucket_auto(
+        self,
+        *output: Aliased[Accumulator | AccumulatorExpression],
+        by: AnyExpression,
+        buckets: int,
+        granularity: Granularity | None = None,
+    ) -> Self: ...
+
+    def bucket_auto(
+        self,
+        *output: Any,
+        by: AnyExpression,
+        buckets: int,
+        granularity: Granularity | None = None,
     ) -> Self:
         """Automatically categorize documents into a specified number of buckets.
 
@@ -351,13 +459,35 @@ class Pipeline(AsAlias):
         ... )
 
         """
+        spec: list[Aliased[Accumulator | AccumulatorExpression]] | None
+
+        if len(output) == 1 and output[0] is None:
+            spec = None
+        if len(output) == 1 and isinstance(output[0], dict):
+            spec = [Aliased(key, val) for key, val in output[0].items()]
+        elif len(output) == 1 and isinstance(output[0], list):
+            spec = output[0]
+        elif output:
+            spec = list(output)
+        else:
+            spec = None
+
         step = BucketAutoStep(
             by=by,
             buckets=buckets,
-            output=output,
+            output=spec,
             granularity=granularity,
         )
         return self.add_step(step)
+
+    @overload
+    def group(
+        self,
+        accumulators: None,
+        /,
+        *,
+        by: AnyExpression,
+    ) -> Self: ...
 
     @overload
     def group(
@@ -411,15 +541,20 @@ class Pipeline(AsAlias):
         >>> Pipeline().group({"count": Count()}, by=None)
 
         """
-        if accumulators and isinstance(accumulators[0], Mapping):
-            mapping: Mapping[FieldLike, Accumulator | AccumulatorExpression] = (
-                accumulators[0]
-            )
+        spec: list[Aliased[Accumulator | AccumulatorExpression]] | None
+
+        if len(accumulators) == 1 and accumulators[0] is None:
+            spec = None
+        if len(accumulators) == 1 and isinstance(accumulators[0], dict):
+            spec = [Aliased(key, val) for key, val in accumulators[0].items()]
+        elif len(accumulators) == 1 and isinstance(accumulators[0], list):
+            spec = accumulators[0]
+        elif accumulators:
+            spec = list(accumulators)
         else:
-            mapping = {
-                aliased.ref: aliased.value for aliased in unwrap_array(accumulators)
-            }
-        step = GroupStep(by=by, accumulators=mapping)
+            spec = None
+
+        step = GroupStep(by=by, accumulators=spec)
         return self.add_step(step)
 
     def set_field(self, field: FieldLike, value: AnyExpression, /) -> Self:
@@ -483,7 +618,7 @@ class Pipeline(AsAlias):
         step = SetStep(fields=mapping)
         return self.add_step(step)
 
-    def unset(self, *fields: Field | str) -> Self:
+    def unset(self, *fields: FieldLike) -> Self:
         """Remove specified fields from documents.
 
         Parameters
@@ -505,7 +640,7 @@ class Pipeline(AsAlias):
 
     def unwind(
         self,
-        field: Field | str,
+        field: FieldLike,
         /,
         *,
         include_array_index: str | None = None,
@@ -541,7 +676,7 @@ class Pipeline(AsAlias):
         )
         return self.add_step(step)
 
-    def count(self, output: Field | str, /) -> Self:
+    def count(self, output: FieldLike, /) -> Self:
         """Return a count of the number of documents at this stage.
 
         Parameters
@@ -561,7 +696,7 @@ class Pipeline(AsAlias):
         step = CountStep(output)
         return self.add_step(step)
 
-    def replace_with(self, expr: Any, /) -> Self:
+    def replace_with(self, expr: AnyExpression, /) -> Self:
         """Replace the input document with the specified document.
 
         Parameters
@@ -744,6 +879,9 @@ class Pipeline(AsAlias):
     def facet(self, facets: Mapping[str, Pipeline], /) -> Self: ...
 
     @overload
+    def facet(self, facets: list[Aliased[Pipeline]], /) -> Self: ...
+
+    @overload
     def facet(self, *facets: Aliased[Pipeline]) -> Self: ...
 
     def facet(self, *facets: Any) -> Self:
@@ -769,14 +907,16 @@ class Pipeline(AsAlias):
         ... )
 
         """
-        if facets and isinstance(facets[0], Mapping):
-            mapping = facets[0]
-        else:
-            mapping = {}
-            for aliased in unwrap_array(facets):
-                mapping[aliased.ref] = aliased.value
+        spec: list[Aliased[Pipeline]] | None
 
-        step = FacetStep(facets=mapping)
+        if len(facets) == 1 and isinstance(facets[0], Mapping):
+            spec = [Aliased(key, val) for key, val in facets[0].items()]
+        elif len(facets) == 1 and isinstance(facets[0], list):
+            spec = facets[0]
+        else:
+            spec = list(facets)
+
+        step = FacetStep(facets=spec)
         return self.add_step(step)
 
     def raw(self, *stages: Stage | Step) -> Self:
@@ -1001,12 +1141,14 @@ class RawStep(Step):
 
 @dataclass
 class FacetStep(Step):
-    facets: Mapping[FieldLike, Pipeline]
+    facets: list[Aliased[Pipeline]]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         body = {
-            compile_field(key, context=context): val.build(context=context)
-            for key, val in self.facets.items()
+            compile_field(alias.ref, context=context): alias.value.build(
+                context=context
+            )
+            for alias in self.facets
         }
         stage = {"$facet": body}
         yield stage
@@ -1024,7 +1166,7 @@ class MatchStep(Step):
 @dataclass
 class GroupStep(Step):
     by: AnyExpression
-    accumulators: Mapping[FieldLike, Accumulator | AccumulatorExpression]
+    accumulators: list[Aliased[Accumulator | AccumulatorExpression]] | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {
@@ -1032,10 +1174,10 @@ class GroupStep(Step):
                 "_id": compile_expression(self.by, context=context),
             }
             | {
-                compile_field(key, context=context): compile_accumulator(
-                    val, context=context
+                compile_field(alias.ref, context=context): compile_accumulator(
+                    alias.value, context=context
                 )
-                for key, val in self.accumulators.items()
+                for alias in (self.accumulators or [])
             },
         }
 
@@ -1121,15 +1263,15 @@ class BucketStep(Step, Generic[T]):
     by: AnyExpression
     boundaries: list[T]
     default: str | None
-    output: Mapping[FieldLike, Accumulator | AccumulatorExpression] | None
+    output: list[Aliased[Accumulator | AccumulatorExpression]] | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
-        if isinstance(self.output, dict):
+        if self.output:
             output = {
-                compile_field(key, context=context): compile_accumulator(
-                    val, context=context
+                compile_field(alias.ref, context=context): compile_accumulator(
+                    alias.value, context=context
                 )
-                for key, val in self.output.items()
+                for alias in self.output
             }
         else:
             output = None
@@ -1152,16 +1294,16 @@ class BucketStep(Step, Generic[T]):
 class BucketAutoStep(Step):
     by: AnyExpression
     buckets: int
-    output: Mapping[FieldLike, Accumulator | AccumulatorExpression] | None = None
+    output: list[Aliased[Accumulator | AccumulatorExpression]] | None = None
     granularity: str | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
         if self.output:
             output = {
-                compile_field(key, context=context): compile_accumulator(
-                    val, context=context
+                compile_field(alias.ref, context=context): compile_accumulator(
+                    alias.value, context=context
                 )
-                for key, val in self.output.items()
+                for alias in self.output
             }
         else:
             output = None
@@ -1180,9 +1322,7 @@ class BucketAutoStep(Step):
 
 @dataclass
 class ProjectStep(Step):
-    projection: (
-        type[Model] | Mapping[FieldLike, AnyExpression] | list[Aliased[AnyExpression]]
-    )
+    projection: type[Model] | list[Aliased[AnyExpression]]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         match self.projection:
@@ -1194,13 +1334,6 @@ class ProjectStep(Step):
                     for alias in self.projection
                 }
 
-            case Mapping():
-                projection = {
-                    compile_field(field, context=context): compile_expression(
-                        expr, context=context
-                    )
-                    for field, expr in self.projection.items()
-                }
             case _:
                 projection = dict.fromkeys(get_mapper(self.projection).db_fields, True)
         yield {"$project": {"_id": False} | projection}
@@ -1208,7 +1341,7 @@ class ProjectStep(Step):
 
 @dataclass
 class UnwindStep(Step):
-    field: Field | str
+    field: FieldLike
     include_array_index: Field | str | None = None
     preserve_null_and_empty_arrays: bool | None = None
 
@@ -1252,7 +1385,7 @@ class SetStep(Step):
 
 @dataclass
 class UnsetStep(Step):
-    fields: list[Field | str]
+    fields: list[FieldLike]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {
@@ -1262,7 +1395,7 @@ class UnsetStep(Step):
 
 @dataclass
 class CountStep(Step):
-    output: Field | str
+    output: FieldLike
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {
