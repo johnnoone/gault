@@ -140,10 +140,13 @@ class Pipeline(AsAlias):
         >>> Pipeline().skip(20).take(10)
 
         """
+        if size is None:
+            return self
+
         stage = {"$skip": size}
         return self.raw(stage)
 
-    def take(self, size: PositiveInteger, /) -> Self:
+    def take(self, size: PositiveInteger | None, /) -> Self:
         """Limit the number of documents passed to the next stage.
 
         Parameters
@@ -160,10 +163,13 @@ class Pipeline(AsAlias):
         >>> Pipeline().skip(20).take(10)
 
         """
+        if size is None:
+            return self
+
         stage = {"$limit": size}
         return self.raw(stage)
 
-    def sample(self, size: PositiveInteger, /) -> Self:
+    def sample(self, size: PositiveInteger | None, /) -> Self:
         """Randomly select the specified number of documents.
 
         Parameters
@@ -180,6 +186,8 @@ class Pipeline(AsAlias):
         >>> Pipeline().match({"status": "active"}).sample(10)
 
         """
+        if size is None:
+            return self
         stage = {"$sample": {"size": size}}
         return self.raw(stage)
 
@@ -545,7 +553,7 @@ class Pipeline(AsAlias):
 
         if len(accumulators) == 1 and accumulators[0] is None:
             spec = None
-        if len(accumulators) == 1 and isinstance(accumulators[0], dict):
+        if len(accumulators) == 1 and isinstance(accumulators[0], Mapping):
             spec = [Aliased(key, val) for key, val in accumulators[0].items()]
         elif len(accumulators) == 1 and isinstance(accumulators[0], list):
             spec = accumulators[0]
@@ -610,12 +618,23 @@ class Pipeline(AsAlias):
         >>> Pipeline().set([Field("status").assign("done")])
 
         """
-        if fields and isinstance(fields[0], Mapping):
-            mapping: Mapping[FieldLike, Accumulator | AccumulatorExpression] = fields[0]
-        else:
-            mapping = {aliased.ref: aliased.value for aliased in unwrap_array(fields)}
+        spec: list[Aliased[Accumulator | AccumulatorExpression]] | None
 
-        step = SetStep(fields=mapping)
+        if len(fields) == 1 and fields[0] is None:
+            spec = None
+        if len(fields) == 1 and isinstance(fields[0], Mapping):
+            spec = [Aliased(key, val) for key, val in fields[0].items()]
+        elif len(fields) == 1 and isinstance(fields[0], list):
+            spec = fields[0]
+        elif fields:
+            spec = list(fields)
+        else:
+            spec = None
+
+        if not spec:
+            return self
+
+        step = SetStep(fields=spec)
         return self.add_step(step)
 
     def unset(self, *fields: FieldLike) -> Self:
@@ -635,6 +654,8 @@ class Pipeline(AsAlias):
         >>> Pipeline().unset("_id", "internal", "temp")
 
         """
+        if not fields:
+            return self
         step = UnsetStep(fields=list(fields))
         return self.add_step(step)
 
@@ -1370,15 +1391,15 @@ class UnwindStep(Step):
 
 @dataclass
 class SetStep(Step):
-    fields: Mapping[FieldLike, AnyExpression]
+    fields: list[Aliased[Accumulator | AccumulatorExpression]]
 
     def compile(self, context: Context) -> Iterator[Stage]:
         yield {
             "$set": {
-                compile_field(field, context=context): compile_expression(
-                    expression, context=context
+                compile_field(alias.ref, context=context): compile_expression(
+                    alias.value, context=context
                 )
-                for field, expression in self.fields.items()
+                for alias in self.fields
             }
         }
 

@@ -49,3 +49,10 @@ def test_spread_fields():
             }
         },
     ]
+
+
+def test_missing_fields():
+    pipeline = Pipeline()
+    pipeline = pipeline.set()
+    result = pipeline.build()
+    assert result == []
