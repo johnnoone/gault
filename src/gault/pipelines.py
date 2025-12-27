@@ -370,7 +370,7 @@ class Pipeline(AsAlias):
 
         if len(output) == 1 and output[0] is None:
             spec = None
-        if len(output) == 1 and isinstance(output[0], dict):
+        elif len(output) == 1 and isinstance(output[0], dict):
             spec = [Aliased(key, val) for key, val in output[0].items()]
         elif len(output) == 1 and isinstance(output[0], list):
             spec = output[0]
@@ -463,7 +463,7 @@ class Pipeline(AsAlias):
 
         if len(output) == 1 and output[0] is None:
             spec = None
-        if len(output) == 1 and isinstance(output[0], dict):
+        elif len(output) == 1 and isinstance(output[0], dict):
             spec = [Aliased(key, val) for key, val in output[0].items()]
         elif len(output) == 1 and isinstance(output[0], list):
             spec = output[0]
