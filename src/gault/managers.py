@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from copy import deepcopy
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Generic, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Generic, TypeAlias
 from weakref import WeakKeyDictionary, WeakSet
 
 from pymongo import ReturnDocument
@@ -118,7 +118,7 @@ class AsyncManager:
             case Predicate():
                 filter = Pipeline().match(filter)
             case Mapping():
-                filter = Pipeline().match(Raw(cast("MongoQuery", filter)))
+                filter = Pipeline().match(Raw(filter))  # ty:ignore[invalid-argument-type]
             case Pipeline():
                 pass
             case _:
@@ -287,7 +287,7 @@ class Manager(Generic[M, S]):
             case Predicate():
                 filter = Pipeline().match(filter)
             case Mapping():
-                filter = Pipeline().match(Raw(cast("MongoQuery", filter)))
+                filter = Pipeline().match(Raw(filter))  # ty:ignore[invalid-argument-type]
             case Pipeline():
                 pass
             case _:

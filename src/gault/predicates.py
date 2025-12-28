@@ -47,80 +47,99 @@ class ConditionInterface(ABC):
     def build_condition(self, op: Operator, /) -> Predicate: ...
 
     def all(self, *values: Value | ElemMatch) -> Predicate:
+        """Select the documents where the value of a field matches all specified values."""
         op = All(*values)
         return self.build_condition(op)
 
     def elem_match(self, *predicates: Predicate | Operator) -> Predicate:
+        """Select the documents where the value of a field matches all specified values."""
         op = ElemMatch(*predicates)
         return self.build_condition(op)
 
     def size(self, count: Number, /) -> Predicate:
+        """Match any array with the number of elements specified by the argument."""
         op = Size(count)
         return self.build_condition(op)
 
     def bits_all_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
+        """Match documents where all of the bit positions given by the query are clear (i.e. 0) in field."""
         op = BitsAllClear(bits)
         return self.build_condition(op)
 
     def bits_any_clear(self, bits: Number | Binary | list[Number], /) -> Predicate:
+        """Match documents where any of the bit positions given by the query are clear (i.e. 0) in field."""
         op = BitsAnyClear(bits)
         return self.build_condition(op)
 
     def bits_all_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
+        """Match documents where all of the bit positions given by the query are set (i.e. 1) in field."""
         op = BitsAllSet(bits)
         return self.build_condition(op)
 
     def bits_any_set(self, bits: Number | Binary | list[Number], /) -> Predicate:
+        """Match documents where any of the bit positions given by the query are set (i.e. 1) in field."""
         op = BitsAnySet(bits)
         return self.build_condition(op)
 
     def eq(self, value: Value, /) -> Predicate:
+        """Match documents where the value of a field equals the specified value."""
         op = Eq(value)
         return self.build_condition(op)
 
     def gt(self, value: PathLike | Value, /) -> Predicate:
+        """Match documents where the value of the specified field is greater than the specified value."""
         op = Gt(value)
         return self.build_condition(op)
 
     def gte(self, value: PathLike | Value, /) -> Predicate:
+        """Match documents where the value of the specified field is greater than or equal to a specified value."""
         op = Gte(value)
         return self.build_condition(op)
 
     def in_(self, *values: Value) -> Predicate:
+        """Select the documents where the value of a field equals any value in the specified array."""
         op = In(*values)
         return self.build_condition(op)
 
     def lt(self, value: PathLike | Value, /) -> Predicate:
+        """Match documents where the value of the specified field is less than the specified value."""
         op = Lt(value)
         return self.build_condition(op)
 
     def lte(self, value: PathLike | Value, /) -> Predicate:
+        """Match documents where the value of the specified field is less than or equal to a specified value."""
         op = Lte(value)
         return self.build_condition(op)
 
     def ne(self, value: AsRef | Value, /) -> Predicate:
+        """Match documents where the value of a specified field is not equal to the specified value."""
         op = Ne(value)
         return self.build_condition(op)
 
     def nin(self, *values: Value) -> Predicate:
+        """Select the documents where the specified field value is not in the specified array or the specified field does not exist."""
         op = Nin(*values)
         return self.build_condition(op)
 
     def exists(self, value: Boolean, /) -> Predicate:
+        """Select the documents where the specified field value is not in the specified array or the specified field does not exist."""
         op = Exists(value)
         return self.build_condition(op)
 
     def type(self, *types: String | Number) -> Predicate:
+        """Select documents where the value of the field is an instance of the specified BSON types."""
         op = Type(*types)
         return self.build_condition(op)
 
     def geo_intersects(self, value: PolygonLike | MultiPolygonLike, /) -> Predicate:
+        """Select documents whose geospatial data intersects with a specified GeoJSON object; i.e. where the intersection of the data and the specified object is non-empty."""
         op = GeoIntersects(value)
         return self.build_condition(op)
 
     def geo_within(
         self, value: PolygonLike | MultiPolygonLike | ShapeLike, /
     ) -> Predicate:
+        """Select documents with geospatial data that exists entirely within a specified shape."""
         op = GeoWithin(value)
         return self.build_condition(op)
 
@@ -131,6 +150,7 @@ class ConditionInterface(ABC):
         min_distance: Number | None = None,
         max_distance: Number | None = None,
     ) -> Predicate:
+        """Specify a point for which a geospatial query returns the documents from nearest to farthest."""
         op = Near(
             value,
             min_distance=min_distance,
@@ -145,6 +165,7 @@ class ConditionInterface(ABC):
         min_distance: Number | None = None,
         max_distance: Number | None = None,
     ) -> Predicate:
+        """Specify a point for which a geospatial query returns the documents from nearest to farthest."""
         op = NearSphere(
             value,
             min_distance=min_distance,
@@ -153,10 +174,12 @@ class ConditionInterface(ABC):
         return self.build_condition(op)
 
     def mod(self, divisor: Number, remainder: Number) -> Predicate:
+        """Match documents that satisfy the specified JSON Schema."""
         op = Mod(divisor, remainder)
         return self.build_condition(op)
 
     def regex(self, regex: String, *, options: String | None = None) -> Predicate:
+        """Match documents that satisfy the specified JSON Schema."""
         op = Regex(regex, options=options)
         return self.build_condition(op)
 
