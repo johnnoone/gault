@@ -7,9 +7,6 @@ from gault.geo import (
     MultiPoint,
     MultiPolygon,
     GeometryCollection,
-    Box,
-    Center,
-    CenterSphere,
 )
 
 
@@ -440,37 +437,4 @@ def test_compile_geojson_geometry_collection(context):
                 },
             ],
         }
-    }
-
-
-def test_box(context):
-    geo = Box(Point(1, 2), Point(3, 4))
-    expr = compile_geo(geo, context=context)
-    assert expr == {
-        "$box": [
-            [1, 2],
-            [3, 4],
-        ]
-    }
-
-
-def test_center(context):
-    geo = Center(Point(1, 2), radius=42)
-    expr = compile_geo(geo, context=context)
-    assert expr == {
-        "$center": [
-            [1, 2],
-            42,
-        ]
-    }
-
-
-def test_center_sphere(context):
-    geo = CenterSphere(Point(1, 2), radius=42)
-    expr = compile_geo(geo, context=context)
-    assert expr == {
-        "$centerSphere": [
-            [1, 2],
-            42,
-        ]
     }

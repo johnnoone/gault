@@ -123,7 +123,7 @@ class Pipeline(AsAlias):
         step = MatchStep(query=query)
         return self.add_step(step)
 
-    def skip(self, size: PositiveInteger, /) -> Self:
+    def skip(self, size: PositiveInteger | None, /) -> Self:
         """Skip the first n documents.
 
         Parameters

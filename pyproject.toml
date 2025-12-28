@@ -65,6 +65,7 @@ extend-ignore = [
     "N818",
     "PLR2004",
     "SIM108",
+    "UP013",
 ]
 
 [tool.mypy]

@@ -1,3 +1,4 @@
+from gault.shapes import Coordinates
 import pytest
 from gault.compilers import compile_query
 from gault.interfaces import Aliased
@@ -194,27 +195,33 @@ def test_geo_within(field, context):
 
 
 def test_near(field, context):
-    predicate = field.near({"$box": [[1, 2], [3, 4]]}, max_distance=10)
+    predicate = field.near(Coordinates(1, 2), max_distance=10)
     result = compile_query(predicate, context=context)
     assert result == {
         "my_field": {
             "$near": {
-                "$box": [[1, 2], [3, 4]],
-            },
-            "$maxDistance": 10,
+                "$geometry": {
+                    "type": "Point",
+                    "coordinates": [1, 2],
+                },
+                "$maxDistance": 10,
+            }
         }
     }
 
 
 def test_near_sphere(field, context):
-    predicate = field.near_sphere({"$box": [[1, 2], [3, 4]]}, max_distance=10)
+    predicate = field.near_sphere(Coordinates(1, 2), max_distance=10)
     result = compile_query(predicate, context=context)
     assert result == {
         "my_field": {
             "$nearSphere": {
-                "$box": [[1, 2], [3, 4]],
-            },
-            "$maxDistance": 10,
+                "$geometry": {
+                    "type": "Point",
+                    "coordinates": [1, 2],
+                },
+                "$maxDistance": 10,
+            }
         }
     }
 

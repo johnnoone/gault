@@ -22,7 +22,8 @@ from .interfaces import (
 from .utils import nullfree_dict, unwrap_array
 
 if TYPE_CHECKING:
-    from .geo import Geo, GeoJSON
+    from .geo import MultiPolygonLike, PointLike, PolygonLike
+    from .shapes import Coordinates, ShapeLike
     from .types import (
         AnyExpression,
         Array,
@@ -113,17 +114,19 @@ class ConditionInterface(ABC):
         op = Type(*types)
         return self.build_condition(op)
 
-    def geo_intersects(self, value: GeoJSON, /) -> Predicate:
+    def geo_intersects(self, value: PolygonLike | MultiPolygonLike, /) -> Predicate:
         op = GeoIntersects(value)
         return self.build_condition(op)
 
-    def geo_within(self, value: GeoJSON, /) -> Predicate:
+    def geo_within(
+        self, value: PolygonLike | MultiPolygonLike | ShapeLike, /
+    ) -> Predicate:
         op = GeoWithin(value)
         return self.build_condition(op)
 
     def near(
         self,
-        value: GeoJSON,
+        value: PointLike | Coordinates,
         /,
         min_distance: Number | None = None,
         max_distance: Number | None = None,
@@ -137,7 +140,7 @@ class ConditionInterface(ABC):
 
     def near_sphere(
         self,
-        value: GeoJSON,
+        value: PointLike | Coordinates,
         /,
         min_distance: Number | None = None,
         max_distance: Number | None = None,
@@ -717,7 +720,7 @@ class Type(Operator):
 class GeoIntersects(Operator):
     """Selects documents whose geospatial data intersects with a specified GeoJSON object; i.e. where the intersection of the data and the specified object is non-empty."""
 
-    value: GeoJSON
+    value: PolygonLike | MultiPolygonLike
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -729,7 +732,7 @@ class GeoIntersects(Operator):
 class GeoWithin(Operator):
     """Selects documents with geospatial data that exists entirely within a specified shape."""
 
-    value: Geo
+    value: PolygonLike | MultiPolygonLike | ShapeLike
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
@@ -741,38 +744,40 @@ class GeoWithin(Operator):
 class Near(Operator):
     """Specifies a point for which a geospatial query returns the documents from nearest to farthest."""
 
-    value: Geo
+    value: PointLike | Coordinates
     min_distance: Number | None = None
     max_distance: Number | None = None
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
-            "$near": compile_geo(self.value, context=context),
-        } | nullfree_dict(
-            {
-                "$minDistance": self.min_distance,
-                "$maxDistance": self.max_distance,
-            },
-        )
+            "$near": compile_geo(self.value, context=context)
+            | nullfree_dict(
+                {
+                    "$minDistance": self.min_distance,
+                    "$maxDistance": self.max_distance,
+                },
+            )
+        }
 
 
 @dataclass
 class NearSphere(Operator):
     """Specifies a point for which a geospatial query returns the documents from nearest to farthest."""
 
-    value: Geo
+    value: PointLike | Coordinates
     min_distance: Number | None = None
     max_distance: Number | None = None
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
-            "$nearSphere": compile_geo(self.value, context=context),
-        } | nullfree_dict(
-            {
-                "$minDistance": self.min_distance,
-                "$maxDistance": self.max_distance,
-            },
-        )
+            "$nearSphere": compile_geo(self.value, context=context)
+            | nullfree_dict(
+                {
+                    "$minDistance": self.min_distance,
+                    "$maxDistance": self.max_distance,
+                },
+            )
+        }
 
 
 @dataclass

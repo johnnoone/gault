@@ -2,17 +2,82 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeAlias
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypeAlias
+
+from .shapes import Coordinates, Shape
 
 if TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
     from .types import Context, MongoExpression
 
-    Geo: TypeAlias = "Box" | "Center" | "CenterSphere" | "GeoJSON"
+    class PointDict(TypedDict):
+        type: Literal["Point"]
+        coordinates: Any
+        crs: NotRequired[Any]
+
+    PointLike: TypeAlias = "PointDict" | "Point"
+
+    class LineStringDict(TypedDict):
+        type: Literal["LineString"]
+        coordinates: Any
+        crs: NotRequired[Any]
+
+    LineStringLike: TypeAlias = "LineStringDict" | "LineString"
+
+    class PolygonDict(TypedDict):
+        type: Literal["Polygon"]
+        coordinates: Any
+        crs: NotRequired[Any]
+
+    PolygonLike: TypeAlias = "PolygonDict" | "Polygon"
+
+    class MultiPointDict(TypedDict):
+        type: Literal["MultiPoint"]
+        coordinates: Any
+        crs: NotRequired[Any]
+
+    MultiPointLike: TypeAlias = "MultiPointDict" | "MultiPoint"
+
+    class MultiLineStringDict(TypedDict):
+        type: Literal["MultiLineString"]
+        coordinates: Any
+        crs: NotRequired[Any]
+
+    MultiLineStringLike: TypeAlias = "MultiLineStringDict" | "MultiLineString"
+
+    class MultiPolygonDict(TypedDict):
+        type: Literal["MultiPolygon"]
+        coordinates: Any
+        crs: NotRequired[Any]
+
+    MultiPolygonLike: TypeAlias = "MultiPolygonDict" | "MultiPolygon"
+
+    class GeometryCollectionDict(TypedDict):
+        type: Literal["GeometryCollection"]
+        coordinates: Any
+        crs: NotRequired[Any]
+
+    GeometryCollectionLike: TypeAlias = "GeometryCollectionDict" | "GeometryCollection"
+
+    GeoJSONDict: TypeAlias = (
+        "PointDict"
+        | "LineStringDict"
+        | "PolygonDict"
+        | "MultiPointDict"
+        | "MultiLineStringDict"
+        | "MultiPolygonDict"
+        | "GeometryCollectionDict"
+    )
+
+    GeoJSONLike: TypeAlias = "GeoJSON" | "GeoJSONDict"
 
 
-def compile_geo(value: Geo | MongoExpression, *, context: Context) -> Any:
+def compile_geo(
+    value: GeoJSONLike | MongoExpression | Shape | Coordinates, *, context: Context
+) -> Any:
     match value:
-        case {"$box": _} | {"$center": _} | {"$centerSphere": _}:
+        case {"$box": _} | {"$center": _} | {"$centerSphere": _} | {"$polygon": _}:
             # https://www.mongodb.com/docs/manual/reference/operator/query/box/
             # https://www.mongodb.com/docs/manual/reference/operator/query/center/
             # https://www.mongodb.com/docs/manual/reference/operator/query/centerSphere/
@@ -30,10 +95,18 @@ def compile_geo(value: Geo | MongoExpression, *, context: Context) -> Any:
             | "GeometryCollection"
         }:
             return {"$geometry": value}
+
         case GeoJSON():
             return value.compile_expression(context=context)
-        case Box() | Center() | CenterSphere():
+        case Shape():
             return value.compile_expression(context=context)
+        case Coordinates():
+            return {
+                "$geometry": {
+                    "type": "Point",
+                    "coordinates": [value.x, value.y],
+                }
+            }
         case _:
             raise NotImplementedError
 
@@ -60,7 +133,7 @@ class Point(GeoJSON):
         }
 
     def get_coordinates(self) -> Any:
-        return compile_position(self)
+        return [self.x, self.y]
 
 
 @dataclass
@@ -141,13 +214,24 @@ class MultiLineString(GeoJSON):
 @dataclass
 class MultiPolygon(GeoJSON):
     polygons: list[Polygon]
+    crs: Literal["urn:x-mongodb:crs:strictwinding:EPSG:4326"] | None = None
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
+        if name := self.crs:
+            custom = {
+                "crs": {
+                    "type": "name",
+                    "properties": {"name": name},
+                },
+            }
+        else:
+            custom = {}
         return {
             "$geometry": {
                 "type": "MultiPolygon",
                 "coordinates": self.get_coordinates(),
             }
+            | custom
         }
 
     def get_coordinates(self) -> Any:
@@ -171,60 +255,3 @@ class GeometryCollection(GeoJSON):
 
     def get_coordinates(self) -> Any:
         return [geometry.get_coordinates() for geometry in self.geometries]
-
-
-@dataclass
-class Box:
-    bottom_left_coordinates: Point
-    upper_right_coordinates: Point
-
-    def compile_expression(self, *, context: Context) -> MongoExpression:
-        return {
-            "$box": [
-                compile_position(self.bottom_left_coordinates),
-                compile_position(self.upper_right_coordinates),
-            ],
-        }
-
-
-@dataclass
-class Center:
-    coordinates: Point
-    radius: float
-
-    def compile_expression(self, *, context: Context) -> MongoExpression:
-        return {
-            "$center": [
-                compile_position(self.coordinates),
-                self.radius,
-            ],
-        }
-
-
-@dataclass
-class CenterSphere:
-    coordinates: Point
-    radius: float
-
-    def compile_expression(self, *, context: Context) -> MongoExpression:
-        return {
-            "$centerSphere": [
-                compile_position(self.coordinates),
-                self.radius,
-            ],
-        }
-
-
-class Coordinates(NamedTuple):
-    x: float
-    y: float
-
-
-def compile_position(input: Coordinates | Point, /) -> list[float]:
-    match input:
-        case Coordinates(x, y):
-            return [x, y]
-        case Point(x, y):
-            return [x, y]
-        case _:
-            raise NotImplementedError

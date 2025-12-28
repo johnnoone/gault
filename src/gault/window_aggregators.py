@@ -5,7 +5,7 @@ TODO: ensure all example here are implemented here https://www.mongodb.com/docs/
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
@@ -43,8 +43,7 @@ class WindowOperator(ExpressionOperator, AsAlias):
     window_unit: DateUnit | None = field(default=None, kw_only=True)
 
     @abstractmethod
-    def compile_operation(self, *, context: Context) -> MongoExpression:
-        raise NotImplementedError
+    def compile_operation(self, *, context: Context) -> MongoExpression: ...
 
     def compile_expression(self, *, context: Context) -> MongoExpression:
         operation: dict = self.compile_operation(context=context)  # type: ignore[assignment]
