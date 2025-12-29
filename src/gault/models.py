@@ -20,7 +20,14 @@ from .interfaces import (
     FieldSortInterface,
     SubfieldInterface,
 )
-from .predicates import Condition, ConditionInterface, NotInterface, Operator, Predicate
+from .predicates import (
+    Condition,
+    ConditionInterface,
+    ExpressionInterface,
+    NotInterface,
+    Operator,
+    Predicate,
+)
 from .utils import drop_missing
 
 if TYPE_CHECKING:
@@ -85,6 +92,7 @@ class AttributeSpec(
     FieldSortInterface,
     SubfieldInterface,
     NotInterface,
+    ExpressionInterface,
     Generic[T],
 ):
     def compile_field(self, *, context: Context) -> str:

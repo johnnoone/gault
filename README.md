@@ -124,6 +124,55 @@ pipeline = (
 )
 ```
 
+### Advanced Field Methods
+
+#### Expression Queries with `.expr`
+
+Use the `.expr` property to access MongoDB's aggregation expression operators within queries. This allows for complex conditions like comparing fields against each other or performing calculations:
+
+```python
+# Compare field against a value
+Person.score.expr.gt(42)
+# Result: {"$expr": {"$gt": ["$score", 42]}}
+
+# Compare two fields
+Person.price.expr.gt(Person.discount_price)
+# Result: {"$expr": {"$gt": ["$price", "$discount_price"]}}
+
+# Complex expressions with calculations
+Person.total.expr.eq(Person.price.expr.add(Person.tax))
+# Result: {"$expr": {"$eq": ["$total", {"$add": ["$price", "$tax"]}]}}
+
+# Use in queries
+high_scorers = await manager.select(Person, filter=Person.score.expr.gte(100))
+```
+
+The `.expr` property provides access to all MongoDB aggregation expression operators including mathematical operations (`add`, `multiply`, `divide`), string operations (`concat`, `substr`), comparisons, and more.
+
+#### Negated Conditions with `.not_`
+
+Use the `.not_` property to negate query operators using MongoDB's `$not` operator:
+
+```python
+# Match documents where age is NOT greater than or equal to 18
+Person.age.not_.gte(18)
+# Result: {"age": {"$not": {"$gte": 18}}}
+
+# Match documents where status does NOT match the regex pattern
+Person.status.not_.regex("^active")
+# Result: {"status": {"$not": {"$regex": "^active"}}}
+
+# Can also be used as a callable
+from gault.predicates import Gte
+Person.age.not_(Gte(18))
+# Result: {"age": {"$not": {"$gte": 18}}}
+
+# Use in queries
+minors = await manager.select(Person, filter=Person.age.not_.gte(18))
+```
+
+**Note**: The `$not` operator performs logical negation on the operator expression, which is different from `!=` (the `$ne` operator) that checks for inequality.
+
 ### Raw MongoDB Queries
 
 You can also use raw MongoDB query dictionaries:

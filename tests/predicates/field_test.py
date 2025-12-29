@@ -1,7 +1,7 @@
 from gault.shapes import Coordinates
 import pytest
 from gault.compilers import compile_query
-from gault.interfaces import Aliased
+from gault.interfaces import Aliased, ExpressionOperator
 from gault.predicates import Eq, Field, Gte
 
 
@@ -306,3 +306,13 @@ def test_keep_alias(field: Field):
 def test_remove(field: Field):
     struct = field.remove()
     assert struct == Aliased(field, "$$REMOVE")
+
+
+def test_expr(field: Field, context):
+    expr = field.expr.gt(42)
+    assert isinstance(expr, ExpressionOperator)
+
+    result = compile_query(expr, context=context)
+    assert result == {
+        "$expr": {"$gt": ["$my_field", 42]},
+    }

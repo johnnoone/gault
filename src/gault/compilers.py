@@ -24,6 +24,8 @@ def compile_query(value: Any, *, context: Context) -> MongoQuery:
     match value:
         case QueryPredicate():
             return value.compile_query(context=context)
+        case ExpressionOperator():
+            return {"$expr": value.compile_expression(context=context)}
         case dict():
             return value
         case _:

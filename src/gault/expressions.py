@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast, overload
@@ -2724,39 +2725,43 @@ class Zip(ExpressionOperator):
         }
 
 
-class ExpressionsInterface:
+class ExpressionsInterface(ABC):
+    @abstractmethod
+    def get_ref(self) -> Any:
+        pass
+
     def abs(self) -> Abs:
-        return Abs(cast("Any", self))
+        return Abs(self.get_ref())
 
     def acos(self) -> Acos:
-        return Acos(cast("Any", self))
+        return Acos(self.get_ref())
 
     def acosh(self) -> Acosh:
-        return Acosh(cast("Any", self))
+        return Acosh(self.get_ref())
 
     def add(self, *inputs: NumberExpression) -> Add:
-        return Add(cast("Any", self), *inputs)
+        return Add(self.get_ref(), *inputs)
 
     def all_elements_true(self, *inputs: AnyExpression) -> AllElementsTrue:
-        return AllElementsTrue(cast("Any", self))
+        return AllElementsTrue(self.get_ref())
 
     def any_elements_true(self, *inputs: AnyExpression) -> AnyElementsTrue:
         return AnyElementsTrue(self)
 
     def asin(self) -> Asin:
-        return Asin(cast("Any", self))
+        return Asin(self.get_ref())
 
     def asinh(self) -> Asinh:
-        return Asinh(cast("Any", self))
+        return Asinh(self.get_ref())
 
     def atan(self) -> Atan:
-        return Atan(cast("Any", self))
+        return Atan(self.get_ref())
 
     def atan2(self, other: NumberExpression, /) -> Atan2:
-        return Atan2(cast("Any", self), other)
+        return Atan2(self.get_ref(), other)
 
     def atanh(self) -> Atanh:
-        return Atanh(cast("Any", self))
+        return Atanh(self.get_ref())
 
     def avg(self, *others: NumberExpression) -> Avg:
         if elements := unwrap_array(others):
@@ -2766,37 +2771,37 @@ class ExpressionsInterface:
         return Avg(input=cast("Any", input))
 
     def binary_size(self) -> BinarySize:
-        return BinarySize(cast("Any", self))
+        return BinarySize(self.get_ref())
 
     def bit_and(self, *inputs: NumberExpression) -> BitAnd:
-        return BitAnd(cast("Any", self), *inputs)
+        return BitAnd(self.get_ref(), *inputs)
 
     def bit_not(self) -> BitNot:
-        return BitNot(cast("Any", self))
+        return BitNot(self.get_ref())
 
     def bit_or(self, *inputs: NumberExpression) -> BitOr:
-        return BitOr(cast("Any", self), *inputs)
+        return BitOr(self.get_ref(), *inputs)
 
     def bit_xor(self, *inputs: NumberExpression) -> BitXor:
-        return BitXor(cast("Any", self), *inputs)
+        return BitXor(self.get_ref(), *inputs)
 
     def bson_size(self) -> BsonSize:
         return BsonSize(self)
 
     def ceil(self) -> Ceil:
-        return Ceil(cast("Any", self))
+        return Ceil(self.get_ref())
 
     def cmp(self, other: AnyExpression, /) -> Cmp:
-        return Cmp(cast("Any", self), other)
+        return Cmp(self.get_ref(), other)
 
     def concat(self, *inputs: StringExpression) -> Concat:
-        return Concat(cast("Any", self), *inputs)
+        return Concat(self.get_ref(), *inputs)
 
     def cos(self) -> Cos:
-        return Cos(cast("Any", self))
+        return Cos(self.get_ref())
 
     def cosh(self) -> Cosh:
-        return Cosh(cast("Any", self))
+        return Cosh(self.get_ref())
 
     def date_add(
         self,
@@ -2806,7 +2811,7 @@ class ExpressionsInterface:
         timezone: TimezoneExpression | None = None,
     ) -> DateAdd:
         return DateAdd(
-            cast("Any", self),
+            self.get_ref(),
             unit=unit,
             amount=amount,
             timezone=timezone,
@@ -2821,7 +2826,7 @@ class ExpressionsInterface:
         start_of_week: DayWeek | None = None,
     ) -> DateDiff:
         return DateDiff(
-            start_date=cast("Any", self),
+            start_date=self.get_ref(),
             end_date=end_date,
             unit=unit,
             start_of_week=start_of_week,
@@ -2837,7 +2842,7 @@ class ExpressionsInterface:
         on_null: AnyExpression | None = None,
     ) -> DateFromString:
         return DateFromString(
-            cast("Any", self),
+            self.get_ref(),
             format=format,
             timezone=timezone,
             on_error=on_error,
@@ -2852,7 +2857,7 @@ class ExpressionsInterface:
         timezone: Timezone | None = None,
     ) -> DateSubtract:
         return DateSubtract(
-            cast("Any", self),
+            self.get_ref(),
             unit=unit,
             amount=amount,
             timezone=timezone,
@@ -2864,7 +2869,7 @@ class ExpressionsInterface:
         timezone: Timezone | None = None,
     ) -> DateToParts:
         return DateToParts(
-            cast("Any", self),
+            self.get_ref(),
             timezone=timezone,
         )
 
@@ -2876,7 +2881,7 @@ class ExpressionsInterface:
         on_null: AnyExpression | None = None,
     ) -> DateToString:
         return DateToString(
-            cast("Any", self),
+            self.get_ref(),
             format=format,
             timezone=timezone,
             on_null=on_null,
@@ -2891,7 +2896,7 @@ class ExpressionsInterface:
         start_of_week: DayWeek | None = None,
     ) -> DateTrunc:
         return DateTrunc(
-            cast("Any", self),
+            self.get_ref(),
             unit=unit,
             bin_size=bin_size,
             timezone=timezone,
@@ -2904,7 +2909,7 @@ class ExpressionsInterface:
         timezone: Timezone | None = None,
     ) -> DayOfMonth:
         return DayOfMonth(
-            cast("Any", self),
+            self.get_ref(),
             timezone=timezone,
         )
 
@@ -2914,7 +2919,7 @@ class ExpressionsInterface:
         timezone: Timezone | None = None,
     ) -> DayOfWeek:
         return DayOfWeek(
-            cast("Any", self),
+            self.get_ref(),
             timezone=timezone,
         )
 
@@ -2924,18 +2929,18 @@ class ExpressionsInterface:
         timezone: Timezone | None = None,
     ) -> DayOfYear:
         return DayOfYear(
-            cast("Any", self),
+            self.get_ref(),
             timezone=timezone,
         )
 
     def degrees_to_radians(self) -> DegreesToRadians:
-        return DegreesToRadians(cast("Any", self))
+        return DegreesToRadians(self.get_ref())
 
     def eq(self, other: AnyExpression) -> Eq:
-        return Eq(cast("Any", self), other)
+        return Eq(self.get_ref(), other)
 
     def exp(self) -> Exp:
-        return Exp(cast("Any", self))
+        return Exp(self.get_ref())
 
     def filter(
         self,
@@ -2945,22 +2950,22 @@ class ExpressionsInterface:
         var: PathLike | None = None,
         limit: int | None = None,
     ) -> Filter:
-        return Filter(cast("Any", self), var=var, cond=cond, limit=limit)
+        return Filter(self.get_ref(), var=var, cond=cond, limit=limit)
 
     def floor(self) -> Floor:
-        return Floor(cast("Any", self))
+        return Floor(self.get_ref())
 
     def get_field(self, field: str) -> GetField:
-        return GetField(cast("Any", self), field=field)
+        return GetField(self.get_ref(), field=field)
 
     def gt(self, other: AnyExpression) -> Gt:
-        return Gt(cast("Any", self), other)
+        return Gt(self.get_ref(), other)
 
     def gte(self, other: AnyExpression) -> Gte:
-        return Gte(cast("Any", self), other)
+        return Gte(self.get_ref(), other)
 
     def hour(self) -> Hour:
-        return Hour(cast("Any", self))
+        return Hour(self.get_ref())
 
     def in_(self, array: ArrayExpression, /) -> IfNull:
         return IfNull(self, array)
@@ -2973,7 +2978,7 @@ class ExpressionsInterface:
         end: NumberExpression | None = None,
     ) -> IndexOfArray:
         return IndexOfArray(
-            cast("Any", self),
+            self.get_ref(),
             search=search,
             start=start,
             end=end,
@@ -2987,7 +2992,7 @@ class ExpressionsInterface:
         end: NumberExpression | None = None,
     ) -> IndexOfBytes:
         return IndexOfBytes(
-            cast("Any", self),
+            self.get_ref(),
             search=search,
             start=start,
             end=end,
@@ -3001,47 +3006,47 @@ class ExpressionsInterface:
         end: NumberExpression | None = None,
     ) -> IndexOfCP:
         return IndexOfCP(
-            cast("Any", self),
+            self.get_ref(),
             search=search,
             start=start,
             end=end,
         )
 
     def is_array(self) -> IsArray:
-        return IsArray(cast("Any", self))
+        return IsArray(self.get_ref())
 
     def is_number(self) -> IsNumber:
-        return IsNumber(cast("Any", self))
+        return IsNumber(self.get_ref())
 
     def iso_day_of_week(self, *, timezone: Timezone | None = None) -> IsoDayOfWeek:
-        return IsoDayOfWeek(cast("Any", self), timezone=timezone)
+        return IsoDayOfWeek(self.get_ref(), timezone=timezone)
 
     def iso_week_year(self, *, timezone: Timezone | None = None) -> IsoWeekYear:
-        return IsoWeekYear(cast("Any", self), timezone=timezone)
+        return IsoWeekYear(self.get_ref(), timezone=timezone)
 
     def ln(self) -> Ln:
-        return Ln(cast("Any", self))
+        return Ln(self.get_ref())
 
     def log(self, base: NumberExpression, /) -> Log:
-        return Log(cast("Any", self), base)
+        return Log(self.get_ref(), base)
 
     def log10(self) -> Log10:
-        return Log10(cast("Any", self))
+        return Log10(self.get_ref())
 
     def trim(self, chars: StringExpression) -> Trim:
-        return Trim(cast("Any", self), chars=chars)
+        return Trim(self.get_ref(), chars=chars)
 
     def ltrim(self, chars: StringExpression) -> Ltrim:
-        return Ltrim(cast("Any", self), chars=chars)
+        return Ltrim(self.get_ref(), chars=chars)
 
     def rtrim(self, chars: StringExpression) -> Rtrim:
-        return Rtrim(cast("Any", self), chars=chars)
+        return Rtrim(self.get_ref(), chars=chars)
 
     def lt(self, other: AnyExpression) -> Lt:
-        return Lt(cast("Any", self), other)
+        return Lt(self.get_ref(), other)
 
     def lte(self, other: AnyExpression) -> Lte:
-        return Lte(cast("Any", self), other)
+        return Lte(self.get_ref(), other)
 
     def map(
         self,
@@ -3049,7 +3054,7 @@ class ExpressionsInterface:
         *,
         var: PathLike | None = None,
     ) -> Map:
-        return Map(cast("Any", self), var=var, into=into)
+        return Map(self.get_ref(), var=var, into=into)
 
     def max(self, *others: NumberExpression) -> Max:
         if elements := unwrap_array(others):
@@ -3059,7 +3064,7 @@ class ExpressionsInterface:
         return Max(cast("Any", input))
 
     def max_n(self, n: NumberExpression, /) -> MaxN:
-        return MaxN(cast("Any", self), n=n)
+        return MaxN(self.get_ref(), n=n)
 
     def min(self, *others: NumberExpression) -> Min:
         if elements := unwrap_array(others):
@@ -3069,37 +3074,37 @@ class ExpressionsInterface:
         return Min(cast("Any", input))
 
     def min_n(self, n: NumberExpression, /) -> MinN:
-        return MinN(cast("Any", self), n=n)
+        return MinN(self.get_ref(), n=n)
 
     def millisecond(self) -> Millisecond:
-        return Millisecond(cast("Any", self))
+        return Millisecond(self.get_ref())
 
     def minute(self) -> Minute:
-        return Minute(cast("Any", self))
+        return Minute(self.get_ref())
 
     def mod(self, other: NumberExpression, /) -> Mod:
-        return Mod(cast("Any", self), other)
+        return Mod(self.get_ref(), other)
 
     def month(self) -> Month:
-        return Month(cast("Any", self))
+        return Month(self.get_ref())
 
     def multiply(self, *inputs: NumberExpression) -> Multiply:
-        return Multiply(cast("Any", self), *inputs)
+        return Multiply(self.get_ref(), *inputs)
 
     def ne(self, other: AnyExpression, /) -> Ne:
-        return Ne(cast("Any", self), other)
+        return Ne(self.get_ref(), other)
 
     def not_(self) -> Not:
-        return Not(cast("Any", self))
+        return Not(self.get_ref())
 
     def object_to_array(self) -> ObjectToArray:
-        return ObjectToArray(cast("Any", self))
+        return ObjectToArray(self.get_ref())
 
     def pow(self, exponent: NumberExpression, /) -> Pow:
-        return Pow(cast("Any", self), exponent)
+        return Pow(self.get_ref(), exponent)
 
     def radians_to_degrees(self) -> RadiansToDegrees:
-        return RadiansToDegrees(cast("Any", self))
+        return RadiansToDegrees(self.get_ref())
 
     def reduce(
         self,
@@ -3107,7 +3112,7 @@ class ExpressionsInterface:
         *,
         initial_value: Value,
     ) -> Reduce:
-        return Reduce(cast("Any", self), into=into, initial_value=initial_value)
+        return Reduce(self.get_ref(), into=into, initial_value=initial_value)
 
     def regex_find(
         self,
@@ -3115,7 +3120,7 @@ class ExpressionsInterface:
         *,
         options: StringExpression | None = None,
     ) -> RegexFind:
-        return RegexFind(cast("Any", self), regex=regex, options=options)
+        return RegexFind(self.get_ref(), regex=regex, options=options)
 
     def regex_find_all(
         self,
@@ -3123,7 +3128,7 @@ class ExpressionsInterface:
         *,
         options: StringExpression | None = None,
     ) -> RegexFindAll:
-        return RegexFindAll(cast("Any", self), regex=regex, options=options)
+        return RegexFindAll(self.get_ref(), regex=regex, options=options)
 
     def regex_match(
         self,
@@ -3131,7 +3136,7 @@ class ExpressionsInterface:
         *,
         options: StringExpression | None = None,
     ) -> RegexMatch:
-        return RegexMatch(cast("Any", self), regex=regex, options=options)
+        return RegexMatch(self.get_ref(), regex=regex, options=options)
 
     def replace_one(
         self,
@@ -3139,7 +3144,7 @@ class ExpressionsInterface:
         replacement: StringExpression,
     ) -> ReplaceOne:
         return ReplaceOne(
-            cast("Any", self),
+            self.get_ref(),
             find=find,
             replacement=replacement,
         )
@@ -3150,37 +3155,37 @@ class ExpressionsInterface:
         replacement: StringExpression,
     ) -> ReplaceAll:
         return ReplaceAll(
-            cast("Any", self),
+            self.get_ref(),
             find=find,
             replacement=replacement,
         )
 
     def reverse_array(self) -> ReverseArray:
-        return ReverseArray(cast("Any", self))
+        return ReverseArray(self.get_ref())
 
     def round(self, place: NumberExpression = 0, /) -> Round:
-        return Round(cast("Any", self), place=place)
+        return Round(self.get_ref(), place=place)
 
     def sample_rate(self) -> SampleRate:
-        return SampleRate(cast("Any", self))
+        return SampleRate(self.get_ref())
 
     def second(self) -> Second:
-        return Second(cast("Any", self))
+        return Second(self.get_ref())
 
     def set_difference(self, other: ArrayExpression, /) -> SetDifference:
-        return SetDifference(cast("Any", self), other)
+        return SetDifference(self.get_ref(), other)
 
     def set_equals(self, other: ArrayExpression, /) -> SetEquals:
-        return SetEquals(cast("Any", self), other)
+        return SetEquals(self.get_ref(), other)
 
     def set_intersection(self, other: ArrayExpression, /) -> SetIntersection:
-        return SetIntersection(cast("Any", self), other)
+        return SetIntersection(self.get_ref(), other)
 
     def set_is_subset(self, other: ArrayExpression, /) -> SetIsSubset:
-        return SetIsSubset(cast("Any", self), other)
+        return SetIsSubset(self.get_ref(), other)
 
     def set_union(self, other: ArrayExpression, /) -> SetUnion:
-        return SetUnion(cast("Any", self), other)
+        return SetUnion(self.get_ref(), other)
 
     def set_field(
         self,
@@ -3188,117 +3193,117 @@ class ExpressionsInterface:
         field: StringExpression,
         value: Value,
     ) -> SetField:
-        return SetField(cast("Any", self), field=field, value=value)
+        return SetField(self.get_ref(), field=field, value=value)
 
     def sigmoid(
         self,
         *,
         on_null: AnyExpression | None = None,
     ) -> Sigmoid:
-        return Sigmoid(cast("Any", self), on_null=on_null)
+        return Sigmoid(self.get_ref(), on_null=on_null)
 
     def size(self) -> Size:
-        return Size(cast("Any", self))
+        return Size(self.get_ref())
 
     def sin(self) -> Sin:
-        return Sin(cast("Any", self))
+        return Sin(self.get_ref())
 
     def sinh(self) -> Sinh:
-        return Sinh(cast("Any", self))
+        return Sinh(self.get_ref())
 
     def sort_array(self, sort_by: SortPayload, /) -> SortArray:
-        return SortArray(cast("Any", self), sort_by=sort_by)
+        return SortArray(self.get_ref(), sort_by=sort_by)
 
     def split(self, delimiter: StringExpression, /) -> Split:
-        return Split(cast("Any", self), delimiter=delimiter)
+        return Split(self.get_ref(), delimiter=delimiter)
 
     def sqrt(self) -> Sqrt:
-        return Sqrt(cast("Any", self))
+        return Sqrt(self.get_ref())
 
     def str_case_cmp(self, other: StringExpression, /) -> StrCaseCmp:
-        return StrCaseCmp(cast("Any", self), other)
+        return StrCaseCmp(self.get_ref(), other)
 
     def str_len_bytes(self) -> StrLenBytes:
-        return StrLenBytes(cast("Any", self))
+        return StrLenBytes(self.get_ref())
 
     def str_len_cp(self) -> StrLenCP:
-        return StrLenCP(cast("Any", self))
+        return StrLenCP(self.get_ref())
 
     def sub_str_bytes(
         self,
         start: NumberExpression,
         length: NumberExpression,
     ) -> SubStrBytes:
-        return SubStrBytes(cast("Any", self), start=start, length=length)
+        return SubStrBytes(self.get_ref(), start=start, length=length)
 
     def subtract(
         self,
         other: NumberExpression,
     ) -> Subtract:
-        return Subtract(cast("Any", self), other)
+        return Subtract(self.get_ref(), other)
 
     def tan(self) -> Tan:
-        return Tan(cast("Any", self))
+        return Tan(self.get_ref())
 
     def tanh(self) -> Tanh:
-        return Tanh(cast("Any", self))
+        return Tanh(self.get_ref())
 
     def to_bool(self) -> ToBool:
-        return ToBool(cast("Any", self))
+        return ToBool(self.get_ref())
 
     def to_date(self) -> ToDate:
-        return ToDate(cast("Any", self))
+        return ToDate(self.get_ref())
 
     def to_decimal(self) -> ToDecimal:
-        return ToDecimal(cast("Any", self))
+        return ToDecimal(self.get_ref())
 
     def to_double(self) -> ToDouble:
-        return ToDouble(cast("Any", self))
+        return ToDouble(self.get_ref())
 
     def to_hashed_index_key(self) -> ToHashedIndexKey:
-        return ToHashedIndexKey(cast("Any", self))
+        return ToHashedIndexKey(self.get_ref())
 
     def to_int(self) -> ToInt:
-        return ToInt(cast("Any", self))
+        return ToInt(self.get_ref())
 
     def to_long(self) -> ToLong:
-        return ToLong(cast("Any", self))
+        return ToLong(self.get_ref())
 
     def to_object_id(self) -> ToObjectId:
-        return ToObjectId(cast("Any", self))
+        return ToObjectId(self.get_ref())
 
     def to_string(self) -> ToString:
-        return ToString(cast("Any", self))
+        return ToString(self.get_ref())
 
     def to_lower(self) -> ToLower:
-        return ToLower(cast("Any", self))
+        return ToLower(self.get_ref())
 
     def to_upper(self) -> ToUpper:
-        return ToUpper(cast("Any", self))
+        return ToUpper(self.get_ref())
 
     def to_uuid(self) -> ToUUID:
-        return ToUUID(cast("Any", self))
+        return ToUUID(self.get_ref())
 
     def ts_increment(self) -> TsIncrement:
-        return TsIncrement(cast("Any", self))
+        return TsIncrement(self.get_ref())
 
     def ts_second(self) -> TsSecond:
-        return TsSecond(cast("Any", self))
+        return TsSecond(self.get_ref())
 
     def trunc(self, place: NumberExpression) -> Trunc:
-        return Trunc(cast("Any", self), place=place)
+        return Trunc(self.get_ref(), place=place)
 
     def type(self) -> Type:
-        return Type(cast("Any", self))
+        return Type(self.get_ref())
 
     def unset_field(self, field: StringExpression) -> UnsetField:
-        return UnsetField(cast("Any", self), field=field)
+        return UnsetField(self.get_ref(), field=field)
 
     def week(self) -> Week:
-        return Week(cast("Any", self))
+        return Week(self.get_ref())
 
     def year(self) -> Year:
-        return Year(cast("Any", self))
+        return Year(self.get_ref())
 
     def zip(
         self,
@@ -3307,7 +3312,7 @@ class ExpressionsInterface:
         defaults: list[Value] | None = None,
     ) -> Zip:
         return Zip(
-            [cast("Any", self), *inputs],
+            [self.get_ref(), *inputs],
             use_longest_length=use_longest_length,
             defaults=defaults,
         )
@@ -3331,3 +3336,6 @@ class Var(
 
     def compile_expression(self, *, context: Context) -> str:
         return "$$" + self.name
+
+    def get_ref(self) -> Any:
+        return self

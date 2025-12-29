@@ -187,7 +187,74 @@ class ConditionInterface(ABC):
 class NotInterface:
     @property
     def not_(self) -> NotProxy:
+        """Access negated query operators for building NOT conditions.
+
+        The `not_` property provides access to query operators that will be negated
+        using MongoDB's `$not` operator. This allows you to build conditions that
+        match documents where a field does NOT satisfy a given operator.
+
+        Returns:
+            NotProxy: A proxy object that provides access to negated condition
+            methods like `gt()`, `lt()`, `eq()`, `regex()`, etc.
+
+        Example:
+            >>> field = Field("age")
+            >>> # Match documents where age is NOT greater than or equal to 18
+            >>> query = field.not_.gte(18)
+            >>> # Result: {"age": {"$not": {"$gte": 18}}}
+            >>>
+            >>> # Can also use as a callable with an operator
+            >>> from gault.predicates import Gte
+            >>> query = field.not_(Gte(18))
+            >>> # Result: {"age": {"$not": {"$gte": 18}}}
+            >>>
+            >>> # Match documents where status does NOT match regex pattern
+            >>> status = Field("status")
+            >>> query = status.not_.regex("^active")
+            >>> # Result: {"status": {"$not": {"$regex": "^active"}}}
+
+        Note:
+            The `$not` operator performs a logical NOT operation on the specified
+            operator expression. This is different from the `$ne` operator which
+            checks for inequality. `$not` negates the result of the operator expression.
+
+        """
         return NotProxy(cast("AsRef", self))
+
+
+class ExpressionInterface:
+    @property
+    def expr(self) -> ExpressionProxy:
+        """Access aggregation expression operators for use in $expr queries.
+
+        The `expr` property provides access to MongoDB's aggregation expression operators,
+        allowing you to use expressions within query predicates via the `$expr` operator.
+        This enables more complex query conditions that can compare field values against
+        each other or perform calculations.
+
+        Returns:
+            ExpressionProxy: A proxy object that provides access to aggregation expression
+            methods like `gt()`, `lt()`, `add()`, etc.
+
+        Example:
+            >>> field = Field("score")
+            >>> # Compare field against a value
+            >>> query = field.expr.gt(42)
+            >>> # Result: {"$expr": {"$gt": ["$score", 42]}}
+            >>>
+            >>> # Compare two fields
+            >>> field1 = Field("price")
+            >>> field2 = Field("discount_price")
+            >>> query = field1.expr.gt(field2)
+            >>> # Result: {"$expr": {"$gt": ["$price", "$discount_price"]}}
+
+        Note:
+            The expression operators available through `.expr` correspond to MongoDB's
+            aggregation expression operators. See MongoDB documentation for the full list
+            of available operators: https://www.mongodb.com/docs/manual/reference/mql/expressions/
+
+        """
+        return ExpressionProxy(cast("AsRef", self))
 
 
 @dataclass(frozen=True)
@@ -198,6 +265,7 @@ class Field(
     TempFieldInterface,
     SubfieldInterface,
     NotInterface,
+    ExpressionInterface,
     InclusionInterface,
     Assignable,
 ):
@@ -804,15 +872,18 @@ class NearSphere(Operator):
 
 
 @dataclass
-class Expr(Operator):
+class Expr(Operator, ExpressionOperator):
     """Allows the use of expressions within a query predicate."""
 
     expression: AnyExpression
 
     def compile_query(self, context: Context) -> MongoQuery:
         return {
-            "$expr": compile_expression(self.expression, context=context),
+            "$expr": self.compile_expression(context=context),
         }
+
+    def compile_expression(self, context: Context) -> Output:
+        return compile_expression(self.expression, context=context)
 
 
 @dataclass
@@ -876,3 +947,11 @@ class NotProxy(ConditionInterface):
 
     def __call__(self, op: Operator, /) -> Predicate:
         return self.build_condition(op)
+
+
+@dataclass
+class ExpressionProxy(expressions.ExpressionsInterface):
+    ref: AsRef
+
+    def get_ref(self) -> Any:
+        return self.ref
