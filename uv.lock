@@ -145,7 +145,7 @@ wheels = [
 
 [[package]]
 name = "gault"
-version = "0.12.3"
+version = "0.13.0"
 source = { editable = "." }
 dependencies = [
     { name = "annotated-types" },
