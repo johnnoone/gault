@@ -431,3 +431,12 @@ async def test_documents(manager: AsyncManager):
     assert persisted == [
         MyBucket(bucket=1, count=1),
     ]
+
+
+async def test_paginate(manager: AsyncManager, instances):
+    page = await manager.paginate(MyModel)
+    assert page.total == len(instances)
+    assert page.page == 1
+    assert page.per_page == 10
+    assert len(page.instances) == 10
+    assert len(page) == 10

@@ -156,3 +156,12 @@ def test_save_without_refresh(manager: Manager, subtests):
     manager.save(person, refresh=False, atomic=True)
     assert person.name == "previous-name", "It should have kept the current name"
     assert person.age == 42, "It should have changed"
+
+
+def test_paginate(manager: Manager, people):
+    page = manager.paginate(Person)
+    assert page.total == len(people)
+    assert page.page == 1
+    assert page.per_page == 10
+    assert len(page.instances) == min(len(people), 10)
+    assert len(page) == min(len(people), 10)

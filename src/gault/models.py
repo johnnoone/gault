@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence, Iterator
 from dataclasses import MISSING, dataclass, field, fields
 from typing import (
     TYPE_CHECKING,
@@ -31,10 +32,13 @@ from .predicates import (
 from .utils import drop_missing
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from .types import Context, Value
 
 M = TypeVar("M", bound="Model")
 T = TypeVar("T")
+U = TypeVar("U")
 
 
 SCHEMAS: WeakValueDictionary[str, type[Schema]] = WeakValueDictionary()
@@ -175,3 +179,41 @@ def configure(
 ) -> Any:
     metadata = drop_missing(metadata)  # type: ignore[assignment]
     return field(default=default, metadata=metadata)
+
+
+@dataclass
+class Page(Sequence[T]):
+    instances: list[T]
+    total: int
+    page: int
+    per_page: int
+
+    def with_(self, into: Callable[[T], U], /) -> Page[U]:
+        instances = [into(instance) for instance in self.instances]
+        return Page(
+            instances=instances,
+            total=self.total,
+            page=self.page,
+            per_page=self.per_page,
+        )
+
+    @overload
+    def __getitem__(self, index: int, /) -> T: ...
+
+    @overload
+    def __getitem__(self, index: slice, /) -> Sequence[T]: ...
+
+    def __getitem__(self, index: Any, /) -> Any:  # ty:ignore[invalid-method-override]
+        return self.instances.__getitem__(index)
+
+    def __len__(self) -> int:
+        return self.instances.__len__()
+
+    def __iter__(self) -> Iterator[T]:
+        return self.instances.__iter__()
+
+    def __reversed__(self) -> Iterator[T]:
+        return self.instances.__reversed__()
+
+    def __contains__(self, item: object, /) -> bool:  # ty:ignore[invalid-method-override]
+        return self.instances.__contains__(item)

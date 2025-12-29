@@ -11,7 +11,7 @@ from typing_extensions import TypeVar
 
 from .exceptions import Forbidden, NotFound, Unprocessable
 from .mappers import get_mapper
-from .models import Model, Schema, get_collection, unwrap_model
+from .models import Model, Page, Schema, get_collection, unwrap_model
 from .pipelines import Pipeline, RawStep
 from .predicates import Predicate, Raw
 
@@ -21,10 +21,9 @@ if TYPE_CHECKING:
     from pymongo.asynchronous.database import AsyncDatabase
     from pymongo.synchronous.database import Database
 
-    from gault.types import Document
-
     from .pipelines import Stage
-    from .types import MongoQuery
+    from .sorting import SortPayload
+    from .types import Document, MongoQuery
 
     Filter: TypeAlias = Predicate | Pipeline | MongoQuery | list[Stage] | None
 
@@ -234,6 +233,60 @@ class AsyncManager:
             return instance
         raise NotFound(type(instance), filter)
 
+    async def paginate(
+        self,
+        model: type[M],
+        filter: Filter = None,
+        *,
+        page: int = 1,
+        per_page: int = 10,
+        sort_by: SortPayload | None = None,
+    ) -> Page[M]:
+        match filter:
+            case None:
+                filter = Pipeline()
+            case list():
+                filter = Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
+            case Predicate():
+                filter = Pipeline().match(filter)
+            case Mapping():
+                filter = Pipeline().match(Raw(filter))  # ty:ignore[invalid-argument-type]
+            case Pipeline():
+                pass
+            case _:
+                raise NotImplementedError(filter)
+
+        filter = filter.facet(
+            Pipeline().count("total").alias("total"),
+            Pipeline()
+            .sort(sort_by)
+            .skip((page - 1) * per_page)
+            .take(per_page)
+            .project(model)
+            .alias("instances"),
+        ).build()
+
+        collection = get_collection(model)
+
+        if filter and "$documents" in filter[0]:
+            # {"$documents": …} stage can be performs by database only
+            func = self.database.aggregate
+        else:
+            func = self.database.get_collection(collection).aggregate
+
+        cursor = await func(pipeline=filter)
+
+        mapper = get_mapper(model)
+        async for document in cursor:
+            instances = []
+            for sub_document in document["instances"]:
+                instance = mapper.map(sub_document)
+                self.persistence.mark_persisted(instance)
+                self.state_tracker.snapshot(instance)
+                instances.append(instance)
+            total = document["total"][0]["total"]
+        return Page(instances=instances, total=total, page=page, per_page=per_page)
+
 
 class Manager(Generic[M, S]):
     def __init__(
@@ -402,3 +455,57 @@ class Manager(Generic[M, S]):
             self.persistence.mark_persisted(instance)
             return instance
         raise NotFound(type(instance), filter)
+
+    def paginate(
+        self,
+        model: type[M],
+        filter: Filter = None,
+        *,
+        page: int = 1,
+        per_page: int = 10,
+        sort_by: SortPayload | None = None,
+    ) -> Page[M]:
+        match filter:
+            case None:
+                filter = Pipeline()
+            case list():
+                filter = Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
+            case Predicate():
+                filter = Pipeline().match(filter)
+            case Mapping():
+                filter = Pipeline().match(Raw(filter))  # ty:ignore[invalid-argument-type]
+            case Pipeline():
+                pass
+            case _:
+                raise NotImplementedError(filter)
+
+        filter = filter.facet(
+            Pipeline().count("total").alias("total"),
+            Pipeline()
+            .sort(sort_by)
+            .skip((page - 1) * per_page)
+            .take(per_page)
+            .project(model)
+            .alias("instances"),
+        ).build()
+
+        collection = get_collection(model)
+
+        if filter and "$documents" in filter[0]:
+            # {"$documents": …} stage can be performs by database only
+            func = self.database.aggregate
+        else:
+            func = self.database.get_collection(collection).aggregate
+
+        cursor = func(pipeline=filter)
+
+        mapper = get_mapper(model)
+        for document in cursor:
+            instances = []
+            for sub_document in document["instances"]:
+                instance = mapper.map(sub_document)
+                self.persistence.mark_persisted(instance)
+                self.state_tracker.snapshot(instance)
+                instances.append(instance)
+            total = document["total"][0]["total"]
+        return Page(instances=instances, total=total, page=page, per_page=per_page)

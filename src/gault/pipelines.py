@@ -192,13 +192,16 @@ class Pipeline(AsAlias):
         return self.raw(stage)
 
     @overload
+    def sort(self, token: None, /) -> Self: ...
+
+    @overload
+    def sort(self, tokens: list[SortToken], /) -> Self: ...
+
+    @overload
+    def sort(self, tokens: SortPayload, /) -> Self: ...
+
+    @overload
     def sort(self, *tokens: SortToken) -> Self: ...
-
-    @overload
-    def sort(self, tokens: list[SortToken]) -> Self: ...
-
-    @overload
-    def sort(self, tokens: SortPayload) -> Self: ...
 
     def sort(self, *spec: SortPayload) -> Self:  # type: ignore[misc]
         """Reorder documents by the specified sort key.
@@ -223,6 +226,9 @@ class Pipeline(AsAlias):
         >>> Pipeline().sort([MyModel.age.desc(), MyModel.name.asc()])
 
         """
+        if len(spec) == 1 and spec[0] is None:
+            return self
+
         payload: Any
         if spec and isinstance(spec[0], dict):
             payload = spec[0]
