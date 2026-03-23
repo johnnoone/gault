@@ -398,7 +398,7 @@ class Ceil(ExpressionOperator):
 
     input: NumberExpression
 
-    def compile_expression(self, context: Context) -> Output:
+    def compile_expression(self, *, context: Context) -> Output:
         return {"$ceil": compile_expression(self.input, context=context)}
 
 
@@ -934,7 +934,7 @@ class Floor(ExpressionOperator):
 
     input: NumberExpression
 
-    def compile_expression(self, context: Context) -> MongoPurExpression:
+    def compile_expression(self, *, context: Context) -> MongoPurExpression:
         return {"$floor": compile_expression(self.input, context=context)}
 
 
@@ -949,7 +949,7 @@ class GetField(ExpressionOperator):
     field: StringExpression
     """any valid expression that resolves to a string."""
 
-    def compile_expression(self, context: Context) -> Output:
+    def compile_expression(self, *, context: Context) -> Output:
         return {
             "$getField": nullfree_dict(
                 {

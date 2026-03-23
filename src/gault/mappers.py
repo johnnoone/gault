@@ -64,8 +64,7 @@ class Mapper(Generic[M]):
         attrs = {}
         for corres in self.field_mapping:
             attrs[corres.model_field] = document.get(corres.db_field, MISSING)
-            attrs = drop_missing(attrs)
-        return self.model(**attrs)
+        return self.model(**drop_missing(attrs))
 
     def to_document(self, instance: M) -> Document:
         return {

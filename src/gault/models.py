@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence, Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import MISSING, dataclass, field, fields
 from typing import (
     TYPE_CHECKING,
@@ -65,7 +65,7 @@ def get_schema(collection: str) -> type[Schema]:
 @dataclass_transform(kw_only_default=True)
 class Model:
     def __init_subclass__(cls, collection: str | None = None) -> None:
-        dataclass(cls, init=True, repr=True, kw_only=True)  # type: ignore[call-overload]
+        dataclass(cls, init=True, repr=True, kw_only=True)
         for dataclass_field in fields(cls):  # type: ignore[arg-type]
             field: Attribute[Any] = Attribute(
                 name=dataclass_field.name, **dataclass_field.metadata

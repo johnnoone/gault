@@ -623,7 +623,7 @@ Pipeline().project({
 
 ## Requirements
 
-- Python >= 3.12
+- Python >= 3.11
 - PyMongo >= 4.15.4
 
 ## License

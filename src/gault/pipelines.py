@@ -559,7 +559,7 @@ class Pipeline(AsAlias):
 
         if len(accumulators) == 1 and accumulators[0] is None:
             spec = None
-        if len(accumulators) == 1 and isinstance(accumulators[0], Mapping):
+        elif len(accumulators) == 1 and isinstance(accumulators[0], Mapping):
             spec = [Aliased(key, val) for key, val in accumulators[0].items()]
         elif len(accumulators) == 1 and isinstance(accumulators[0], list):
             spec = accumulators[0]
@@ -628,7 +628,7 @@ class Pipeline(AsAlias):
 
         if len(fields) == 1 and fields[0] is None:
             spec = None
-        if len(fields) == 1 and isinstance(fields[0], Mapping):
+        elif len(fields) == 1 and isinstance(fields[0], Mapping):
             spec = [Aliased(key, val) for key, val in fields[0].items()]
         elif len(fields) == 1 and isinstance(fields[0], list):
             spec = fields[0]

@@ -131,7 +131,7 @@ class AsyncManager:
         collection = get_collection(model)
 
         if filter and "$documents" in filter[0]:
-            # {"$documents": …} stage can be performs by database only
+            # {"$documents": …} stage can be performed by database only
             func = self.database.aggregate
         else:
             func = self.database.get_collection(collection).aggregate
@@ -269,7 +269,7 @@ class AsyncManager:
         collection = get_collection(model)
 
         if filter and "$documents" in filter[0]:
-            # {"$documents": …} stage can be performs by database only
+            # {"$documents": …} stage can be performed by database only
             func = self.database.aggregate
         else:
             func = self.database.get_collection(collection).aggregate
@@ -277,14 +277,15 @@ class AsyncManager:
         cursor = await func(pipeline=filter)
 
         mapper = get_mapper(model)
+        instances: list[M] = []
+        total = 0
         async for document in cursor:
-            instances = []
             for sub_document in document["instances"]:
                 instance = mapper.map(sub_document)
                 self.persistence.mark_persisted(instance)
                 self.state_tracker.snapshot(instance)
                 instances.append(instance)
-            total = document["total"][0]["total"]
+            total = document["total"][0]["total"] if document["total"] else 0
         return Page(instances=instances, total=total, page=page, per_page=per_page)
 
 
@@ -354,7 +355,7 @@ class Manager(Generic[M, S]):
         collection = get_collection(model)
 
         if filter and "$documents" in filter[0]:
-            # {"$documents": …} stage can be performs by database only
+            # {"$documents": …} stage can be performed by database only
             func = self.database.aggregate
         else:
             func = self.database.get_collection(collection).aggregate
@@ -492,7 +493,7 @@ class Manager(Generic[M, S]):
         collection = get_collection(model)
 
         if filter and "$documents" in filter[0]:
-            # {"$documents": …} stage can be performs by database only
+            # {"$documents": …} stage can be performed by database only
             func = self.database.aggregate
         else:
             func = self.database.get_collection(collection).aggregate
@@ -500,12 +501,13 @@ class Manager(Generic[M, S]):
         cursor = func(pipeline=filter)
 
         mapper = get_mapper(model)
+        instances: list[M] = []
+        total = 0
         for document in cursor:
-            instances = []
             for sub_document in document["instances"]:
                 instance = mapper.map(sub_document)
                 self.persistence.mark_persisted(instance)
                 self.state_tracker.snapshot(instance)
                 instances.append(instance)
-            total = document["total"][0]["total"]
+            total = document["total"][0]["total"] if document["total"] else 0
         return Page(instances=instances, total=total, page=page, per_page=per_page)
