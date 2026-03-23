@@ -1,4 +1,3 @@
-from gault import Field
 from gault.window_aggregators import Count
 
 

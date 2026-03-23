@@ -1,7 +1,5 @@
 from gault.pipelines import Pipeline
 from gault.predicates import Field
-from gault.window_aggregators import Rank
-from gault.window_aggregators import Sum as WindowSum
 
 
 def test_mapping_facets():
