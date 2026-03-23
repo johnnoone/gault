@@ -1,0 +1,50 @@
+[project]
+site_name = "Gault"
+site_url = "https://johnnoone.github.io/gault/"
+repo_url = "https://github.com/johnnoone/gault"
+site_description = "A lightweight Object Document Mapper for MongoDB with Python type hints and state tracking."
+extra_css = ["stylesheets/extra.css"]
+nav = [
+    { "Home" = "index.md" },
+    { "Getting Started" = [
+        "tutorials/index.md",
+        { "Your First Schema" = "tutorials/first-schema.md" },
+        { "Building Pipelines" = "tutorials/building-pipelines.md" },
+    ] },
+    { "How-to Guides" = [
+        "how-to/index.md",
+        { "Filter Documents" = "how-to/filter-documents.md" },
+        { "Use Field Expressions" = "how-to/use-field-expressions.md" },
+        { "Paginate Results" = "how-to/paginate-results.md" },
+        { "Track Dirty Fields" = "how-to/track-dirty-fields.md" },
+        { "Use Aggregation Pipelines" = "how-to/use-aggregation-pipelines.md" },
+    ] },
+    { "Reference" = [
+        "reference/index.md",
+        { "Schema & Model" = "reference/schema-and-model.md" },
+        { "Manager" = "reference/manager.md" },
+        { "Pipeline" = "reference/pipeline.md" },
+        { "Expressions" = "reference/expressions.md" },
+        { "Accumulators" = "reference/accumulators.md" },
+        { "Predicates" = "reference/predicates.md" },
+        { "Exceptions" = "reference/exceptions.md" },
+    ] },
+    { "Explanation" = [
+        "explanation/index.md",
+        { "Schema vs Model" = "explanation/schema-vs-model.md" },
+        { "Persistence & State" = "explanation/persistence-and-state.md" },
+        { "Pipeline Architecture" = "explanation/pipeline-architecture.md" },
+    ] },
+]
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle = { icon = "lucide/moon", name = "Switch to dark mode" }
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle = { icon = "lucide/sun", name = "Switch to light mode" }

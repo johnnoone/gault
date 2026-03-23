@@ -1,0 +1,25 @@
+/* MongoDB-inspired palette */
+:root,
+[data-md-color-scheme="default"] {
+    --md-primary-fg-color: #00684A;
+    --md-primary-fg-color--light: #00A35C;
+    --md-primary-fg-color--dark: #004D38;
+    --md-accent-fg-color: #00ED64;
+    --md-typeset-a-color: #00684A;
+}
+
+/* Light mode: ensure active nav items stand out from the green header */
+[data-md-color-scheme="default"] .md-nav__link--active,
+[data-md-color-scheme="default"] .md-nav__item--active > .md-nav__link {
+    color: #004D38;
+    background-color: #E3FCF2;
+}
+
+[data-md-color-scheme="slate"] {
+    --md-primary-fg-color: #00ED64;
+    --md-primary-fg-color--light: #71F6BA;
+    --md-primary-fg-color--dark: #00A35C;
+    --md-accent-fg-color: #00ED64;
+    --md-default-bg-color: #1C2D38;
+    --md-default-bg-color--light: #243746;
+}

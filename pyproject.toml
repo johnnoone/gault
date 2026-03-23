@@ -28,6 +28,7 @@ dev = [
     "pytest-subtests>=0.15.0",
     "ruff>=0.14.6",
     "testcontainers[mongodb]>=4.10.0",
+    "zensical>=0.0.28",
 ]
 
 [project.urls]
