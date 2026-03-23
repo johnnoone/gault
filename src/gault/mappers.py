@@ -32,7 +32,7 @@ class Corres(NamedTuple):
     pk: bool
 
 
-class CoinCoin(NamedTuple):
+class FieldEntry(NamedTuple):
     model_field: str
     db_field: str
     value: Any
@@ -78,9 +78,9 @@ class Mapper(Generic[M]):
             if corres.pk
         }
 
-    def iter_document(self, instance: M) -> Iterator[CoinCoin]:
+    def iter_document(self, instance: M) -> Iterator[FieldEntry]:
         for corres in self.field_mapping:
-            yield CoinCoin(
+            yield FieldEntry(
                 corres.model_field,
                 corres.db_field,
                 getattr(instance, corres.model_field),
