@@ -1,6 +1,6 @@
 [project]
 name = "gault"
-version = "0.13.0"
+version = "0.14.0"
 description = "A lightweight Object Document Mapper for MongoDB"
 readme = "README.md"
 license = "MIT"
