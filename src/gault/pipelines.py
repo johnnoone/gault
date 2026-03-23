@@ -915,6 +915,90 @@ class Pipeline(AsAlias):
         step = FacetStep(facets=_normalize_aliased_args(facets) or [])
         return self.add_step(step)
 
+    def search(self, *, index: str, **operators: Any) -> Self:
+        """Add an Atlas Search stage.
+
+        Parameters
+        ----------
+        index
+            Name of the Atlas Search index.
+        **operators
+            Search operator definitions (text, compound, autocomplete, etc.).
+
+        Examples
+        --------
+        >>> Pipeline().search(index="default", text={"query": "mongodb", "path": "title"})
+
+        """
+        step = SearchStep(index=index, operators=operators)
+        return self.add_step(step)
+
+    def search_meta(self, *, index: str, **operators: Any) -> Self:
+        """Add an Atlas Search metadata stage.
+
+        Parameters
+        ----------
+        index
+            Name of the Atlas Search index.
+        **operators
+            Search operator definitions (facet, etc.).
+
+        Examples
+        --------
+        >>> Pipeline().search_meta(index="default", facet={...})
+
+        """
+        step = SearchMetaStep(index=index, operators=operators)
+        return self.add_step(step)
+
+    def vector_search(
+        self,
+        *,
+        index: str,
+        path: str,
+        query_vector: list[float],
+        num_candidates: int,
+        limit: int,
+        filter: dict[str, Any] | None = None,
+    ) -> Self:
+        """Add an Atlas Vector Search stage.
+
+        Parameters
+        ----------
+        index
+            Name of the vector search index.
+        path
+            Field containing the vector embeddings.
+        query_vector
+            Query vector for similarity search.
+        num_candidates
+            Number of candidate documents to consider.
+        limit
+            Maximum number of results to return.
+        filter
+            Optional pre-filter applied before vector search.
+
+        Examples
+        --------
+        >>> Pipeline().vector_search(
+        ...     index="embeddings",
+        ...     path="embedding",
+        ...     query_vector=[0.1, 0.2, 0.3],
+        ...     num_candidates=100,
+        ...     limit=10,
+        ... )
+
+        """
+        step = VectorSearchStep(
+            index=index,
+            path=path,
+            query_vector=query_vector,
+            num_candidates=num_candidates,
+            limit=limit,
+            filter=filter,
+        )
+        return self.add_step(step)
+
     def raw(self, *stages: Stage | Step) -> Self:
         """Add raw MongoDB stage(s) to the pipeline.
 
@@ -1408,3 +1492,43 @@ class SetWindowFields(Step):
                 }
             )
         }
+
+
+@dataclass
+class SearchStep(Step):
+    index: str
+    operators: dict[str, Any]
+
+    def compile(self, context: Context) -> Iterator[Stage]:
+        yield {"$search": {"index": self.index, **self.operators}}
+
+
+@dataclass
+class SearchMetaStep(Step):
+    index: str
+    operators: dict[str, Any]
+
+    def compile(self, context: Context) -> Iterator[Stage]:
+        yield {"$searchMeta": {"index": self.index, **self.operators}}
+
+
+@dataclass
+class VectorSearchStep(Step):
+    index: str
+    path: str
+    query_vector: list[float]
+    num_candidates: int
+    limit: int
+    filter: dict[str, Any] | None = None
+
+    def compile(self, context: Context) -> Iterator[Stage]:
+        stage: dict[str, Any] = {
+            "index": self.index,
+            "path": self.path,
+            "queryVector": self.query_vector,
+            "numCandidates": self.num_candidates,
+            "limit": self.limit,
+        }
+        if self.filter:
+            stage["filter"] = self.filter
+        yield {"$vectorSearch": stage}

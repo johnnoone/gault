@@ -165,6 +165,68 @@ class AsyncManager:
         self.state_tracker.snapshot(instance)
         return instance
 
+    async def insert_many(self, instances: list[S]) -> list[S]:
+        if not instances:
+            return []
+        for instance in instances:
+            if not isinstance(instance, Schema):
+                raise Forbidden(
+                    unwrap_model(instance),
+                    reason="Only schema allowed for insert",
+                )
+        mapper = get_mapper(instances[0])
+        documents = [mapper.to_document(inst) for inst in instances]
+        collection = get_collection(instances[0])
+        await self.database.get_collection(collection).insert_many(documents)
+        for instance in instances:
+            self.persistence.mark_persisted(instance)
+            self.state_tracker.snapshot(instance)
+        return instances
+
+    async def delete_many(self, model: type[S], filter: Filter = None) -> int:
+        query = _normalize_filter(filter).build()
+        collection = get_collection(model)
+        # Extract $match from pipeline stages to get the query filter
+        mongo_filter: dict[str, Any] = {}
+        for stage in query:
+            if "$match" in stage:
+                mongo_filter.update(stage["$match"])
+        result = await self.database.get_collection(collection).delete_many(mongo_filter)
+        return result.deleted_count
+
+    async def update_many(
+        self,
+        model: type[S],
+        *,
+        update: dict[str, Any],
+        filter: Filter = None,
+    ) -> int:
+        query = _normalize_filter(filter).build()
+        collection = get_collection(model)
+        mongo_filter: dict[str, Any] = {}
+        for stage in query:
+            if "$match" in stage:
+                mongo_filter.update(stage["$match"])
+        result = await self.database.get_collection(collection).update_many(
+            mongo_filter, update
+        )
+        return result.modified_count
+
+    async def distinct(
+        self,
+        model: type[M],
+        *,
+        field: str,
+        filter: Filter = None,
+    ) -> list[Any]:
+        query = _normalize_filter(filter).build()
+        collection = get_collection(model)
+        mongo_filter: dict[str, Any] = {}
+        for stage in query:
+            if "$match" in stage:
+                mongo_filter.update(stage["$match"])
+        return await self.database.get_collection(collection).distinct(field, mongo_filter)
+
     async def save(
         self,
         instance: S,
@@ -389,6 +451,67 @@ class Manager(Generic[M, S]):
         self.persistence.mark_persisted(instance)
         self.state_tracker.snapshot(instance)
         return instance
+
+    def insert_many(self, instances: list[S]) -> list[S]:
+        if not instances:
+            return []
+        for instance in instances:
+            if not isinstance(instance, Schema):
+                raise Forbidden(
+                    unwrap_model(instance),
+                    reason="Only schema allowed for insert",
+                )
+        mapper = get_mapper(instances[0])
+        documents = [mapper.to_document(inst) for inst in instances]
+        collection = get_collection(instances[0])
+        self.database.get_collection(collection).insert_many(documents)
+        for instance in instances:
+            self.persistence.mark_persisted(instance)
+            self.state_tracker.snapshot(instance)
+        return instances
+
+    def delete_many(self, model: type[S], filter: Filter = None) -> int:
+        query = _normalize_filter(filter).build()
+        collection = get_collection(model)
+        mongo_filter: dict[str, Any] = {}
+        for stage in query:
+            if "$match" in stage:
+                mongo_filter.update(stage["$match"])
+        result = self.database.get_collection(collection).delete_many(mongo_filter)
+        return result.deleted_count
+
+    def update_many(
+        self,
+        model: type[S],
+        *,
+        update: dict[str, Any],
+        filter: Filter = None,
+    ) -> int:
+        query = _normalize_filter(filter).build()
+        collection = get_collection(model)
+        mongo_filter: dict[str, Any] = {}
+        for stage in query:
+            if "$match" in stage:
+                mongo_filter.update(stage["$match"])
+        result = self.database.get_collection(collection).update_many(
+            mongo_filter, update
+        )
+        return result.modified_count
+
+    def distinct(
+        self,
+        model: type[M],
+        *,
+        field: str,
+        filter: Filter = None,
+    ) -> list[Any]:
+        query = _normalize_filter(filter).build()
+        collection = get_collection(model)
+        mongo_filter: dict[str, Any] = {}
+        for stage in query:
+            if "$match" in stage:
+                mongo_filter.update(stage["$match"])
+        return self.database.get_collection(collection).distinct(field, mongo_filter)
 
     def save(
         self,
