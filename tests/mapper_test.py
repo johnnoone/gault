@@ -1,4 +1,4 @@
-from gault.mappers import Corres, Mapper
+from gault.mappers import FieldMapping, Mapper
 from gault.models import Attribute, Schema, configure
 
 
@@ -12,7 +12,7 @@ def test_mapper():
     mapper = Mapper(MyModel)
     assert mapper.db_fields == {"id", "db_name", "age"}
     assert mapper.field_mapping == [
-        Corres(model_field="id", db_field="id", pk=True),
-        Corres(model_field="name", db_field="db_name", pk=False),
-        Corres(model_field="age", db_field="age", pk=False),
+        FieldMapping(model_field="id", db_field="id", pk=True),
+        FieldMapping(model_field="name", db_field="db_name", pk=False),
+        FieldMapping(model_field="age", db_field="age", pk=False),
     ]

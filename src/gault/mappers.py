@@ -26,7 +26,7 @@ def get_mapper(model: M | type[M]) -> Mapper[M]:
     return mapper
 
 
-class Corres(NamedTuple):
+class FieldMapping(NamedTuple):
     model_field: str
     db_field: str
     pk: bool
@@ -44,14 +44,14 @@ class Mapper(Generic[M]):
         self.model = model
 
     @cached_property
-    def field_mapping(self) -> list[Corres]:
+    def field_mapping(self) -> list[FieldMapping]:
         result = []
         for field in fields(self.model):  # type: ignore[arg-type]
             model_field = field.name
             metadata = cast("AttributeMetadata", field.metadata)
             db_field = metadata.get("db_alias")
             pk = metadata.get("pk") or False
-            result.append(Corres(model_field, db_field or model_field, pk=pk))
+            result.append(FieldMapping(model_field, db_field or model_field, pk=pk))
         return result
 
     @cached_property
