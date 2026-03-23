@@ -31,6 +31,22 @@ M = TypeVar("M", bound="Model")
 S = TypeVar("S", bound="Schema")
 
 
+def _normalize_filter(filter: Filter) -> Pipeline:
+    match filter:
+        case None:
+            return Pipeline()
+        case list():
+            return Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
+        case Predicate():
+            return Pipeline().match(filter)
+        case Mapping():
+            return Pipeline().match(Raw(filter))  # ty:ignore[invalid-argument-type]
+        case Pipeline():
+            return filter
+        case _:
+            raise NotImplementedError(filter)
+
+
 class StateTracker:
     def __init__(self) -> None:
         self._states: WeakKeyDictionary[Model, Any] = WeakKeyDictionary()
@@ -109,19 +125,7 @@ class AsyncManager:
         skip: int | None = None,
         take: int | None = None,
     ) -> AsyncIterator[M]:
-        match filter:
-            case None:
-                filter = Pipeline()
-            case list():
-                filter = Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
-            case Predicate():
-                filter = Pipeline().match(filter)
-            case Mapping():
-                filter = Pipeline().match(Raw(filter))  # ty:ignore[invalid-argument-type]
-            case Pipeline():
-                pass
-            case _:
-                raise NotImplementedError(filter)
+        filter = _normalize_filter(filter)
 
         if skip:
             filter = filter.skip(skip)
@@ -242,21 +246,7 @@ class AsyncManager:
         per_page: int = 10,
         sort_by: SortPayload | None = None,
     ) -> Page[M]:
-        match filter:
-            case None:
-                filter = Pipeline()
-            case list():
-                filter = Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
-            case Predicate():
-                filter = Pipeline().match(filter)
-            case Mapping():
-                filter = Pipeline().match(Raw(filter))  # ty:ignore[invalid-argument-type]
-            case Pipeline():
-                pass
-            case _:
-                raise NotImplementedError(filter)
-
-        filter = filter.facet(
+        pipeline = _normalize_filter(filter).facet(
             Pipeline().count("total").alias("total"),
             Pipeline()
             .sort(sort_by)
@@ -268,24 +258,23 @@ class AsyncManager:
 
         collection = get_collection(model)
 
-        if filter and "$documents" in filter[0]:
+        if pipeline and "$documents" in pipeline[0]:
             # {"$documents": …} stage can be performed by database only
             func = self.database.aggregate
         else:
             func = self.database.get_collection(collection).aggregate
 
-        cursor = await func(pipeline=filter)
+        cursor = await func(pipeline=pipeline)
 
         mapper = get_mapper(model)
+        document = await cursor.next()
+        total = document["total"][0]["total"] if document["total"] else 0
         instances: list[M] = []
-        total = 0
-        async for document in cursor:
-            for sub_document in document["instances"]:
-                instance = mapper.map(sub_document)
-                self.persistence.mark_persisted(instance)
-                self.state_tracker.snapshot(instance)
-                instances.append(instance)
-            total = document["total"][0]["total"] if document["total"] else 0
+        for sub_document in document["instances"]:
+            instance = mapper.map(sub_document)
+            self.persistence.mark_persisted(instance)
+            self.state_tracker.snapshot(instance)
+            instances.append(instance)
         return Page(instances=instances, total=total, page=page, per_page=per_page)
 
 
@@ -333,19 +322,7 @@ class Manager(Generic[M, S]):
         skip: int | None = None,
         take: int | None = None,
     ) -> Iterator[M]:
-        match filter:
-            case None:
-                filter = Pipeline()
-            case list():
-                filter = Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
-            case Predicate():
-                filter = Pipeline().match(filter)
-            case Mapping():
-                filter = Pipeline().match(Raw(filter))  # ty:ignore[invalid-argument-type]
-            case Pipeline():
-                pass
-            case _:
-                raise NotImplementedError(filter)
+        filter = _normalize_filter(filter)
 
         if skip:
             filter = filter.skip(skip)
@@ -466,21 +443,7 @@ class Manager(Generic[M, S]):
         per_page: int = 10,
         sort_by: SortPayload | None = None,
     ) -> Page[M]:
-        match filter:
-            case None:
-                filter = Pipeline()
-            case list():
-                filter = Pipeline(steps=[RawStep(stage) for stage in filter])  # ty:ignore[invalid-argument-type]
-            case Predicate():
-                filter = Pipeline().match(filter)
-            case Mapping():
-                filter = Pipeline().match(Raw(filter))  # ty:ignore[invalid-argument-type]
-            case Pipeline():
-                pass
-            case _:
-                raise NotImplementedError(filter)
-
-        filter = filter.facet(
+        pipeline = _normalize_filter(filter).facet(
             Pipeline().count("total").alias("total"),
             Pipeline()
             .sort(sort_by)
@@ -492,22 +455,21 @@ class Manager(Generic[M, S]):
 
         collection = get_collection(model)
 
-        if filter and "$documents" in filter[0]:
+        if pipeline and "$documents" in pipeline[0]:
             # {"$documents": …} stage can be performed by database only
             func = self.database.aggregate
         else:
             func = self.database.get_collection(collection).aggregate
 
-        cursor = func(pipeline=filter)
+        cursor = func(pipeline=pipeline)
 
         mapper = get_mapper(model)
+        document = next(cursor)
+        total = document["total"][0]["total"] if document["total"] else 0
         instances: list[M] = []
-        total = 0
-        for document in cursor:
-            for sub_document in document["instances"]:
-                instance = mapper.map(sub_document)
-                self.persistence.mark_persisted(instance)
-                self.state_tracker.snapshot(instance)
-                instances.append(instance)
-            total = document["total"][0]["total"] if document["total"] else 0
+        for sub_document in document["instances"]:
+            instance = mapper.map(sub_document)
+            self.persistence.mark_persisted(instance)
+            self.state_tracker.snapshot(instance)
+            instances.append(instance)
         return Page(instances=instances, total=total, page=page, per_page=per_page)

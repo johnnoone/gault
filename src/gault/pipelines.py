@@ -64,6 +64,35 @@ P = ParamSpec("P")
 A_co = TypeVar("A_co", bound="Accumulator", covariant=True)
 
 
+def _normalize_aliased_args(args: tuple[Any, ...]) -> list[Any] | None:
+    if len(args) == 1:
+        arg = args[0]
+        if arg is None:
+            return None
+        if isinstance(arg, Mapping):
+            return [Aliased(key, val) for key, val in arg.items()]
+        if isinstance(arg, list):
+            return arg
+        return [arg]
+    if args:
+        return list(args)
+    return None
+
+
+def _compile_accumulator_aliases(
+    aliases: list[Aliased[Accumulator | AccumulatorExpression]] | None,
+    context: Context,
+) -> dict[str, Any] | None:
+    if not aliases:
+        return None
+    return {
+        compile_field(alias.ref, context=context): compile_accumulator(
+            alias.value, context=context
+        )
+        for alias in aliases
+    }
+
+
 @dataclass
 class Pipeline(AsAlias):
     steps: list[Step] = field(default_factory=list, kw_only=True)
@@ -380,24 +409,11 @@ class Pipeline(AsAlias):
         ... )
 
         """
-        spec: list[Aliased[Accumulator | AccumulatorExpression]] | None
-
-        if len(output) == 1 and output[0] is None:
-            spec = None
-        elif len(output) == 1 and isinstance(output[0], dict):
-            spec = [Aliased(key, val) for key, val in output[0].items()]
-        elif len(output) == 1 and isinstance(output[0], list):
-            spec = output[0]
-        elif output:
-            spec = list(output)
-        else:
-            spec = None
-
         step = BucketStep(
             by=by,
             boundaries=boundaries,
             default=default,
-            output=spec,
+            output=_normalize_aliased_args(output),
         )
         return self.add_step(step)
 
@@ -473,23 +489,10 @@ class Pipeline(AsAlias):
         ... )
 
         """
-        spec: list[Aliased[Accumulator | AccumulatorExpression]] | None
-
-        if len(output) == 1 and output[0] is None:
-            spec = None
-        elif len(output) == 1 and isinstance(output[0], dict):
-            spec = [Aliased(key, val) for key, val in output[0].items()]
-        elif len(output) == 1 and isinstance(output[0], list):
-            spec = output[0]
-        elif output:
-            spec = list(output)
-        else:
-            spec = None
-
         step = BucketAutoStep(
             by=by,
             buckets=buckets,
-            output=spec,
+            output=_normalize_aliased_args(output),
             granularity=granularity,
         )
         return self.add_step(step)
@@ -555,20 +558,7 @@ class Pipeline(AsAlias):
         >>> Pipeline().group({"count": Count()}, by=None)
 
         """
-        spec: list[Aliased[Accumulator | AccumulatorExpression]] | None
-
-        if len(accumulators) == 1 and accumulators[0] is None:
-            spec = None
-        elif len(accumulators) == 1 and isinstance(accumulators[0], Mapping):
-            spec = [Aliased(key, val) for key, val in accumulators[0].items()]
-        elif len(accumulators) == 1 and isinstance(accumulators[0], list):
-            spec = accumulators[0]
-        elif accumulators:
-            spec = list(accumulators)
-        else:
-            spec = None
-
-        step = GroupStep(by=by, accumulators=spec)
+        step = GroupStep(by=by, accumulators=_normalize_aliased_args(accumulators))
         return self.add_step(step)
 
     def set_field(self, field: FieldLike, value: AnyExpression, /) -> Self:
@@ -624,19 +614,7 @@ class Pipeline(AsAlias):
         >>> Pipeline().set([Field("status").assign("done")])
 
         """
-        spec: list[Aliased[Accumulator | AccumulatorExpression]] | None
-
-        if len(fields) == 1 and fields[0] is None:
-            spec = None
-        elif len(fields) == 1 and isinstance(fields[0], Mapping):
-            spec = [Aliased(key, val) for key, val in fields[0].items()]
-        elif len(fields) == 1 and isinstance(fields[0], list):
-            spec = fields[0]
-        elif fields:
-            spec = list(fields)
-        else:
-            spec = None
-
+        spec = _normalize_aliased_args(fields)
         if not spec:
             return self
 
@@ -934,16 +912,7 @@ class Pipeline(AsAlias):
         ... )
 
         """
-        spec: list[Aliased[Pipeline]] | None
-
-        if len(facets) == 1 and isinstance(facets[0], Mapping):
-            spec = [Aliased(key, val) for key, val in facets[0].items()]
-        elif len(facets) == 1 and isinstance(facets[0], list):
-            spec = facets[0]
-        else:
-            spec = list(facets)
-
-        step = FacetStep(facets=spec)
+        step = FacetStep(facets=_normalize_aliased_args(facets) or [])
         return self.add_step(step)
 
     def raw(self, *stages: Stage | Step) -> Self:
@@ -1200,12 +1169,7 @@ class GroupStep(Step):
             "$group": {
                 "_id": compile_expression(self.by, context=context),
             }
-            | {
-                compile_field(alias.ref, context=context): compile_accumulator(
-                    alias.value, context=context
-                )
-                for alias in (self.accumulators or [])
-            },
+            | (_compile_accumulator_aliases(self.accumulators, context) or {}),
         }
 
 
@@ -1293,16 +1257,6 @@ class BucketStep(Step, Generic[T]):
     output: list[Aliased[Accumulator | AccumulatorExpression]] | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
-        if self.output:
-            output = {
-                compile_field(alias.ref, context=context): compile_accumulator(
-                    alias.value, context=context
-                )
-                for alias in self.output
-            }
-        else:
-            output = None
-
         yield {
             "$bucket": {
                 "groupBy": compile_path(self.by, context=context),
@@ -1311,7 +1265,7 @@ class BucketStep(Step, Generic[T]):
             | nullfree_dict(
                 {
                     "default": self.default,
-                    "output": output,
+                    "output": _compile_accumulator_aliases(self.output, context),
                 }
             )
         }
@@ -1325,22 +1279,12 @@ class BucketAutoStep(Step):
     granularity: str | None = None
 
     def compile(self, context: Context) -> Iterator[Stage]:
-        if self.output:
-            output = {
-                compile_field(alias.ref, context=context): compile_accumulator(
-                    alias.value, context=context
-                )
-                for alias in self.output
-            }
-        else:
-            output = None
-
         yield {
             "$bucketAuto": nullfree_dict(
                 {
                     "groupBy": compile_expression(self.by, context=context),
                     "buckets": self.buckets,
-                    "output": output,
+                    "output": _compile_accumulator_aliases(self.output, context),
                     "granularity": self.granularity,
                 },
             ),

@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, Generic, NamedTuple, TypeVar, cast, no_ty
 from weakref import WeakKeyDictionary
 
 from .models import unwrap_model
-from .utils import drop_missing
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -63,8 +62,10 @@ class Mapper(Generic[M]):
     def map(self, document: Document) -> M:
         attrs = {}
         for corres in self.field_mapping:
-            attrs[corres.model_field] = document.get(corres.db_field, MISSING)
-        return self.model(**drop_missing(attrs))
+            value = document.get(corres.db_field, MISSING)
+            if value is not MISSING:
+                attrs[corres.model_field] = value
+        return self.model(**attrs)
 
     def to_document(self, instance: M) -> Document:
         return {
@@ -73,9 +74,9 @@ class Mapper(Generic[M]):
 
     def to_filter(self, instance: M) -> Document:
         return {
-            corres.db_field: corres.value
-            for corres in self.iter_document(instance)
-            if corres.pk is True
+            corres.db_field: getattr(instance, corres.model_field)
+            for corres in self.field_mapping
+            if corres.pk
         }
 
     def iter_document(self, instance: M) -> Iterator[CoinCoin]:
