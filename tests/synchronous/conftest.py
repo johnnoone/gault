@@ -13,9 +13,8 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture(name="client")
-def get_client() -> MongoClient[Document]:
-    dsn = "mongodb://user:pass@127.0.0.1:27017"
-    return MongoClient(dsn)
+def get_client(mongodb_dsn: str) -> MongoClient[Document]:
+    return MongoClient(mongodb_dsn)
 
 
 @pytest.fixture(name="database")
@@ -37,18 +36,3 @@ def get_manager(
     return Manager(
         database=database, persistence=persistence, state_tracker=state_tracker
     )
-
-
-@pytest.fixture(name="persistence")
-def get_persistence() -> Persistence:
-    return Persistence()
-
-
-@pytest.fixture(name="state_tracker")
-def get_state_tracker():
-    return StateTracker()
-
-
-@pytest.fixture(name="context")
-def get_context():
-    return {}

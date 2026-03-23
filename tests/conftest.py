@@ -1,16 +1,23 @@
 from __future__ import annotations
-from collections.abc import AsyncIterator
 
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
+
 import pytest
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.asynchronous.mongo_client import AsyncMongoClient
+from testcontainers.mongodb import MongoDbContainer
 
 from gault.managers import AsyncManager, Persistence, StateTracker
 
-
 if TYPE_CHECKING:
     from gault.types import Document
+
+
+@pytest.fixture(scope="session")
+def mongodb_dsn():
+    with MongoDbContainer("mongodb/mongodb-community-server:latest") as container:
+        yield container.get_connection_url()
 
 
 @pytest.fixture
@@ -18,10 +25,24 @@ def anyio_backend():
     return "asyncio"
 
 
+@pytest.fixture(name="context")
+def get_context():
+    return {}
+
+
+@pytest.fixture(name="persistence")
+def get_persistence() -> Persistence:
+    return Persistence()
+
+
+@pytest.fixture(name="state_tracker")
+def get_state_tracker() -> StateTracker:
+    return StateTracker()
+
+
 @pytest.fixture(name="client")
-def get_client() -> AsyncMongoClient[Document]:
-    dsn = "mongodb://user:pass@127.0.0.1:27017"
-    return AsyncMongoClient(dsn)
+def get_client(mongodb_dsn: str) -> AsyncMongoClient[Document]:
+    return AsyncMongoClient(mongodb_dsn)
 
 
 @pytest.fixture(name="database")
@@ -45,18 +66,3 @@ def get_manager(
     return AsyncManager(
         database=database, persistence=persistence, state_tracker=state_tracker
     )
-
-
-@pytest.fixture(name="persistence")
-def get_persistence() -> Persistence:
-    return Persistence()
-
-
-@pytest.fixture(name="state_tracker")
-def get_state_tracker():
-    return StateTracker()
-
-
-@pytest.fixture(name="context")
-def get_context():
-    return {}
