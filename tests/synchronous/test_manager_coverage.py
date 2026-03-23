@@ -101,6 +101,50 @@ def test_refresh_non_existent_document(manager: Manager):
         manager.refresh(instance)
 
 
+@pytest.mark.usefixtures("people")
+def test_count(manager: Manager):
+    total = manager.count(Person)
+    assert total == 3
+
+
+@pytest.mark.usefixtures("people")
+def test_count_with_filter(manager: Manager):
+    total = manager.count(Person, filter=Person.age >= 30)
+    assert total == 2
+
+
+def test_count_empty(manager: Manager):
+    total = manager.count(Person)
+    assert total == 0
+
+
+@pytest.mark.usefixtures("people")
+def test_exists(manager: Manager):
+    assert manager.exists(Person, filter=Person.id == 1) is True
+    assert manager.exists(Person, filter=Person.id == 9999) is False
+
+
+def test_delete(manager: Manager):
+    person = Person(id=100, name="to-delete", age=20)
+    manager.insert(person)
+    assert manager.exists(Person, filter=Person.id == 100) is True
+
+    manager.delete(person)
+    assert manager.exists(Person, filter=Person.id == 100) is False
+
+
+def test_delete_non_schema_raises_forbidden(manager: Manager):
+    instance = NotASchema(name="alice")
+    with pytest.raises(Forbidden):
+        manager.delete(instance)
+
+
+def test_delete_no_pk_raises_unprocessable(manager: Manager):
+    instance = NoPkModel(name="alice", age=30)
+    with pytest.raises(Unprocessable):
+        manager.delete(instance)
+
+
 def test_paginate_with_documents_pipeline(manager: Manager):
     """Line 460: paginate with $documents pipeline."""
     pipeline = Pipeline.documents(

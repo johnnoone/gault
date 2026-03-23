@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import MISSING, fields
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Generic, NamedTuple, TypeVar, cast, no_type_check
-from weakref import WeakKeyDictionary
 
 from .models import unwrap_model
 
@@ -15,7 +14,7 @@ if TYPE_CHECKING:
 
 M = TypeVar("M", bound="Model")
 
-MAPPERS: WeakKeyDictionary[type[Model], Mapper[Model]] = WeakKeyDictionary()
+MAPPERS: dict[type[Model], Mapper[Model]] = {}
 
 
 @no_type_check

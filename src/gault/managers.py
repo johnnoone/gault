@@ -44,7 +44,8 @@ def _normalize_filter(filter: Filter) -> Pipeline:
         case Pipeline():
             return filter
         case _:
-            raise NotImplementedError(filter)
+            msg = f"Unsupported filter type: {type(filter).__name__}"
+            raise NotImplementedError(msg)
 
 
 class StateTracker:
@@ -236,6 +237,34 @@ class AsyncManager:
             self.persistence.mark_persisted(instance)
             return instance
         raise NotFound(type(instance), filter)
+
+    async def count(self, model: type[M], filter: Filter = None) -> int:
+        pipeline = _normalize_filter(filter).count("total").build()
+        collection = get_collection(model)
+        cursor = await self.database.get_collection(collection).aggregate(pipeline)
+        async for document in cursor:
+            return document["total"]  # type: ignore[no-any-return]
+        return 0
+
+    async def exists(self, model: type[M], filter: Filter = None) -> bool:
+        return await self.count(model, filter) > 0
+
+    async def delete(self, instance: S) -> None:
+        if not isinstance(instance, Schema):
+            raise Forbidden(
+                unwrap_model(instance),
+                reason="Only schema allowed for delete",
+            )
+        mapper = get_mapper(instance)
+        filter = mapper.to_filter(instance)
+        if not filter:
+            raise Unprocessable(
+                unwrap_model(instance),
+                reason="model must declare one field as pk",
+            )
+        collection = get_collection(instance)
+        await self.database.get_collection(collection).delete_one(filter)
+        self.persistence.forget(instance)
 
     async def paginate(
         self,
@@ -433,6 +462,34 @@ class Manager(Generic[M, S]):
             self.persistence.mark_persisted(instance)
             return instance
         raise NotFound(type(instance), filter)
+
+    def count(self, model: type[M], filter: Filter = None) -> int:
+        pipeline = _normalize_filter(filter).count("total").build()
+        collection = get_collection(model)
+        cursor = self.database.get_collection(collection).aggregate(pipeline)
+        for document in cursor:
+            return document["total"]  # type: ignore[no-any-return]
+        return 0
+
+    def exists(self, model: type[M], filter: Filter = None) -> bool:
+        return self.count(model, filter) > 0
+
+    def delete(self, instance: S) -> None:
+        if not isinstance(instance, Schema):
+            raise Forbidden(
+                unwrap_model(instance),
+                reason="Only schema allowed for delete",
+            )
+        mapper = get_mapper(instance)
+        filter = mapper.to_filter(instance)
+        if not filter:
+            raise Unprocessable(
+                unwrap_model(instance),
+                reason="model must declare one field as pk",
+            )
+        collection = get_collection(instance)
+        self.database.get_collection(collection).delete_one(filter)
+        self.persistence.forget(instance)
 
     def paginate(
         self,

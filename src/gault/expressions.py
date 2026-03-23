@@ -2746,7 +2746,7 @@ class ExpressionsInterface(ABC):
         return AllElementsTrue(self.get_ref())
 
     def any_elements_true(self, *inputs: AnyExpression) -> AnyElementsTrue:
-        return AnyElementsTrue(self)
+        return AnyElementsTrue(self.get_ref())
 
     def asin(self) -> Asin:
         return Asin(self.get_ref())

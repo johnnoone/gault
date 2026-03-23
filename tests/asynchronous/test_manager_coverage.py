@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 from pymongo.asynchronous.database import AsyncDatabase
 
-from gault.exceptions import NotFound, Unprocessable
+from gault.exceptions import Forbidden, NotFound, Unprocessable
 from gault.managers import AsyncManager, Persistence, _normalize_filter
-from gault.models import Attribute, Schema, configure
+from gault.models import Attribute, Model, Schema, configure
 from gault.pipelines import Pipeline
 from gault.utils import to_list
 
@@ -19,6 +19,10 @@ class Person(Schema, collection="coverage-collection"):
 class NoPkModel(Schema, collection="coverage-collection"):
     name: Attribute[str]
     age: Attribute[int]
+
+
+class NotASchema(Model, collection="coverage-notschema"):
+    name: Attribute[str]
 
 
 @pytest.fixture(name="people")
@@ -104,6 +108,50 @@ async def test_find_with_dict_filter(manager: AsyncManager):
     result = await manager.find(Person, filter={"name": "alice"})
     assert result is not None
     assert result.name == "alice"
+
+
+@pytest.mark.usefixtures("people")
+async def test_count(manager: AsyncManager):
+    total = await manager.count(Person)
+    assert total == 3
+
+
+@pytest.mark.usefixtures("people")
+async def test_count_with_filter(manager: AsyncManager):
+    total = await manager.count(Person, filter=Person.age >= 30)
+    assert total == 2
+
+
+async def test_count_empty(manager: AsyncManager):
+    total = await manager.count(Person)
+    assert total == 0
+
+
+@pytest.mark.usefixtures("people")
+async def test_exists(manager: AsyncManager):
+    assert await manager.exists(Person, filter=Person.id == 1) is True
+    assert await manager.exists(Person, filter=Person.id == 9999) is False
+
+
+async def test_delete(manager: AsyncManager):
+    person = Person(id=100, name="to-delete", age=20)
+    await manager.insert(person)
+    assert await manager.exists(Person, filter=Person.id == 100) is True
+
+    await manager.delete(person)
+    assert await manager.exists(Person, filter=Person.id == 100) is False
+
+
+async def test_delete_non_schema_raises_forbidden(manager: AsyncManager):
+    instance = NotASchema(name="alice")
+    with pytest.raises(Forbidden):
+        await manager.delete(instance)
+
+
+async def test_delete_no_pk_raises_unprocessable(manager: AsyncManager):
+    instance = NoPkModel(name="alice", age=30)
+    with pytest.raises(Unprocessable):
+        await manager.delete(instance)
 
 
 async def test_paginate_with_documents_pipeline(manager: AsyncManager):

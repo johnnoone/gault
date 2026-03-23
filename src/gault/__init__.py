@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from importlib.metadata import version
+
 from .accumulators import Accumulator as Accumulator
 from .accumulators import Sum as Sum
 from .exceptions import Forbidden as Forbidden
@@ -24,6 +26,8 @@ from .pipelines import Pipeline as Pipeline
 from .predicates import Field as Field
 from .predicates import Query as Query
 
+__version__ = version("gault")
+
 __all__ = [
     "Accumulator",
     "AsyncManager",
@@ -44,6 +48,7 @@ __all__ = [
     "Sum",
     "Unprocessable",
     "Var",
+    "__version__",
     "configure",
     "get_collection",
     "get_mapper",
